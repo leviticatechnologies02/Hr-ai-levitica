@@ -154,10 +154,10 @@ const DashboardLayoutBase = ({
           >
             {companyLogo ? (
               <img
-                src={companyLogo}
+                src="/assets/images/leviticalogo.png"
                 alt="Company Logo"
                 className={`
-                  object-contain transition-all duration-300
+                  object-contain transition-all duration-300 rounded-lg
 
                   ${
                     desktopSidebarCollapsed

@@ -84,14 +84,10 @@ const Navbar = () => {
             onClick={() => setIsOpen(false)}
           >
             <img
-              src="/assets/images/leviticalogo.png"
+              src="/assets/images/leviticalogo_removebg.png"
               alt="Logo"
-              className="h-8 w-auto"
+              className="h-12 w-auto"
             />
-            <span className="text-2xl font-bold text-gray-900">
-              <span style={{ color: '#3B82F6' }}>AI</span>
-              <span>Recruitment</span>
-            </span>
           </Link>
 
      <div className="hidden lg:flex items-center space-x-1">
