@@ -96,7 +96,7 @@ const DashboardLayoutBase = ({
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-100 text-slate-900">
+    <div className="flex min-h-screen bg-blue-50">
       {/* ========================= */}
       {/* MOBILE OVERLAY */}
       {/* ========================= */}
@@ -122,8 +122,7 @@ const DashboardLayoutBase = ({
           fixed inset-y-0 left-0 z-50
           flex flex-col
           overflow-hidden
-          border-r border-primary-800
-          bg-primary-200
+          bg-primary-100
           shadow-2xl
           transition-all duration-300 ease-in-out
 
@@ -144,7 +143,7 @@ const DashboardLayoutBase = ({
         {/* SIDEBAR HEADER */}
         {/* ========================= */}
 
-        <div className="flex h-16 items-center justify-between border-b border-primary-800 px-4">
+        <div className="flex h-16 items-center justify-between px-4">
           <Link
             to={logoLink}
             className="flex items-center gap-3 overflow-hidden no-underline"
@@ -170,11 +169,11 @@ const DashboardLayoutBase = ({
 
             {!desktopSidebarCollapsed && (
               <div className="flex flex-col overflow-hidden">
-                <span className="truncate text-sm font-bold tracking-wide text-white">
+                <span className="truncate text-sm font-bold tracking-wide text-primary-800">
                   Recruiter Panel
                 </span>
 
-                <span className="truncate text-xs text-primary-200">
+                <span className="truncate text-xs text-primary-900">
                   HR Management System
                 </span>
               </div>
@@ -207,7 +206,7 @@ const DashboardLayoutBase = ({
                 return !desktopSidebarCollapsed ? (
                   <div
                     key={`title-${index}`}
-                    className="px-3 pt-6 pb-2 text-[15px] font-bold tracking-[0.2em] text-primary-300"
+                    className="px-3 py-2 text-[15px] font-bold tracking-[0.2em] text-primary-900"
                   >
                     {item.label}
                   </div>
@@ -247,7 +246,7 @@ const DashboardLayoutBase = ({
 
                         ${isChildActive
                           ? "bg-primary-800 text-white shadow-lg"
-                          : "text-primary-200 hover:bg-primary-800 hover:text-white"
+                          : "text-primary-700 hover:bg-primary-800 hover:text-white"
                         }
                       `}
                     >
@@ -259,7 +258,7 @@ const DashboardLayoutBase = ({
 
                               ${isChildActive
                                 ? "text-primary-200"
-                                : "text-primary-300 group-hover:text-white"
+                                : "text-primary-700 group-hover:text-white"
                               }
                             `}
                           />
@@ -285,10 +284,6 @@ const DashboardLayoutBase = ({
                         />
                       )}
                     </button>
-
-                    {/* ========================= */}
-                    {/* SUB MENU */}
-                    {/* ========================= */}
 
                     {!desktopSidebarCollapsed &&
                       isOpen &&
@@ -353,7 +348,7 @@ const DashboardLayoutBase = ({
 
                                           ${isActive
                                             ? "text-white"
-                                            : "text-primary-300 group-hover:text-white"
+                                            : "text-primary-700 group-hover:text-white"
                                           }
                                         `}
                                       />
@@ -374,10 +369,6 @@ const DashboardLayoutBase = ({
                   </div>
                 );
               }
-
-              // =========================
-              // NORMAL LINK
-              // =========================
 
               const isActive =
                 isRouteActive(item);
@@ -411,7 +402,7 @@ const DashboardLayoutBase = ({
 
                     ${isActive
                       ? "bg-primary-600 text-white shadow-xl shadow-primary-600/20"
-                      : "text-primary-200 hover:bg-primary-800 hover:text-white"
+                      : "text-priary-700 hover:bg-primary-800 hover:text-white"
                     }
                   `}
                 >
@@ -422,7 +413,7 @@ const DashboardLayoutBase = ({
 
                         ${isActive
                           ? "text-white"
-                          : "text-primary-300 group-hover:text-white"
+                          : "text-primary-600 group-hover:text-white"
                         }
                       `}
                     />
@@ -440,10 +431,6 @@ const DashboardLayoutBase = ({
         </nav>
       </aside>
 
-      {/* ========================= */}
-      {/* CONTENT AREA */}
-      {/* ========================= */}
-
       <div
         className={`
           flex min-h-screen flex-1 flex-col transition-all duration-300 ease-in-out
@@ -458,7 +445,7 @@ const DashboardLayoutBase = ({
         {/* TOPBAR */}
         {/* ========================= */}
 
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-blue-100 bg-white/90 px-4 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             {/* DESKTOP TOGGLE */}
 
@@ -469,7 +456,7 @@ const DashboardLayoutBase = ({
                   !desktopSidebarCollapsed
                 )
               }
-              className="hidden rounded-xl p-2 text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900 lg:flex"
+              className="hidden rounded-xl p-2 text-slate-500 transition-all duration-200 hover:bg-blue-50 hover:text-primary lg:flex"
             >
               <HiBars3
                 className={`
@@ -490,7 +477,7 @@ const DashboardLayoutBase = ({
               onClick={() =>
                 setMobileSidebarOpen(true)
               }
-              className="rounded-xl p-2 text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+              className="rounded-xl p-2 text-slate-500 transition-all duration-200 hover:bg-blue-50 hover:text-primary lg:hidden"
             >
               <HiBars3 className="h-5 w-5" />
             </button>
@@ -511,7 +498,7 @@ const DashboardLayoutBase = ({
         {/* MAIN CONTENT */}
         {/* ========================= */}
 
-        <main className="flex-1 overflow-y-auto bg-slate-100 p-3 scrollbar-hide">
+        <main className="flex-1 overflow-y-auto bg-blue-50 p-3 scrollbar-hide">
           {children}
         </main>
 
@@ -519,7 +506,7 @@ const DashboardLayoutBase = ({
         {/* FOOTER */}
         {/* ========================= */}
 
-        <footer className="flex h-14 items-center justify-between border-t border-slate-200 bg-white px-6 text-xs text-slate-500">
+        <footer className="flex h-14 items-center justify-between border-t border-blue-100 bg-white px-6 text-xs text-slate-500">
           <div>
             © {new Date().getFullYear()} Dashboard.
             All Rights Reserved.
@@ -532,7 +519,7 @@ const DashboardLayoutBase = ({
               href="https://leviticatechnologies.com/"
               target="_blank"
               rel="noreferrer"
-              className="font-semibold text-primary-600 no-underline transition-all duration-200 hover:text-primary-700"
+              className="font-semibold text-primary no-underline transition-all duration-200 hover:text-primary-700"
             >
               Levitica Technologies
             </a>
