@@ -106,10 +106,9 @@ const DashboardLayoutBase = ({
         className={`
           fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-all duration-300 lg:hidden
 
-          ${
-            mobileSidebarOpen
-              ? "visible opacity-100"
-              : "invisible opacity-0"
+          ${mobileSidebarOpen
+            ? "visible opacity-100"
+            : "invisible opacity-0"
           }
         `}
       />
@@ -123,21 +122,19 @@ const DashboardLayoutBase = ({
           fixed inset-y-0 left-0 z-50
           flex flex-col
           overflow-hidden
-          border-r border-slate-800
-          bg-slate-950
+          border-r border-primary-800
+          bg-primary-900
           shadow-2xl
           transition-all duration-300 ease-in-out
 
-          ${
-            mobileSidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
+          ${mobileSidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
           }
 
-          ${
-            desktopSidebarCollapsed
-              ? "lg:w-20"
-              : "lg:w-72"
+          ${desktopSidebarCollapsed
+            ? "lg:w-20"
+            : "lg:w-72"
           }
 
           w-72
@@ -147,7 +144,7 @@ const DashboardLayoutBase = ({
         {/* SIDEBAR HEADER */}
         {/* ========================= */}
 
-        <div className="flex h-16 items-center justify-between border-b border-slate-800 px-4">
+        <div className="flex h-16 items-center justify-between border-b border-primary-800 px-4">
           <Link
             to={logoLink}
             className="flex items-center gap-3 overflow-hidden no-underline"
@@ -159,10 +156,9 @@ const DashboardLayoutBase = ({
                 className={`
                   object-contain transition-all duration-300 rounded-lg
 
-                  ${
-                    desktopSidebarCollapsed
-                      ? "h-9 w-9"
-                      : "h-10 w-auto max-w-[170px]"
+                  ${desktopSidebarCollapsed
+                    ? "h-9 w-9"
+                    : "h-10 w-auto max-w-[170px]"
                   }
                 `}
               />
@@ -178,7 +174,7 @@ const DashboardLayoutBase = ({
                   Recruiter Panel
                 </span>
 
-                <span className="truncate text-xs text-slate-400">
+                <span className="truncate text-xs text-primary-200">
                   HR Management System
                 </span>
               </div>
@@ -190,7 +186,7 @@ const DashboardLayoutBase = ({
           <button
             type="button"
             onClick={closeMobileSidebar}
-            className="rounded-xl p-2 text-slate-400 transition-all duration-200 hover:bg-slate-800 hover:text-white lg:hidden"
+            className="rounded-xl p-2 text-primary-200 transition-all duration-200 hover:bg-primary-800 hover:text-white lg:hidden"
           >
             <HiXMark className="h-5 w-5" />
           </button>
@@ -211,14 +207,14 @@ const DashboardLayoutBase = ({
                 return !desktopSidebarCollapsed ? (
                   <div
                     key={`title-${index}`}
-                    className="px-3 pt-6 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500"
+                    className="px-3 pt-6 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary-300"
                   >
                     {item.label}
                   </div>
                 ) : (
                   <div
                     key={`divider-${index}`}
-                    className="my-5 h-px bg-slate-800"
+                    className="my-5 h-px bg-primary-800"
                   />
                 );
               }
@@ -249,10 +245,9 @@ const DashboardLayoutBase = ({
                       className={`
                         group flex w-full items-center justify-between rounded-2xl px-3 py-3 text-sm font-medium transition-all duration-200
 
-                        ${
-                          isChildActive
-                            ? "bg-slate-800 text-white shadow-lg"
-                            : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                        ${isChildActive
+                          ? "bg-primary-800 text-white shadow-lg"
+                          : "text-primary-200 hover:bg-primary-800 hover:text-white"
                         }
                       `}
                     >
@@ -262,10 +257,9 @@ const DashboardLayoutBase = ({
                             className={`
                               h-5 w-5 flex-shrink-0 transition-all duration-200
 
-                              ${
-                                isChildActive
-                                  ? "text-primary-400"
-                                  : "text-slate-500 group-hover:text-white"
+                              ${isChildActive
+                                ? "text-primary-200"
+                                : "text-primary-300 group-hover:text-white"
                               }
                             `}
                           />
@@ -283,10 +277,9 @@ const DashboardLayoutBase = ({
                           className={`
                             h-4 w-4 flex-shrink-0 transition-all duration-300
 
-                            ${
-                              isOpen
-                                ? "rotate-90"
-                                : ""
+                            ${isOpen
+                              ? "rotate-90"
+                              : ""
                             }
                           `}
                         />
@@ -300,7 +293,7 @@ const DashboardLayoutBase = ({
                     {!desktopSidebarCollapsed &&
                       isOpen &&
                       item.items && (
-                        <div className="ml-6 mt-2 border-l border-slate-800 pl-4">
+                        <div className="ml-6 mt-2 border-l border-primary-800 pl-4">
                           <div className="space-y-1">
                             {item.items.map(
                               (
@@ -318,24 +311,24 @@ const DashboardLayoutBase = ({
                                 const linkProps =
                                   onTabChange
                                     ? {
-                                        to: "#",
+                                      to: "#",
 
-                                        onClick:
-                                          (
-                                            e
-                                          ) => {
-                                            e.preventDefault();
+                                      onClick:
+                                        (
+                                          e
+                                        ) => {
+                                          e.preventDefault();
 
-                                            onTabChange(
-                                              subItem.tabKey
-                                            );
+                                          onTabChange(
+                                            subItem.tabKey
+                                          );
 
-                                            closeMobileSidebar();
-                                          },
-                                      }
+                                          closeMobileSidebar();
+                                        },
+                                    }
                                     : {
-                                        to: subItem.to,
-                                      };
+                                      to: subItem.to,
+                                    };
 
                                 return (
                                   <NavLink
@@ -347,10 +340,9 @@ const DashboardLayoutBase = ({
                                     className={`
                                       group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-200 no-underline
 
-                                      ${
-                                        isActive
-                                          ? "bg-primary-600 text-white shadow-lg shadow-primary-600/20"
-                                          : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                                      ${isActive
+                                        ? "bg-primary-600 text-white shadow-lg shadow-primary-600/20"
+                                        : "text-primary-200 hover:bg-primary-800 hover:text-white"
                                       }
                                     `}
                                   >
@@ -359,10 +351,9 @@ const DashboardLayoutBase = ({
                                         className={`
                                           h-4 w-4 flex-shrink-0
 
-                                          ${
-                                            isActive
-                                              ? "text-white"
-                                              : "text-slate-500 group-hover:text-white"
+                                          ${isActive
+                                            ? "text-white"
+                                            : "text-primary-300 group-hover:text-white"
                                           }
                                         `}
                                       />
@@ -394,19 +385,19 @@ const DashboardLayoutBase = ({
               const linkProps =
                 onTabChange && item.tabKey
                   ? {
-                      to: "#",
+                    to: "#",
 
-                      onClick: (e) => {
-                        e.preventDefault();
+                    onClick: (e) => {
+                      e.preventDefault();
 
-                        onTabChange(item.tabKey);
+                      onTabChange(item.tabKey);
 
-                        closeMobileSidebar();
-                      },
-                    }
+                      closeMobileSidebar();
+                    },
+                  }
                   : {
-                      to: item.to,
-                    };
+                    to: item.to,
+                  };
 
               return (
                 <NavLink
@@ -418,10 +409,9 @@ const DashboardLayoutBase = ({
                   className={`
                     group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-all duration-200 no-underline
 
-                    ${
-                      isActive
-                        ? "bg-primary-600 text-white shadow-xl shadow-primary-600/20"
-                        : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                    ${isActive
+                      ? "bg-primary-600 text-white shadow-xl shadow-primary-600/20"
+                      : "text-primary-200 hover:bg-primary-800 hover:text-white"
                     }
                   `}
                 >
@@ -430,10 +420,9 @@ const DashboardLayoutBase = ({
                       className={`
                         h-5 w-5 flex-shrink-0 transition-all duration-200
 
-                        ${
-                          isActive
-                            ? "text-white"
-                            : "text-slate-500 group-hover:text-white"
+                        ${isActive
+                          ? "text-white"
+                          : "text-primary-300 group-hover:text-white"
                         }
                       `}
                     />
@@ -459,10 +448,9 @@ const DashboardLayoutBase = ({
         className={`
           flex min-h-screen flex-1 flex-col transition-all duration-300 ease-in-out
 
-          ${
-            desktopSidebarCollapsed
-              ? "lg:pl-20"
-              : "lg:pl-72"
+          ${desktopSidebarCollapsed
+            ? "lg:pl-20"
+            : "lg:pl-72"
           }
         `}
       >
@@ -487,10 +475,9 @@ const DashboardLayoutBase = ({
                 className={`
                   h-5 w-5 transition-transform duration-300
 
-                  ${
-                    desktopSidebarCollapsed
-                      ? "rotate-180"
-                      : ""
+                  ${desktopSidebarCollapsed
+                    ? "rotate-180"
+                    : ""
                   }
                 `}
               />
