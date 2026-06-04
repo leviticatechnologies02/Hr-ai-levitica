@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { HiOutlineRocketLaunch } from 'react-icons/hi2';
 import DashboardLayoutBase from "../../shared/components/DashboardLayoutBase";
 import {
   HiOutlineHome,
@@ -140,6 +141,7 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
 
   // Sidebar items configuration
   const sidebarItems = [
+    
     {
       type: 'link',
       to: '/dashboard',
@@ -186,6 +188,17 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
       tabKey: 'recruiter-performance',
       label: 'Analytics',
       icon: HiOutlineChartBarSquare
+    },
+    {
+      type: 'title',
+      label: 'Productivity'
+    },
+    {
+      type: 'link',
+      to: '/productivity',
+      tabKey: 'productivity',
+      label: 'Productivity Dashboard',
+      icon: HiOutlineRocketLaunch
     },
     {
       type: 'dropdown',

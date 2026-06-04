@@ -141,6 +141,8 @@ import Footer from './modules/landing/Footer'
 import ContactPage from './modules/landing/ContactPage';
 import Human from './modules/landing/Human'
 import HomePage from './modules/landing/HomePage';
+import ProductivityDashboard from
+"./modules/productivity/dashboard/ProductivityDashboard";
 
 
 
@@ -1546,6 +1548,12 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/productivity"
+        element={<ProductivityDashboard />}
+      />
+
       <Route
         path='/super-admin/authentication'
         element={
