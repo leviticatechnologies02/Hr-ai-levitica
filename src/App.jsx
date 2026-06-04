@@ -143,6 +143,12 @@ import Human from './modules/landing/Human'
 import HomePage from './modules/landing/HomePage';
 import ProductivityDashboard from
 "./modules/productivity/dashboard/ProductivityDashboard";
+import ProductivityReports from "./modules/productivity/reports/ProductivityReports";
+import EmployeeInsights from "./modules/productivity/components/EmployeeInsights";
+import TaskTracker from "./modules/productivity/services/TaskTracker";
+import TimeTracking from './modules/productivity/tasks/TimeTracking';
+import Projects from './modules/productivity/projects/Projects';
+
 
 
 
@@ -556,6 +562,13 @@ const App = () => {
         }
       />
 
+      {/* Productivity Routes */}
+      <Route path='/productivity/dashboard' element={<ProtectedRoute><RecruiterDashboardLayout><ProductivityDashboard /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/projects' element={<ProtectedRoute><RecruiterDashboardLayout><Projects /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/tasks' element={<ProtectedRoute><RecruiterDashboardLayout><TaskTracker /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/time-tracking' element={<ProtectedRoute><RecruiterDashboardLayout><TimeTracking /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/employee-insights' element={<ProtectedRoute><RecruiterDashboardLayout><EmployeeInsights /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/reports' element={<ProtectedRoute><RecruiterDashboardLayout><ProductivityReports /></RecruiterDashboardLayout></ProtectedRoute>} />
 
       {/* Legacy sidebar routes for Tenant links (match RecruiterDashboardLayout NavLinks) */}
       <Route
@@ -1425,7 +1438,16 @@ const App = () => {
             </RecruiterDashboardLayout>
           </ProtectedRoute>
         }
+
+        
       />
+      
+      <Route
+        path="/productivity/dashboard"
+        element={<ProductivityDashboard />}
+      />
+
+
       <Route
         path='/reports/leave'
         element={
@@ -1549,10 +1571,7 @@ const App = () => {
         }
       />
 
-      <Route
-        path="/productivity"
-        element={<ProductivityDashboard />}
-      />
+
 
       <Route
         path='/super-admin/authentication'

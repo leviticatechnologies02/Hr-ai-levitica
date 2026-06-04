@@ -350,12 +350,19 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
       label: 'Productivity'
     },
     {
-      type: 'link',
-      to: '/productivity',
-      tabKey: 'productivity',
-      label: 'Productivity Dashboard',
-      icon: HiOutlineRocketLaunch
+      type: 'dropdown',
+      label: 'Productivity',
+      icon: HiOutlineBuildingOffice2,
+      items: [
+        { to: '/productivity/dashboard', tabKey: 'productivity', label: 'Productivity Dashboard', icon: HiOutlineRocketLaunch },
+        { to: '/productivity/projects', tabKey: 'prod-goals', label: 'Projects & Goals', icon: HiOutlineArrowTrendingUp },        
+        { to: '/productivity/tasks', tabKey: 'prod-tasks', label: 'Task Tracker', icon: HiOutlineClipboardDocumentList },
+        { to: '/productivity/time-tracking', tabKey: 'prod-time', label: 'Time Tracking', icon: HiOutlineClock },
+        { to: '/productivity/employee-insights', tabKey: 'prod-insights', label: 'Employee Insights', icon: HiOutlineUserGroup },
+        { to: '/productivity/reports', tabKey: 'prod-reports', label: 'Reports', icon: HiOutlineChartBar },
+      ]
     },
+
     {
       type: 'title',
       label: 'Quick Actions'

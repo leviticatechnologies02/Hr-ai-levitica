@@ -123,7 +123,7 @@ const DashboardLayoutBase = ({
           flex flex-col
           overflow-hidden
           border-r border-primary-800
-          bg-primary-900
+          bg-primary-200
           shadow-2xl
           transition-all duration-300 ease-in-out
 
@@ -207,7 +207,7 @@ const DashboardLayoutBase = ({
                 return !desktopSidebarCollapsed ? (
                   <div
                     key={`title-${index}`}
-                    className="px-3 pt-6 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary-300"
+                    className="px-3 pt-6 pb-2 text-[15px] font-bold tracking-[0.2em] text-primary-300"
                   >
                     {item.label}
                   </div>
@@ -342,7 +342,7 @@ const DashboardLayoutBase = ({
 
                                       ${isActive
                                         ? "bg-primary-600 text-white shadow-lg shadow-primary-600/20"
-                                        : "text-primary-200 hover:bg-primary-800 hover:text-white"
+                                        : "text-primary-700 hover:bg-primary-800 hover:text-white"
                                       }
                                     `}
                                   >
