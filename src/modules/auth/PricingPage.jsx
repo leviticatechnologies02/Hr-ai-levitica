@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Check, X, CreditCard, Lock, CheckCircle } from 'lucide-react';
 import { getUserRole } from "../../shared/utils/auth";
+import Navbar from '../landing/Navbar';
+import Footer from '../landing/Footer';
 
 const PricingPage = () => {
   const navigate = useNavigate();
@@ -326,11 +328,11 @@ const PricingPage = () => {
           }
         `}
       </style>
-
+      <Navbar/>
       <div className="min-vh-100" style={{ 
         background: 'linear-gradient(135deg, #28197bff 0%, #eff1f4ff 100%)' 
       }}>
-        <div className="container py-5">
+        <div className="container py-5 mt-20">
           {!showSubscription ? (
             /* Pricing Page Content */
             <>
@@ -340,9 +342,6 @@ const PricingPage = () => {
                 style={{ opacity: isLoaded ? 1 : 0 }}
               >
                 <h1 className="display-4 fw-bold mb-3">Our Pricing & Plans</h1>
-                <p className="lead mb-4">
-                  Lorem ipsum dolor sit amet consectetur adipiscing elit dolor posuere vel venenatis eu sit massa volutpat.
-                </p>
                 
                 {/* Toggle Switch */}
                 <div className="d-flex justify-content-center mb-5">
@@ -1188,7 +1187,7 @@ const PricingPage = () => {
           )}
         </div>
       </div>
-
+      <Footer/>
       {/* Payment Success Modal */}
       {showSuccess && (
         <div className="modal-overlay scale-in">

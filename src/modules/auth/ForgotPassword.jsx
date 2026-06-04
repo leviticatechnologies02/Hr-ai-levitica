@@ -54,15 +54,16 @@ const ForgotPassword = () => {
         }}>
           <div className='max-w-464-px mx-auto w-100'>
             <div className='mb-4 mb-md-5'>
-              <div className='d-flex align-items-center gap-3 mb-3'>
-                <img 
-                  src='/assets/images/leviticalogo.png' 
-                  alt='Logo' 
-                  className='img-fluid' 
-                  style={{ height: '40px', width: 'auto' }}
-                />
-                <span className='text-primary fw-bold fs-5'>AI Recruitment</span>
-              </div>
+              <Link to="/">
+                <div className='d-flex align-items-center gap-3 mb-3'>
+                  <img
+                    src='/assets/images/leviticalogo_removebg.png'
+                    alt='Logo'
+                    className='img-fluid'
+                    style={{ height: '60px', width: 'auto' }}
+                  />
+                </div>
+              </Link>
               <h2 className='fw-bold mb-2' style={{ fontSize: '2rem', color: '#1a1a1a' }}>Forgot Password</h2>
               <p className='text-muted mb-0' style={{ fontSize: '1rem' }}>
                 Enter the email address associated with your account and we will send you a link to reset your password.
@@ -122,6 +123,7 @@ const ForgotPassword = () => {
                 Continue
               </button>
               <div className='text-center mb-3'>
+                <span>If you know your password -- </span>
                 <Link 
                   to='/login' 
                   className='text-primary fw-semibold text-decoration-none'
@@ -134,22 +136,6 @@ const ForgotPassword = () => {
                 >
                   Back to Sign In
                 </Link>
-              </div>
-              <div className='text-center'>
-                <p className='mb-0 text-muted' style={{ fontSize: '0.95rem' }}>
-                  Already have an account?{" "}
-                  <Link 
-                    to='/login' 
-                    className='text-primary fw-bold text-decoration-none'
-                    style={{ 
-                      transition: 'color 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => e.target.style.color = '#2563eb'}
-                    onMouseLeave={(e) => e.target.style.color = '#3b82f6'}
-                  >
-                    Sign In
-                  </Link>
-                </p>
               </div>
             </form>
           </div>

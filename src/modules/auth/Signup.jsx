@@ -130,14 +130,15 @@ const Signup = () => {
         <div className="w-full max-w-2xl mx-auto">
           {/* Logo and Header */}
           <div className="mb-6 md:mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <img 
-                src='/assets/images/leviticalogo.png' 
-                alt='Logo' 
-                className="h-10 w-auto"
-              />
-              <span className="text-primary font-bold text-lg">AI Recruitment</span>
-            </div>
+            <Link to="/">
+              <div className="flex items-center gap-3 mb-4">
+                <img
+                  src='/assets/images/leviticalogo_removebg.png'
+                  alt='Logo'
+                  className="h-14 w-auto"
+                />
+              </div>
+            </Link>
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Company Signup</h2>
             <p className="text-gray-500 text-sm md:text-base">
               Register your company! Please enter your details to get started

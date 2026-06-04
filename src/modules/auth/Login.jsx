@@ -166,15 +166,16 @@ const Login = () => {
         }}>
           <div className='max-w-464-px mx-auto w-100'>
             <div className='mb-4 mb-md-5'>
-              <div className='d-flex align-items-center gap-3 mb-3'>
-                <img
-                  src='/assets/images/leviticalogo.png'
-                  alt='Logo'
-                  className='img-fluid'
-                  style={{ height: '40px', width: 'auto' }}
-                />
-                <span className='text-primary fw-bold fs-5'>AI Recruitment</span>
-              </div>
+              <Link to="/">
+                <div className='d-flex align-items-center justify-center gap-3 mb-3'>
+                  <img
+                    src='/assets/images/leviticalogo_removebg.png'
+                    alt='Logo'
+                    className='img-fluid'
+                    style={{ height: '50px', width: 'auto' }}
+                  />
+                </div>
+              </Link>
               <h4 className='fw-bold mb-2' style={{ fontSize: '2rem', color: '#1a1a1a' }}>Sign In to your Account</h4>
               <p className='text-muted mb-0' style={{ fontSize: '1rem' }}>
                 Welcome back! Please enter your details to continue

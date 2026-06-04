@@ -994,7 +994,7 @@ const ContactBody = () => {
           </div>
         </div>
       ) : (
-        <div style={styles.page}>
+        <div style={styles.page} className="mt-18">
           <div style={styles.container}>
             {/* LEFT SIDE */}
             <div style={styles.left}>

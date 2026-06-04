@@ -17,7 +17,6 @@ const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { name: 'What we do', path: '/' },
     {
       name: 'Products',
       dropdown: true,
