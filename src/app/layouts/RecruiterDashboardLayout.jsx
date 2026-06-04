@@ -190,17 +190,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
       icon: HiOutlineChartBarSquare
     },
     {
-      type: 'title',
-      label: 'Productivity'
-    },
-    {
-      type: 'link',
-      to: '/productivity',
-      tabKey: 'productivity',
-      label: 'Productivity Dashboard',
-      icon: HiOutlineRocketLaunch
-    },
-    {
       type: 'dropdown',
       label: 'Assessment',
       icon: HiOutlineBriefcase,
@@ -215,6 +204,7 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
         { to: '/recruiter/offer-tracking', tabKey: 'offer-tracking', label: 'Offer Tracking', icon: HiOutlineClipboardDocumentList }
       ]
     },
+
     {
       type: 'title',
       label: 'CRM'
@@ -354,6 +344,17 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
       tabKey: 'company-settings',
       label: 'Company Settings',
       icon: HiOutlineCog6Tooth
+    },
+    {
+      type: 'title',
+      label: 'Productivity'
+    },
+    {
+      type: 'link',
+      to: '/productivity',
+      tabKey: 'productivity',
+      label: 'Productivity Dashboard',
+      icon: HiOutlineRocketLaunch
     },
     {
       type: 'title',
