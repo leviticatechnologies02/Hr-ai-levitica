@@ -36,6 +36,7 @@ import {
   FiChevronUp,
   FiUpload
 } from 'react-icons/fi';
+import { FaSkype } from 'react-icons/fa';
 import { BASE_URL } from "../../../shared/constants/api.config";
 import Modal from '../../../shared/components/Modal';
 
@@ -1220,7 +1221,7 @@ const Contacts = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Skype</label>
                 <div className="relative">
-                  <FiSkype className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <FaSkype className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
                     name="skype"

@@ -122,8 +122,7 @@ const DashboardLayoutBase = ({
           fixed inset-y-0 left-0 z-50
           flex flex-col
           overflow-hidden
-          bg-primary-100
-          shadow-2xl
+          bg-primary-900
           transition-all duration-300 ease-in-out
 
           ${mobileSidebarOpen
@@ -169,11 +168,11 @@ const DashboardLayoutBase = ({
 
             {!desktopSidebarCollapsed && (
               <div className="flex flex-col overflow-hidden">
-                <span className="truncate text-sm font-bold tracking-wide text-primary-800">
+                <span className="truncate text-sm font-bold tracking-wide text-white">
                   Recruiter Panel
                 </span>
 
-                <span className="truncate text-xs text-primary-900">
+                <span className="truncate text-xs text-primary-100">
                   HR Management System
                 </span>
               </div>
@@ -206,7 +205,7 @@ const DashboardLayoutBase = ({
                 return !desktopSidebarCollapsed ? (
                   <div
                     key={`title-${index}`}
-                    className="px-3 py-2 text-[15px] font-bold tracking-[0.2em] text-primary-900"
+                    className="px-3 py-2 text-[18px] font-bold text-white"
                   >
                     {item.label}
                   </div>
@@ -246,7 +245,7 @@ const DashboardLayoutBase = ({
 
                         ${isChildActive
                           ? "bg-primary-800 text-white shadow-lg"
-                          : "text-primary-700 hover:bg-primary-800 hover:text-white"
+                          : "text-primary-200 hover:bg-primary-800 hover:text-white"
                         }
                       `}
                     >
@@ -258,7 +257,7 @@ const DashboardLayoutBase = ({
 
                               ${isChildActive
                                 ? "text-primary-200"
-                                : "text-primary-700 group-hover:text-white"
+                                : "text-primary-200 group-hover:text-white"
                               }
                             `}
                           />
@@ -337,7 +336,7 @@ const DashboardLayoutBase = ({
 
                                       ${isActive
                                         ? "bg-primary-600 text-white shadow-lg shadow-primary-600/20"
-                                        : "text-primary-700 hover:bg-primary-800 hover:text-white"
+                                        : "text-primary-200 hover:bg-primary-800 hover:text-white"
                                       }
                                     `}
                                   >
@@ -348,7 +347,7 @@ const DashboardLayoutBase = ({
 
                                           ${isActive
                                             ? "text-white"
-                                            : "text-primary-700 group-hover:text-white"
+                                            : "text-primary-200 group-hover:text-white"
                                           }
                                         `}
                                       />
@@ -402,7 +401,7 @@ const DashboardLayoutBase = ({
 
                     ${isActive
                       ? "bg-primary-600 text-white shadow-xl shadow-primary-600/20"
-                      : "text-priary-700 hover:bg-primary-800 hover:text-white"
+                      : "text-primary-200 hover:bg-primary-800 hover:text-white"
                     }
                   `}
                 >
@@ -413,7 +412,7 @@ const DashboardLayoutBase = ({
 
                         ${isActive
                           ? "text-white"
-                          : "text-primary-600 group-hover:text-white"
+                          : "text-primary-200 group-hover:text-white"
                         }
                       `}
                     />
