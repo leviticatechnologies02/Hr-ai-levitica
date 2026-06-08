@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { assessmentAPI } from "../../../shared/utils/api";
 import { Icon } from '@iconify/react/dist/iconify.js';
+import StatCard from '../../../shared/components/StatCard';
 
 const AssessmentManagement = () => {
   const [activeTab, setActiveTab] = useState('assessments');
@@ -158,71 +159,35 @@ const AssessmentManagement = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="row mb-24">
-        <div className="col-md-3">
-          <div className="card shadow-none border">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <p className="text-secondary-light mb-1">Total Assessments</p>
-                  <h4 className="mb-0">{assessments.length}</h4>
-                </div>
-                <div className="bg-primary-subtle p-3 rounded">
-                  <FileText className="text-primary" size={24} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-none border">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <p className="text-secondary-light mb-1">Active Assignments</p>
-                  <h4 className="mb-0">{assignments.length}</h4>
-                </div>
-                <div className="bg-success-subtle p-3 rounded">
-                  <Send className="text-success" size={24} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-none border">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <p className="text-secondary-light mb-1">Aptitude Tests</p>
-                  <h4 className="mb-0">
-                    {assessments.filter(a => a.type === 'aptitude').length}
-                  </h4>
-                </div>
-                <div className="bg-purple-subtle p-3 rounded">
-                  <Brain className="text-purple" size={24} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-none border">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <p className="text-secondary-light mb-1">Coding Tests</p>
-                  <h4 className="mb-0">
-                    {assessments.filter(a => a.type === 'coding').length}
-                  </h4>
-                </div>
-                <div className="bg-info-subtle p-3 rounded">
-                  <Code className="text-info" size={24} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-24">
+        <StatCard 
+          title="Total Assessments"
+          value={assessments.length}
+          subtitle="All created tests"
+          icon="lucide:file-text"
+          color="blue"
+        />
+        <StatCard 
+          title="Active Assignments"
+          value={assignments.length}
+          subtitle="Currently assigned"
+          icon="lucide:send"
+          color="green"
+        />
+        <StatCard 
+          title="Aptitude Tests"
+          value={assessments.filter(a => a.type === 'aptitude').length}
+          subtitle="Cognitive & reasoning"
+          icon="lucide:brain"
+          color="purple"
+        />
+        <StatCard 
+          title="Coding Tests"
+          value={assessments.filter(a => a.type === 'coding').length}
+          subtitle="Technical skills"
+          icon="lucide:code"
+          color="yellow"
+        />
       </div>
 
       {/* Tabs */}

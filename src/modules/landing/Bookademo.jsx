@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const DemoBooking = () => {
   const today = new Date();

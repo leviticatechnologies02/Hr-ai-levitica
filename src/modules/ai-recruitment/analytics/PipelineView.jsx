@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Eye, MoreVertical, Users, TrendingUp, Calendar, ArrowRight, RefreshCw } from 'lucide-react';
 import { BASE_URL } from "../../../shared/constants/api.config";
-
+import StatCard from '../../../shared/components/StatCard';
 const PipelineView = () => {
   const [stages, setStages] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -368,56 +368,35 @@ const PipelineView = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="card border shadow-sm mb-4">
-          <div className="row g-0">
-            <div className="col-md-3 border-end">
-              <div className="card-body text-center">
-                <div className="d-flex align-items-center justify-content-center gap-3 mb-2">
-                  <div className="p-2 bg-primary-subtle rounded">
-                    <Users size={20} className="text-primary" />
-                  </div>
-                  <span className="text-muted small">Total Candidates</span>
-                </div>
-                <h3 className="mb-0">{totalCandidates}</h3>
-              </div>
-            </div>
-          
-            <div className="col-md-3 border-end">
-              <div className="card-body text-center">
-                <div className="d-flex align-items-center justify-content-center gap-3 mb-2">
-                  <div className="p-2 bg-success-subtle rounded">
-                    <TrendingUp size={20} className="text-success" />
-                  </div>
-                  <span className="text-muted small">Hired This Month</span>
-                </div>
-                <h3 className="mb-0">{stages.find(s => s.id === 'hired')?.candidates.length || 0}</h3>
-              </div>
-            </div>
-
-            <div className="col-md-3 border-end">
-              <div className="card-body text-center">
-                <div className="d-flex align-items-center justify-content-center gap-3 mb-2">
-                  <div className="p-2 bg-warning-subtle rounded">
-                    <Calendar size={20} className="text-warning" />
-                  </div>
-                  <span className="text-muted small">Active Offers</span>
-                </div>
-                <h3 className="mb-0">{stages.find(s => s.id === 'offer')?.candidates.length || 0}</h3>
-              </div>
-            </div>
-
-            <div className="col-md-3">
-              <div className="card-body text-center">
-                <div className="d-flex align-items-center justify-content-center gap-3 mb-2">
-                  <div className="p-2 bg-info-subtle rounded">
-                    <ArrowRight size={20} className="text-info" />
-                  </div>
-                  <span className="text-muted small">Pipeline Stages</span>
-                </div>
-                <h3 className="mb-0">{stages.length}</h3>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4">
+          <StatCard 
+            title="Total Candidates"
+            value={totalCandidates}
+            subtitle="In Pipeline"
+            icon="lucide:users"
+            color="blue"
+          />
+          <StatCard 
+            title="Hired This Month"
+            value={stages.find(s => s.id === 'hired')?.candidates.length || 0}
+            subtitle="Recently joined"
+            icon="lucide:trending-up"
+            color="green"
+          />
+          <StatCard 
+            title="Active Offers"
+            value={stages.find(s => s.id === 'offer')?.candidates.length || 0}
+            subtitle="Awaiting response"
+            icon="lucide:calendar"
+            color="yellow"
+          />
+          <StatCard 
+            title="Pipeline Stages"
+            value={stages.length}
+            subtitle="Configured stages"
+            icon="lucide:arrow-right"
+            color="purple"
+          />
         </div>
 
         {/* Search and Filter Bar */}

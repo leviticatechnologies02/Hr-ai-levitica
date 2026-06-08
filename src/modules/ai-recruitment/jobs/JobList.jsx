@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FiBriefcase, 
-  FiCheckCircle, 
-  FiXCircle, 
-  FiFileText, 
-  FiSearch, 
-  FiDownload, 
-  FiEye, 
-  FiEdit2, 
-  FiTrash2, 
-  FiRefreshCw, 
+import {
+  FiBriefcase,
+  FiCheckCircle,
+  FiXCircle,
+  FiFileText,
+  FiSearch,
+  FiDownload,
+  FiEye,
+  FiEdit2,
+  FiTrash2,
+  FiRefreshCw,
   FiAlertCircle,
   FiPlus,
   FiMapPin,
@@ -21,7 +21,7 @@ import {
 } from 'react-icons/fi';
 import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 import Modal from '../../../shared/components/Modal';
-
+import StatCard from '../../../shared/components/StatCard';
 const formatDisplayDate = (value) => {
   if (!value) return 'Not specified';
   const parsedDate = new Date(value);
@@ -245,7 +245,7 @@ const JobsListPage = () => {
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case 'Open':
       case 'Active': return 'bg-emerald-50 text-emerald-700';
       case 'Closed': return 'bg-rose-50 text-rose-700';
@@ -315,53 +315,34 @@ const JobsListPage = () => {
           <>
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Total Jobs</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{kpis.totalJobs}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FiBriefcase className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Active Jobs</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{kpis.openJobs}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <FiCheckCircle className="h-5 w-5 text-emerald-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Draft Jobs</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{kpis.draftJobs}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                    <FiFileText className="h-5 w-5 text-amber-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Closed Jobs</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{kpis.closedJobs}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center">
-                    <FiXCircle className="h-5 w-5 text-rose-600" />
-                  </div>
-                </div>
-              </div>
+              <StatCard
+                title="Totat Jobs"
+                value={kpis.totalJobs}
+                subtitle="All created jobs"
+                icon="lucide:briefcase"
+                color="blue"
+              />
+              <StatCard
+                title="Active Jobs"
+                value={kpis.openJobs}
+                subtitle="Currently open"
+                icon="lucide:check-circle"
+                color="green"
+              />
+              <StatCard
+                title="Draft Jobs"
+                value={kpis.draftJobs}
+                subtitle="Not yet published"
+                icon="lucide:file-text"
+                color="yellow"
+              />
+              <StatCard
+                title="Closed Jobs"
+                value={kpis.closedJobs}
+                subtitle="No longer accepting"
+                icon="lucide:x-circle"
+                color="purple"
+              />
             </div>
 
             {/* Filters */}
@@ -511,13 +492,13 @@ const JobsListPage = () => {
                           className="rounded border-gray-300 text-primary focus:ring-primary"
                         />
                       </th>
-                      <th className="text-left text-xs font-semibold text-gray-600 px-4 py-3">JOB TITLE</th>
-                      <th className="text-left text-xs font-semibold text-gray-600 px-4 py-3">DEPARTMENT</th>
-                      <th className="text-left text-xs font-semibold text-gray-600 px-4 py-3">RECRUITER</th>
-                      <th className="text-left text-xs font-semibold text-gray-600 px-4 py-3">POSTED ON</th>
-                      <th className="text-center text-xs font-semibold text-gray-600 px-4 py-3">STATUS</th>
-                      <th className="text-center text-xs font-semibold text-gray-600 px-4 py-3">APPLICANTS</th>
-                      <th className="text-center text-xs font-semibold text-gray-600 px-4 py-3">ACTIONS</th>
+                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Job Title</th>
+                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Department</th>
+                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Recruiter</th>
+                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Posted On</th>
+                      <th className="text-center text-sm font-semibold text-gray-600 px-4 py-3">Status</th>
+                      <th className="text-center text-sm font-semibold text-gray-600 px-4 py-3">Applicants</th>
+                      <th className="text-center text-sm font-semibold text-gray-600 px-4 py-3">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -601,11 +582,10 @@ const JobsListPage = () => {
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 text-sm rounded-lg transition-all ${
-                        currentPage === page
-                          ? 'bg-primary text-white'
-                          : 'border border-gray-200 hover:bg-white'
-                      }`}
+                      className={`px-3 py-1 text-sm rounded-lg transition-all ${currentPage === page
+                        ? 'bg-primary text-white'
+                        : 'border border-gray-200 hover:bg-white'
+                        }`}
                     >
                       {page}
                     </button>
@@ -616,11 +596,10 @@ const JobsListPage = () => {
                   {totalPages > 3 && currentPage < totalPages - 1 && (
                     <button
                       onClick={() => handlePageChange(totalPages)}
-                      className={`px-3 py-1 text-sm rounded-lg transition-all ${
-                        currentPage === totalPages
-                          ? 'bg-primary text-white'
-                          : 'border border-gray-200 hover:bg-white'
-                      }`}
+                      className={`px-3 py-1 text-sm rounded-lg transition-all ${currentPage === totalPages
+                        ? 'bg-primary text-white'
+                        : 'border border-gray-200 hover:bg-white'
+                        }`}
                     >
                       {totalPages}
                     </button>

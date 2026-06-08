@@ -19,6 +19,7 @@ import {
 } from 'react-icons/fi';
 import { assessmentAPI } from "../../../shared/utils/api";
 import Modal from '../../../shared/components/Modal';
+import StatCard from '../../../shared/components/StatCard';
 import { FaBrain } from 'react-icons/fa';
 
 const TEST_TYPE_OPTIONS = [
@@ -336,57 +337,34 @@ const AssessmentLibrary = () => {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Total Templates</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{totalAssessments}</p>
-                <p className="text-xs text-gray-400 mt-1">All test types</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FiGrid className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Easy</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{easyCount}</p>
-                <p className="text-xs text-gray-400 mt-1">Across all types</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <FiSmile className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Medium</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{mediumCount}</p>
-                <p className="text-xs text-gray-400 mt-1">Across all types</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                <FiSliders className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Hard</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{hardCount}</p>
-                <p className="text-xs text-gray-400 mt-1">Across all types</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-rose-50 flex items-center justify-center">
-                <FiZap className="h-4 w-4 sm:h-5 sm:w-5 text-rose-600" />
-              </div>
-            </div>
-          </div>
+          <StatCard 
+            title="Total Templates"
+            value={totalAssessments}
+            subtitle="All test types"
+            icon="lucide:grid"
+            color="blue"
+          />
+          <StatCard 
+            title="Easy"
+            value={easyCount}
+            subtitle="Across all types"
+            icon="lucide:smile"
+            color="green"
+          />
+          <StatCard 
+            title="Medium"
+            value={mediumCount}
+            subtitle="Across all types"
+            icon="lucide:sliders"
+            color="yellow"
+          />
+          <StatCard 
+            title="Hard"
+            value={hardCount}
+            subtitle="Across all types"
+            icon="lucide:zap"
+            color="purple"
+          />
         </div>
 
         {/* Filters */}

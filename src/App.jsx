@@ -135,6 +135,7 @@ import WorkflowEngine from './modules/hrms/dashboard/WorkflowEngine';
 
 import HRAutomation from './modules/landing/HRAutomation'
 import CrmLanding from './modules/landing/Crmlanding'
+import ProductivityLanding from './modules/landing/Productivity'
 import Navbar from './modules/landing/Navbar'
 import Bookademo from './modules/landing/Bookademo'
 import Footer from './modules/landing/Footer'
@@ -164,6 +165,7 @@ const App = () => {
       <Route path='/pricing' element={<PricingPage />} />
       <Route path='/hrAutomation' element={<HRAutomation />}/>
       <Route path='/crmlanding' element={<CrmLanding />}/>
+      <Route path='/productivity' element={<ProductivityLanding />}/>
       <Route path='/navbar' element={<Navbar/>}/>
       <Route path='/bookademo' element={<Bookademo />}/>
       <Route path='/footer' element={<Footer />}/>

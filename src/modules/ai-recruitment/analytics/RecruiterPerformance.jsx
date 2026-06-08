@@ -24,8 +24,8 @@ import {
 } from 'react-icons/fi';
 import { BASE_URL } from "../../../shared/constants/api.config";
 import Modal from '../../../shared/components/Modal';
+import StatCard from '../../../shared/components/StatCard';
 import { FaTrophy } from 'react-icons/fa';
-
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function RecruiterPerformance() {
@@ -466,57 +466,34 @@ export default function RecruiterPerformance() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Active Jobs</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{totalMetrics.activeJobs}</p>
-                <p className="text-xs text-gray-400 mt-1">Open or active</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FiTarget className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Avg. Time-to-Hire</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{totalMetrics.avgTimeToHire} days</p>
-                <p className="text-xs text-gray-400 mt-1">Across selected range</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <FiClock className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Applications This Week</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{totalMetrics.applicationsThisWeek}</p>
-                <p className="text-xs text-gray-400 mt-1">Last 7 days</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <FiCalendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Total Hires</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{totalMetrics.totalHires}</p>
-                <p className="text-xs text-gray-400 mt-1">In current view</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                <FaTrophy className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-              </div>
-            </div>
-          </div>
+          <StatCard 
+            title="Active Jobs"
+            value={totalMetrics.activeJobs}
+            subtitle="Open or active"
+            icon="lucide:target"
+            color="blue"
+          />
+          <StatCard 
+            title="Avg. Time-to-Hire"
+            value={`${totalMetrics.avgTimeToHire} days`}
+            subtitle="Across selected range"
+            icon="lucide:clock"
+            color="purple"
+          />
+          <StatCard 
+            title="Applications This Week"
+            value={totalMetrics.applicationsThisWeek}
+            subtitle="Last 7 days"
+            icon="lucide:calendar"
+            color="green"
+          />
+          <StatCard 
+            title="Total Hires"
+            value={totalMetrics.totalHires}
+            subtitle="In current view"
+            icon="lucide:trophy"
+            color="yellow"
+          />
         </div>
 
         {/* Filters */}

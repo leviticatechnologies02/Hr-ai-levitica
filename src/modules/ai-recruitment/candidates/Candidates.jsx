@@ -21,7 +21,7 @@ import {
 } from 'react-icons/fi';
 import CandidateProfilePage from './CandidateProfilePage';
 import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
-
+import StatCard from '../../../shared/components/StatCard';
 const CandidatesPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -547,53 +547,34 @@ const CandidatesPage = () => {
           <>
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Total Candidates</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{insights.total}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FiUsers className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">In Interview</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{insights.inInterview}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                    <FiMessageCircle className="h-5 w-5 text-indigo-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Offers Sent</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{insights.offersSent}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FiMail className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Hired</p>
-                    <p className="text-2xl font-bold text-midnight_text mt-1">{insights.hired}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <FiCheckCircle className="h-5 w-5 text-emerald-600" />
-                  </div>
-                </div>
-              </div>
+              <StatCard 
+                title="Total Candidates"
+                value={insights.total}
+                subtitle="All applicants"
+                icon="lucide:users"
+                color="blue"
+              />
+              <StatCard 
+                title="In Interview"
+                value={insights.inInterview}
+                subtitle="Currently active"
+                icon="lucide:message-circle"
+                color="purple"
+              />
+              <StatCard 
+                title="Offers Sent"
+                value={insights.offersSent}
+                subtitle="Awaiting response"
+                icon="lucide:mail"
+                color="yellow"
+              />
+              <StatCard 
+                title="Hired"
+                value={insights.hired}
+                subtitle="Successfully joined"
+                icon="lucide:check-circle"
+                color="green"
+              />
             </div>
 
             {/* Filters */}

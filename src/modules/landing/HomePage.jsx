@@ -1,1045 +1,89 @@
 import React, { useEffect, useState } from 'react';
-import { Zap, FileText, Code, BarChart3, Bot, ShieldCheck, Users, Calendar, Clock, DollarSign } from "lucide-react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getUserRole } from "../../shared/utils/auth";
-import { Link } from 'react-router-dom';
-import Slider from 'react-slick';
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import "remixicon/fonts/remixicon.css";
 import Navbar from './Navbar';
 import Footer from './Footer';
-
-// Global Animation Styles
-const animationStyles = `
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes slideInDown {
-    from {
-      opacity: 0;
-      transform: translateY(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes scaleIn {
-    from {
-      opacity: 0;
-      transform: scale(0.2);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  .animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out forwards;
-  }
-
-  .animate-slide-down {
-    animation: slideInDown 0.8s ease-out forwards;
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.8s ease-out forwards;
-  }
-
-  /* Session Block Styling */
-  .session-block {
-    border-radius: 16px;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  }
-
-  .session-block:hover {
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-  }
-
-  /* Button Hover Effects */
-  .btn-hover-lift {
-    transition: all 0.3s ease;
-  }
-
-  .btn-hover-lift:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Smooth Scroll */
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* FAQ Image Animations */
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-      transform: translateY(-20px) rotate(180deg);
-    }
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      transform: translate(-50%, -50%) scale(1);
-      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
-    }
-    50% {
-      transform: translate(-50%, -50%) scale(1.05);
-      box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
-    }
-  }
-
-  .faq-image-container:hover .faq-image {
-    filter: brightness(1.2) contrast(1.2) saturate(1.1);
-  }
-
-  /* HRMS Section Styles */
-  .hrms-card {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .hrms-card:hover {
-    transform: translateY(-8px) scale(1.02);
-  }
-  
-  .hrms-feature-item {
-    transition: all 0.3s ease;
-  }
-  
-  .hrms-feature-item:hover {
-    transform: translateX(8px);
-    color: #EC4899;
-  }
-  
-  .hrms-feature-item:hover .feature-icon {
-    transform: scale(1.2) rotate(5deg);
-    background-color: #EC4899;
-  }
-`;
-
-// AnimatedSection Component
-const AnimatedSection = ({ children, delay = 0 }) => {
-  return (
-    <div
-      style={{
-        animation: `fadeInUp 0.8s ease-out ${delay}ms forwards`,
-        opacity: 0,
-      }}
-    >
-      {children}
-    </div>
-  );
-};
-
-// Custom Hook for Scroll-triggered Animations that reset
-const useIntersectionObserver = (resetOnExit = true) => {
-  const ref = React.useRef(null);
-  const [isVisible, setIsVisible] = React.useState(false);
-  const keyRef = React.useRef(0);
-
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        } else if (resetOnExit) {
-          setIsVisible(false);
-          keyRef.current += 1;
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-      }
-    );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
-      }
-    };
-  }, [resetOnExit]);
-
-  return [ref, isVisible, keyRef.current];
-};
-
-// Scroll-triggered Animated Card Component
-const ScrollAnimatedCard = ({ children, delay = 0, isVisible }) => {
-  const [animationKey, setAnimationKey] = React.useState(0);
-  const [shouldAnimate, setShouldAnimate] = React.useState(false);
-
-  React.useEffect(() => {
-    if (isVisible) {
-      setShouldAnimate(false);
-      setAnimationKey(prev => prev + 1);
-      const timer = setTimeout(() => {
-        setShouldAnimate(true);
-      }, 50);
-      return () => clearTimeout(timer);
-    } else {
-      setShouldAnimate(false);
-    }
-  }, [isVisible]);
-
-  return (
-    <div
-      key={`animate-${animationKey}`}
-      style={{
-        animation: shouldAnimate ? `fadeInUp 0.8s ease-out ${delay}ms forwards` : 'none',
-        animationFillMode: 'both',
-        opacity: 0,
-        transform: 'translateY(30px)'
-      }}
-    >
-      {children}
-    </div>
-  );
-};
-
-// How It Works Section Component (4 Cards in One Line)
-const HowItWorksSection = () => {
-  const [ref, isVisible] = useIntersectionObserver(true);
-
-const steps = [
-  {
-    icon: 'bi-briefcase',
-    title: 'Create Job',
-    description: 'Post your job requirements and let our AI optimize',
-    cardColor: '#E3F2FD',
-    iconColor: '#4361EE',
-    delay: 0
-  },
-  {
-    icon: 'bi-people',
-    title: 'Import Candidates',
-    description: 'Import candidates from various sources',
-    cardColor: '#E6F4EA',
-    iconColor: '#06D6A0',
-    delay: 150
-  },
-  {
-    icon: 'bi-graph-up',
-    title: 'Track Pipeline',
-    description: 'Monitor candidate progress through stages',
-    cardColor: '#FFF4E1',
-    iconColor: '#FF9E00',
-    delay: 300
-  },
-  {
-    icon: 'bi-award',
-    title: 'Hire & Report',
-    description: 'Make offers and generate reports',
-    cardColor: '#FFE3E6',
-    iconColor: '#E63946',
-    delay: 450
-  }
-];
-
-return (
-  <div ref={ref} className='card border-0 shadow-none session-block'>
-    <div className='card-body p-3 p-md-5'>
-      {/* Section Header */}
-      <ScrollAnimatedCard delay={0} isVisible={isVisible}>
-        <div className='text-center mb-5'>
-          <h3 className='display-6 display-md-5 fw-bold mb-3 text-primary'>How It Works</h3>
-          <p className='mt-2 mb-2 px-2 px-md-5 mx-auto' style={{ maxWidth: '800px' }}>
-            Simple 4-step process to streamline your recruitment
-          </p>
-        </div>
-      </ScrollAnimatedCard>
-
-      {/* Cards with equal width & height in one row */}
-      <div className="d-flex flex-row flex-wrap justify-content-center align-items-stretch gap-3">
-        {steps.map((step, index) => (
-          <React.Fragment key={index}>
-            <ScrollAnimatedCard delay={step.delay} isVisible={isVisible}>
-             <div
-  className="card text-center p-4 flex-fill"
-  style={{
-    backgroundColor: step.cardColor,
-    borderRadius: '1rem',
-    minWidth: '250px', // increased width
-    maxWidth: '300px', // increased width
-    height: '180px',    // decreased height
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center'
-  }}
->
-  <i
-    className={`bi ${step.icon} mb-2`}
-    style={{ fontSize: '2rem', color: step.iconColor }}
-  ></i>
-  <h6 className="fw-bold">{step.title}</h6>
-  <p className="mb-0">{step.description}</p>
-</div>
-            </ScrollAnimatedCard>
-
-            {/* Arrow between cards */}
-            {index < steps.length - 1 && (
-              <div className="d-none d-md-flex align-items-center mx-2">
-                <i className="bi bi-arrow-right" style={{ fontSize: '2rem', color: '#aaa' }}></i>
-              </div>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-};
-
-// Card Component for grid layout
-const CardComponent = ({ step }) => (
-  <div
-    className="border-0 p-3 h-100"
-    style={{
-      width: '100%',
-      backgroundColor: step.bgColor,
-      borderTop: `4px solid ${step.color}`, // Top border instead of side
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      transform: 'translateY(0)',
-      cursor: 'pointer',
-      margin: 0,
-      borderRadius: '12px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = 'translateY(-8px)';
-      e.currentTarget.style.boxShadow = `0 20px 30px ${step.color}40`;
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = 'translateY(0)';
-      e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.05)';
-    }}
-  >
-    <div className="d-flex flex-column">
-      {/* Top section with icon and title */}
-      <div className="d-flex align-items-center gap-2 mb-3">
-        {/* Icon Circle */}
-        <div
-          className="rounded-circle d-flex align-items-center justify-content-center"
-          style={{
-            width: '45px',
-            height: '45px',
-            backgroundColor: step.color,
-            fontSize: '1.3rem',
-            transition: 'all 0.3s ease',
-            color: 'white'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-          }}
-        >
-          {step.icon}
-        </div>
-
-        {/* Title */}
-        <h6 className="fw-bold mb-0" style={{
-          color: step.color,
-          fontSize: '1rem'
-        }}>
-          {step.title}
-        </h6>
-      </div>
-
-      {/* Description */}
-      <p className="text-muted mb-0 small" style={{
-        fontSize: '0.85rem',
-        color: '#4B5563',
-        lineHeight: '1.4'
-      }}>
-        {step.description}
-      </p>
-    </div>
-  </div>
-);
-
-// Row Animation Component for individual rows
-const AnimatedRow = ({ children, delay = 0 }) => {
-  const [ref, isVisible] = useIntersectionObserver();
-
-  return (
-    <div ref={ref} className='row g-4'>
-      {React.Children.map(children, (child, index) => (
-        <ScrollAnimatedCard key={index} delay={delay + (index * 100)} isVisible={isVisible}>
-          {child}
-        </ScrollAnimatedCard>
-      ))}
-    </div>
-  );
-};
-
-// Client Features Section with Animations and Hover Effects
-const ClientFeaturesSection = ({ clients }) => {
-  const [ref, isVisible] = useIntersectionObserver(true);
-
-  return (
-    <div className='container card border shadow-none p-3 p-md-5' ref={ref}>
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 d-flex align-items-center justify-content-center p-3 p-md-5">
-        <div className="w-100">
-          <div className="d-flex flex-column flex-md-row align-items-center justify-content-between gap-4">
-            <ScrollAnimatedCard delay={0} isVisible={isVisible}>
-              <div className="text-center text-md-start" style={{ maxWidth: '500px' }}>
-                <div
-                  style={{
-                    overflow: 'hidden',
-                    borderRadius: '12px',
-                    transition: 'all 0.4s ease',
-                    animation: `fadeInUp 0.8s ease-out 0ms forwards`,
-                    opacity: 0,
-                    width: '100%', // Make container take full width
-                    height: '180px', // Set a fixed height or use aspect ratio
-                    position: 'relative' // Optional: for better image positioning
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 15px 30px rgba(0, 0, 0, 0.15)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <img
-                    src="https://www.aihr.com/wp-content/uploads/hr-automation-cover.jpg"
-                    alt="Powerful Features"
-                    style={{
-                      width: '100%', // Take full width of container
-                      height: '100%', // Take full height of container
-                      objectFit: 'cover', // Cover the entire area without distortion
-                      display: 'block' // Remove extra space below image
-                    }}
-                  />
-                </div>
-                <h4
-                  className="text-3xl text-md-4xl fw-bold text-black mb-3 mt-3"
-                  style={{
-                    animation: `fadeInUp 0.8s ease-out 200ms forwards`,
-                    opacity: 0,
-                    transition: 'color 0.3s ease'
-                  }}
-                >
-                  All in one: AI Recruiter & HR Automation, CRM, Productivity, HRMS
-                </h4>
-                <p
-                  className="text-base text-md-lg text-dark mb-3"
-                  style={{
-                    animation: `fadeInUp 0.8s ease-out 400ms forwards`,
-                    opacity: 0,
-                    transition: 'color 0.3s ease'
-                  }}
-                >
-                  One platform for recruiting, sales, productivity, and HR. Streamline operations and grow with confidence.
-                </p>
-                <button
-                  className="btn btn-primary"
-                  style={{
-                    animation: `fadeInUp 0.8s ease-out 600ms forwards`,
-                    opacity: 0,
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-3px) scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  Become a client
-                </button>
-              </div>
-            </ScrollAnimatedCard>
-
-            <div className="d-flex flex-column gap-3 w-100" style={{ maxWidth: '500px' }}>
-              {clients.map((client, index) => (
-                <ScrollAnimatedCard key={index} delay={index * 100 + 200} isVisible={isVisible}>
-                  <div
-                    className="d-flex align-items-center justify-content-start bg-white rounded-3 p-0 overflow-hidden shadow-sm border border-gray-200 w-100 client-card"
-                    style={{
-                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                      cursor: 'pointer',
-                      animation: `fadeInUp 0.8s ease-out ${(index * 100) + 200}ms forwards`,
-                      opacity: 0,
-                      minHeight: '80px'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateX(10px) scale(1.02)';
-                      e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.15)';
-                      e.currentTarget.style.borderColor = '#3B82F6';
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateX(0) scale(1)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-                      e.currentTarget.style.borderColor = '#e5e7eb';
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                    }}
-                  >
-                    {client.image && (
-                      <div className="flex-shrink-0" style={{ width: '90px', height: '80px' }}>
-                        <img
-                          src={client.image}
-                          alt={client.name}
-                          className="w-100 h-100"
-                          style={{ objectFit: 'cover' }}
-                        />
-                      </div>
-                    )}
-                    <div
-                      className="rounded-circle bg-black d-flex align-items-center justify-content-center me-3 flex-shrink-0"
-                      style={{
-                        width: '44px',
-                        height: '44px',
-                        marginLeft: client.image ? '0.75rem' : '1rem',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.15) rotate(5deg)';
-                        e.currentTarget.style.backgroundColor = '#3B82F6';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-                        e.currentTarget.style.backgroundColor = '#000000';
-                      }}
-                    >
-                      {client.icon}
-                    </div>
-                    <h3 className="h6 fw-bold text-gray-900 mb-0 py-3 pe-3" style={{ transition: 'color 0.3s ease' }}>
-                      {client.name}
-                    </h3>
-                  </div>
-                </ScrollAnimatedCard>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Shared 4 platform topics
-const PLATFORM_TOPICS = [
-  {
-    id: 'ai-recruiter',
-    title: 'AI Recruiter & HR Automation',
-    subtitle: 'Source, screen, and hire faster with AI. Automate recruiting and focus on great conversations.',
-    badge: '✨ AI Talent Platform',
-    points: ['Smart resume screening & shortlisting', 'Automated interview scheduling', 'AI-powered candidate matching', 'Pipeline from job post to offer'],
-    bg: 'https://images.pexels.com/photos/3184305/pexels-photo-3184305.jpeg',
-    color: '#3B82F6',
-    bgLight: '#EFF6FF',
-    icon: 'Bot'
-  },
-  {
-    id: 'crm',
-    title: 'CRM',
-    subtitle: 'Manage leads, deals, and customer relationships in one powerful platform.',
-    badge: '📊 Customer Relations',
-    points: ['Leads, contacts & deal pipeline', 'Activity tracking & follow-ups', 'Sales forecasting & reports', 'Integrations with email & calendar'],
-    bg: 'https://images.pexels.com/photos/3184639/pexels-photo-3184639.jpeg',
-    color: '#10B981',
-    bgLight: '#ECFDF5',
-    icon: 'BarChart3'
-  },
-  {
-    id: 'productivity',
-    title: 'Productivity',
-    subtitle: 'Boost team productivity with smart workflows and real-time collaboration.',
-    badge: '⚡ Work Smarter',
-    points: ['Tasks, projects & deadlines', 'Team dashboards & visibility', 'Workflow automation', 'Docs and knowledge base'],
-    bg: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg',
-    color: '#F59E0B',
-    bgLight: '#FFFBEB',
-    icon: 'Zap'
-  },
-  {
-    id: 'hrms',
-    title: 'HRMS',
-    subtitle: 'Complete HR management: payroll, attendance, leave, and employee lifecycle.',
-    badge: '👥 Human Resources',
-    points: ['Payroll & compliance', 'Attendance & leave management', 'Onboarding & offboarding', 'Performance & appraisals'],
-    bg: 'https://images.pexels.com/photos/3184298/pexels-photo-3184298.jpeg',
-    color: '#EC4899',
-    bgLight: '#FDF2F8',
-    icon: 'FileText'
-  }
-];
-
-// New AIRecruiterBody Component (Integrated directly)
-const AIRecruiterBody = () => {
-  return (
-    <>
-      {/* HEADING */}
-
-      <div style={{ textAlign: "center", marginBottom: "70px" }}>
-
-        <h2 style={{ fontSize: "40px", fontWeight: "700", color: "#0f2747" }}>
-          what  <span style={{ color: "#2b5fab" }}>We Offer</span>
-        </h2>
-
-
-
-        <p style={{
-          marginTop: "15px",
-          fontSize: "18px",
-          color: "#666",
-          maxWidth: "900px",
-          marginLeft: "auto",
-          marginRight: "auto",
-          lineHeight: "1.6"
-        }}>
-          All in one: <b>AI Recruiter & HR Automation</b>, <b>CRM</b>,
-          <b>Productivity</b>, and <b>HRMS</b>. Built for hiring teams,
-          sales teams, and HR departments to streamline recruitment,
-          manage customers, improve productivity, and automate HR operations
-          through a single intelligent platform.
-        </p>
-
-      </div>
-
-
-      {/* CARDS */}
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,360px)", justifyContent: "center", gap: "40px" }}>
-
-
-        {/* HRMS CARD */}
-
-        <div style={{ perspective: "1000px" }}>
-          <div
-            style={{
-              position: "relative",
-              width: "360px",
-              height: "420px",
-              transformStyle: "preserve-3d",
-              transition: "0.7s"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = "rotateY(180deg)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "rotateY(0deg)"}
-          >
-
-            {/* FRONT */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              padding: "40px",
-              borderRadius: "16px",
-              boxShadow: "0 12px 35px rgba(0,0,0,0.08)",
-              backfaceVisibility: "hidden"
-            }}>
-
-              <i className="bi bi-people-fill" style={{ fontSize: "40px", color: "#2b5fab" }}></i>
-
-              <div style={{ fontSize: "26px", fontWeight: "600", marginTop: "15px" }}>
-                HRMS
-              </div>
-
-              <p style={{ marginTop: "10px", color: "#555" }}>
-                Complete HR management system for employee records.
-              </p>
-
-              <div style={{ marginTop: "15px", lineHeight: "2" }}>
-                <div>✓ Employee Database</div>
-                <div>✓ Attendance Tracking</div>
-                <div>✓ Payroll Management</div>
-                <div>✓ Leave Management</div>
-              </div>
-
-            </div>
-
-
-            {/* BACK */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              borderRadius: "16px",
-              transform: "rotateY(180deg)",
-              backfaceVisibility: "hidden",
-              overflow: "hidden"
-            }}>
-
-              <img
-                src="https://images.unsplash.com/photo-1552664730-d307ca884978"
-                style={{ width: "100%", height: "200px", objectFit: "cover" }}
-              />
-
-              <div style={{ padding: "25px" }}>
-
-                <h3>Smart HRMS Platform</h3>
-
-                <p style={{ color: "#555" }}>
-                  Centralized HR system to manage employee lifecycle and payroll efficiently.
-                </p>
-
-                <div style={{ marginTop: "10px", lineHeight: "1.8" }}>
-                  <div>✔ Employee lifecycle management</div>
-                  <div>✔ Automated payroll processing</div>
-                  <div>✔ Attendance analytics</div>
-                  <div>✔ HR reporting tools</div>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-
-
-        {/* HR AI CARD */}
-
-        <div style={{ perspective: "1000px" }}>
-          <div
-            style={{
-              position: "relative",
-              width: "360px",
-              height: "420px",
-              transformStyle: "preserve-3d",
-              transition: "0.7s"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = "rotateY(180deg)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "rotateY(0deg)"}
-          >
-
-            {/* FRONT */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              padding: "40px",
-              borderRadius: "16px",
-              boxShadow: "0 12px 35px rgba(0,0,0,0.08)",
-              backfaceVisibility: "hidden"
-            }}>
-
-              <i className="bi bi-robot" style={{ fontSize: "40px", color: "#2b5fab" }}></i>
-
-              <div style={{ fontSize: "26px", fontWeight: "600", marginTop: "15px" }}>
-                HR AI
-              </div>
-
-              <p style={{ marginTop: "10px", color: "#555" }}>
-                AI powered recruitment and hiring automation.
-              </p>
-
-              <div style={{ marginTop: "15px", lineHeight: "2" }}>
-                <div>✓ AI Resume Screening</div>
-                <div>✓ Candidate Matching</div>
-                <div>✓ Predictive Hiring</div>
-                <div>✓ HR Analytics</div>
-              </div>
-
-            </div>
-
-
-            {/* BACK */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              borderRadius: "16px",
-              transform: "rotateY(180deg)",
-              backfaceVisibility: "hidden",
-              overflow: "hidden"
-            }}>
-
-              <img
-                src="https://images.unsplash.com/photo-1677442136019-21780ecad995"
-                style={{ width: "100%", height: "200px", objectFit: "cover" }}
-              />
-
-              <div style={{ padding: "25px" }}>
-
-                <h3>AI Recruitment</h3>
-
-                <p style={{ color: "#555" }}>
-                  Automate hiring workflows and find the best candidates faster.
-                </p>
-
-                <div style={{ marginTop: "10px", lineHeight: "1.8" }}>
-                  <div>✔ AI resume screening</div>
-                  <div>✔ Candidate ranking</div>
-                  <div>✔ Interview automation</div>
-                  <div>✔ Recruitment analytics</div>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-
-
-        {/* PRODUCTIVITY CARD */}
-
-        <div style={{ perspective: "1000px" }}>
-          <div
-            style={{
-              position: "relative",
-              width: "360px",
-              height: "420px",
-              transformStyle: "preserve-3d",
-              transition: "0.7s"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = "rotateY(180deg)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "rotateY(0deg)"}
-          >
-
-            {/* FRONT */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              padding: "40px",
-              borderRadius: "16px",
-              boxShadow: "0 12px 35px rgba(0,0,0,0.08)",
-              backfaceVisibility: "hidden"
-            }}>
-
-              <i className="bi bi-lightning-charge-fill" style={{ fontSize: "40px", color: "#2b5fab" }}></i>
-
-              <div style={{ fontSize: "26px", fontWeight: "600", marginTop: "15px" }}>
-                Productivity
-              </div>
-
-              <p style={{ marginTop: "10px", color: "#555" }}>
-                Tools designed to improve team performance.
-              </p>
-
-              <div style={{ marginTop: "15px", lineHeight: "2" }}>
-                <div>✓ Task Automation</div>
-                <div>✓ Performance Tracking</div>
-                <div>✓ Team Collaboration</div>
-                <div>✓ Analytics Dashboard</div>
-              </div>
-
-            </div>
-
-
-            {/* BACK */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              borderRadius: "16px",
-              transform: "rotateY(180deg)",
-              backfaceVisibility: "hidden",
-              overflow: "hidden"
-            }}>
-
-              <img
-                src="https://images.unsplash.com/photo-1551434678-e076c223a692"
-                style={{ width: "100%", height: "200px", objectFit: "cover" }}
-              />
-
-              <div style={{ padding: "25px" }}>
-
-                <h3>Boost Productivity</h3>
-
-                <p style={{ color: "#555" }}>
-                  Smart workflow automation tools that help teams work faster and smarter.
-                </p>
-
-                <div style={{ marginTop: "10px", lineHeight: "1.8" }}>
-                  <div>✔ Workflow automation</div>
-                  <div>✔ Performance tracking</div>
-                  <div>✔ Team collaboration</div>
-                  <div>✔ Business analytics</div>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-
-
-        {/* CRM CARD */}
-
-        <div style={{ perspective: "1000px" }}>
-          <div
-            style={{
-              position: "relative",
-              width: "360px",
-              height: "420px",
-              transformStyle: "preserve-3d",
-              transition: "0.7s"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = "rotateY(180deg)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "rotateY(0deg)"}
-          >
-
-            {/* FRONT */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              padding: "40px",
-              borderRadius: "16px",
-              boxShadow: "0 12px 35px rgba(0,0,0,0.08)",
-              backfaceVisibility: "hidden"
-            }}>
-
-              <i className="bi bi-bar-chart-line-fill" style={{ fontSize: "40px", color: "#2b5fab" }}></i>
-
-              <div style={{ fontSize: "26px", fontWeight: "600", marginTop: "15px" }}>
-                CRM
-              </div>
-
-              <p style={{ marginTop: "10px", color: "#555" }}>
-                Customer relationship management system.
-              </p>
-
-              <div style={{ marginTop: "15px", lineHeight: "2" }}>
-                <div>✓ Customer Database</div>
-                <div>✓ Sales Tracking</div>
-                <div>✓ Lead Management</div>
-                <div>✓ Client Communication</div>
-              </div>
-
-            </div>
-
-
-            {/* BACK */}
-
-            <div style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              background: "#fff",
-              borderRadius: "16px",
-              transform: "rotateY(180deg)",
-              backfaceVisibility: "hidden",
-              overflow: "hidden"
-            }}>
-
-              <img
-                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71"
-                style={{ width: "100%", height: "200px", objectFit: "cover" }}
-              />
-
-              <div style={{ padding: "25px" }}>
-
-                <h3>Customer Management</h3>
-
-                <p style={{ color: "#555" }}>
-                  Track leads, manage customer data and improve sales performance.
-                </p>
-
-                <div style={{ marginTop: "10px", lineHeight: "1.8" }}>
-                  <div>✔ Lead pipeline tracking</div>
-                  <div>✔ Customer interaction history</div>
-                  <div>✔ Sales analytics</div>
-                  <div>✔ Client communication tools</div>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-
-      </div>
-    </>
-
-  );
-};
-
-
-const testimonials = [
-  {
-    name: "Sarah Chen",
-    role: "Head of HR",
-    company: "TechCorp",
-    photo: "SC",
-    feedback: "This platform cut our hiring time by 40% and improved candidate quality significantly. Game changer!",
-    rating: 5
-  },
-  {
-    name: "Marcus Johnson",
-    role: "Talent Director",
-    company: "InnovateLabs",
-    photo: "MJ",
-    feedback: "The AI screening is incredibly accurate. We've hired 15 people in 3 months with zero regrets.",
-    rating: 5
-  },
-  {
-    name: "Emily Rodriguez",
-    role: "CEO",
-    company: "StartupHub",
-    photo: "ER",
-    feedback: "As a startup, we needed speed and quality. AI Recruiter delivered both beyond our expectations.",
-    rating: 5
-  }
-];
-
-const Landing = () => {
-  const [openFAQ, setOpenFAQ] = React.useState(null);
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+import { Bot, BarChart3, Zap, FileText, CheckCircle2, ArrowRight, ChevronDown } from 'lucide-react';
+
+const HomePage = () => {
   const navigate = useNavigate();
   const [isYearly, setIsYearly] = useState(false);
+  const [openFAQ, setOpenFAQ] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    AOS.init({
+      duration: 900,
+      once: true,
+      easing: 'ease-out-cubic',
+    });
+
     const userRole = getUserRole();
     if (userRole === 'superadmin') {
       navigate('/super-admin');
     }
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 4);
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, [navigate]);
+
+  const toggleFAQ = (index) => {
+    setOpenFAQ(openFAQ === index ? null : index);
+  };
+
+  const PLATFORM_TOPICS = [
+    {
+      id: 'ai-recruiter',
+      title: 'AI Recruiter & HR Automation',
+      subtitle: 'Source, screen, and hire faster with AI. Automate recruiting and focus on great conversations.',
+      badge: '✨ AI Talent Platform',
+      points: ['Smart resume screening & shortlisting', 'Automated interview scheduling', 'AI-powered candidate matching', 'Pipeline from job post to offer'],
+      bg: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&q=80',
+      color: '#3B82F6',
+      icon: Bot
+    },
+    {
+      id: 'crm',
+      title: 'CRM',
+      subtitle: 'Manage leads, deals, and customer relationships in one powerful platform.',
+      badge: '📊 Customer Relations',
+      points: ['Leads, contacts & deal pipeline', 'Activity tracking & follow-ups', 'Sales forecasting & reports', 'Integrations with email & calendar'],
+      bg: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=1920&q=80',
+      color: '#10B981',
+      icon: BarChart3
+    },
+    {
+      id: 'productivity',
+      title: 'Productivity',
+      subtitle: 'Boost team productivity with smart workflows and real-time collaboration.',
+      badge: '⚡ Work Smarter',
+      points: ['Tasks, projects & deadlines', 'Team dashboards & visibility', 'Workflow automation', 'Docs and knowledge base'],
+      bg: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80',
+      color: '#F59E0B',
+      icon: Zap
+    },
+    {
+      id: 'hrms',
+      title: 'HRMS',
+      subtitle: 'Complete HR management: payroll, attendance, leave, and employee lifecycle.',
+      badge: '👥 Human Resources',
+      points: ['Payroll & compliance', 'Attendance & leave management', 'Onboarding & offboarding', 'Performance & appraisals'],
+      bg: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1920&q=80',
+      color: '#EC4899',
+      icon: FileText
+    }
+  ];
 
   const pricingPlans = [
     {
       name: 'FREE',
-      color: '#E8B4F8',
+      color: 'bg-purple-300',
+      textColor: 'text-purple-600',
       monthlyPrice: '₹0',
       yearlyPrice: '₹500',
       features: [
@@ -1052,9 +96,11 @@ const Landing = () => {
     },
     {
       name: 'BASIC',
-      color: '#FF69B4',
+      color: 'bg-pink-400',
+      textColor: 'text-pink-600',
       monthlyPrice: '₹799',
       yearlyPrice: '₹7990',
+      popular: true,
       features: [
         { text: '50 GB Bandwidth', included: true },
         { text: 'Financial Analysis', included: true },
@@ -1065,7 +111,8 @@ const Landing = () => {
     },
     {
       name: 'STANDARD',
-      color: '#8B5CF6',
+      color: 'bg-indigo-500',
+      textColor: 'text-indigo-600',
       monthlyPrice: '₹1,199',
       yearlyPrice: '₹11,990',
       features: [
@@ -1078,1029 +125,358 @@ const Landing = () => {
     }
   ];
 
-  const carouselSettings = {
-    dots: false,
-    infinite: true,
-    speed: 700,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    autoplay: true,
-    autoplaySpeed: 1000,
-    pauseOnHover: true,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: { slidesToShow: 2 },
-      },
-      {
-        breakpoint: 768,
-        settings: { slidesToShow: 1 },
-      },
-    ],
-  };
-
-  const clients = [
-    { name: 'AI Recruiter & HR Automation', image: PLATFORM_TOPICS[0].bg, icon: <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10"><path d="M5 10 L20 5 L35 10 L20 35 Z" fill="#3B82F6" /></svg> },
-    { name: 'CRM', image: PLATFORM_TOPICS[1].bg, icon: <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10"><path d="M8 12 L14 28 L20 8 L26 28 L32 12" stroke="#10B981" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg> },
-    { name: 'Productivity', image: PLATFORM_TOPICS[2].bg, icon: <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10"><path d="M8 20 L15 12 L22 18 L32 8" stroke="#F59E0B" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /><path d="M8 28 L15 22 L22 26 L32 18" stroke="#F59E0B" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg> },
-    { name: 'HRMS', image: PLATFORM_TOPICS[3].bg, icon: <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10"><circle cx="20" cy="20" r="12" stroke="#EC4899" strokeWidth="3" fill="none" /><path d="M20 12 L20 20 L26 26" stroke="#EC4899" strokeWidth="3" strokeLinecap="round" /></svg> }
+  const faqs = [
+    {
+      question: "Where to start?",
+      answer: "Begin by creating your first job posting and setting up your company profile. Our AI will guide you through the process step by step."
+    },
+    {
+      question: "Data analytics",
+      answer: "Track your hiring metrics with comprehensive analytics including time-to-hire, candidate quality scores, and pipeline performance."
+    },
+    {
+      question: "Understanding the market",
+      answer: "Get insights into salary benchmarks, skill demand trends, and competitive analysis to make informed hiring decisions."
+    },
+    {
+      question: "What can we do to help?",
+      answer: "Our AI-powered platform automates screening, scheduling, and candidate communication, freeing you to focus on building relationships."
+    }
   ];
 
-  const toggleFAQ = (index) => {
-    setOpenFAQ(openFAQ === index ? null : index);
-  };
-
   return (
-    <div className='min-vh-100 d-flex flex-column'>
-      <style>{animationStyles}</style>
-
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 overflow-x-hidden">
       <Navbar />
 
-      {/* Hero Carousel */}
-      <section className='hero-carousel-wrapper py-0 px-3 px-md-0 mb-4' style={{ marginBottom: '20px' }}>
-        <style>{`
-          .hero-carousel-wrapper .slick-slider { overflow: hidden; border-radius: 20px; }
-          .hero-carousel-wrapper .slick-list, .hero-carousel-wrapper .slick-track { height: 100%; }
-          .hero-carousel-wrapper .slick-slide > div { height: 100%; }
-          .hero-carousel-wrapper .hero-slide {
-            min-height: 560px;
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            position: relative;
-          }
-          .hero-carousel-wrapper .hero-slide-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.45);
-            border-radius: 20px;
-          }
-          .hero-carousel-wrapper .hero-slide-content { position: relative; z-index: 2; width: 100%; }
-          .hero-carousel-wrapper .slick-prev, .hero-carousel-wrapper .slick-next { z-index: 10; }
-          .hero-carousel-wrapper .slick-prev { left: 16px; }
-          .hero-carousel-wrapper .slick-next { right: 16px; }
-          .hero-carousel-wrapper .slick-dots { bottom: 20px; }
-          .hero-carousel-wrapper .slick-dots li button:before { color: rgba(255,255,255,0.8); font-size: 10px; }
-          .hero-carousel-wrapper .slick-dots li.slick-active button:before { color: #fff; }
-          @media (min-width: 768px) { .hero-carousel-wrapper .hero-slide { min-height: 720px; } }
-          .hero-carousel-wrapper .hero-points {
-            list-style: none; padding: 0; margin: 0 0 1.25rem 0;
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 1.25rem;
-          }
-          .hero-carousel-wrapper .hero-points li {
-            color: rgba(255,255,255,0.9); font-size: 0.9rem;
-            display: flex; align-items: center; gap: 0.35rem;
-          }
-          .hero-carousel-wrapper .hero-points li::before { content: "✓"; color: #4ade80; font-weight: bold; }
-        `}</style>
-        <Slider
-          dots
-          infinite
-          speed={600}
-          slidesToShow={1}
-          slidesToScroll={1}
-          autoplay
-          autoplaySpeed={2000}
-          pauseOnHover
-          arrows
-          fade
-          adaptiveHeight
-        >
-          {PLATFORM_TOPICS.map((slide, idx) => (
-            <div key={slide.id}>
-              <div className='hero-slide' style={{ backgroundImage: `url(${slide.bg})` }}>
-                <div className='hero-slide-overlay' />
-                <div className='container hero-slide-content'>
-                  <div className='row align-items-center justify-content-center'>
-                    <div className='col-lg-8 text-center text-white'>
-                      <div className='mb-3'>
-                        <span className='badge bg-primary bg-opacity-90 text-white border-0 px-3 py-2'>{slide.badge}</span>
-                      </div>
-                      <h1 className='display-5 display-md-4 fw-bold mb-3 px-3'>{slide.title}</h1>
-                      <p className='lead mb-3 px-3 text-white-50'>{slide.subtitle}</p>
-                      <ul className='hero-points px-3 mb-4'>
-                        {slide.points.map((point, i) => (
-                          <li key={i}>{point}</li>
-                        ))}
-                      </ul>
-                      <div className='d-flex flex-column flex-sm-row justify-content-center gap-3 px-3'>
-                        <Link to='/login' className='btn btn-primary btn-sm btn-md-lg px-4 btn-hover-lift'>Get Started</Link>
-                        <Link to='/pricing' className='btn btn-outline-light btn-sm btn-md-lg px-4 btn-hover-lift'>View Pricing</Link>
-                      </div>
-                      <div className='d-flex justify-content-center text-white-50 mt-4 px-3'>
-                        <span className='small'>✅ Trusted by 500+ hiring teams</span>
-                      </div>
-                    </div>
+      {/* Hero Section */}
+      <section className="relative pt-24 pb-12 lg:pt-28 lg:pb-14 overflow-hidden">
+        <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+          <div className="rounded-3xl overflow-hidden shadow-2xl relative h-[600px] lg:h-[700px] bg-slate-900" data-aos="zoom-in" data-aos-duration="1000">
+            <>
+              {PLATFORM_TOPICS.map((slide, index) => (
+                <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${slide.bg})` }}
+                  >
+                    <div className="absolute inset-0 bg-slate-900/60 mix-blend-multiply"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div>
                   </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </Slider>
-      </section>
-      <div className="py-4">
-        <AIRecruiterBody />
-      </div>
-
-      {/* How it works */}
-      <section id='how' className='container px-3 px-md-0 pb-5 pb-md-5'>
-        <HowItWorksSection />
-      </section>
-
-      {/* The duplicate "What We Offer" section has been removed */}
-
-      <section id='platform-features' className='px-3 px-md-5'>
-        <ClientFeaturesSection clients={clients} />
-      </section>
-
-
-
-      {/* About Us */}
-      <section className='py-3 py-md-5'>
-        <ScrollAnimatedCard delay={0} isVisible={true}>
-          <div
-            className='container card border shadow-none p-3 p-md-5 about-us-container px-3 px-md-0'
-            style={{
-              animation: `fadeInUp 0.8s ease-out 0ms forwards`,
-              opacity: 0,
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-5px)';
-              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <div className='row g-5 align-items-center'>
-              <div className='col-12 col-lg-6'>
-                <div className='row'>
-                  <div className='col-6 text-end'>
-                    <ScrollAnimatedCard delay={200} isVisible={true}>
-                      <div
-                        className='about-image-container'
-                        style={{
-                          animation: `scaleIn 0.8s ease-out 200ms forwards`,
-                          opacity: 0,
-                          transition: 'all 0.4s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          const img = e.currentTarget.querySelector('.about-image');
-                          if (img) {
-                            img.style.transform = 'scale(1.05) rotate(2deg)';
-                            img.style.boxShadow = '0 15px 30px rgba(0, 0, 0, 0.2)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          const img = e.currentTarget.querySelector('.about-image');
-                          if (img) {
-                            img.style.transform = 'scale(1) rotate(0deg)';
-                            img.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
-                          }
-                        }}
+                  <div className="relative h-full flex items-center justify-center text-center px-4">
+                    <div className="max-w-4xl mx-auto text-white">
+                      <span 
+                        className="inline-block py-1.5 px-4 rounded-full text-sm font-semibold mb-6 tracking-wide shadow-lg"
+                        style={{ backgroundColor: slide.color }}
                       >
-                        <img
-                          className='rounded-3 shadow-sm about-image'
-                          src="/assets/images/landing1.png"
-                          style={{
-                            width: "250px",
-                            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                            transform: 'scale(1)',
-                            borderRadius: '12px'
-                          }}
-                          alt="Office team working"
-                        />
-                        <div
-                          className='d-flex align-items-center justify-content-end mt-3 about-stat'
-                          style={{
-                            animation: `fadeInUp 0.6s ease-out 400ms forwards`,
-                            opacity: 0
-                          }}
+                        {slide.badge}
+                      </span>
+                      <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tight">
+                        {slide.title}
+                      </h1>
+                      <p className="text-lg md:text-xl text-slate-200 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
+                        {slide.subtitle}
+                      </p>
+                      
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <Link 
+                          to="/login"
+                          className="px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-300 w-full sm:w-auto no-underline"
                         >
-                          <div className='d-inline-block pe-2'>
-                            <h4 className='line-height-100 fw-normal mb-0'>+</h4>
-                            <p className='text-dark fw-bold mb-0'>Professionals</p>
-                          </div>
-                          <div className='d-inline-block'>
-                            <h3
-                              className='fw-medium display-4 letter-spacing-1 text-primary about-number'
-                              style={{
-                                transition: 'all 0.3s ease',
-                                transform: 'scale(1)'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.1)';
-                                e.currentTarget.style.color = '#EC4899';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.color = '#3B82F6';
-                              }}
-                            >35</h3>
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollAnimatedCard>
-                  </div>
-                  <div className='col-6'>
-                    <ScrollAnimatedCard delay={300} isVisible={true}>
-                      <div
-                        className='about-stat-container'
-                        style={{
-                          animation: `fadeInUp 0.6s ease-out 300ms forwards`,
-                          opacity: 0
-                        }}
-                      >
-                        <div className='d-flex align-items-center mb-3'>
-                          <div className='d-inline-block'>
-                            <h3
-                              className='fw-medium display-4 letter-spacing-1 text-primary about-number'
-                              style={{
-                                transition: 'all 0.3s ease',
-                                transform: 'scale(1)'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.1)';
-                                e.currentTarget.style.color = '#EC4899';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.color = '#3B82F6';
-                              }}
-                            >14</h3>
-                          </div>
-                          <div className='d-inline-block ps-2'>
-                            <h4 className='line-height-100 fw-normal mb-0'>+</h4>
-                            <p className='text-dark fw-bold mb-0'>Years of Experience</p>
-                          </div>
-                        </div>
-                        <div
-                          className='about-image-container'
-                          style={{
-                            transition: 'all 0.4s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            const img = e.currentTarget.querySelector('.about-image');
-                            if (img) {
-                              img.style.transform = 'scale(1.05) rotate(-2deg)';
-                              img.style.boxShadow = '0 15px 30px rgba(0, 0, 0, 0.2)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            const img = e.currentTarget.querySelector('.about-image');
-                            if (img) {
-                              img.style.transform = 'scale(1) rotate(0deg)';
-                              img.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
-                            }
-                          }}
+                          Get Started
+                        </Link>
+                        <Link 
+                          to="/pricing"
+                          className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md text-white font-bold text-lg border border-white/30 hover:bg-white/20 transition-all duration-300 w-full sm:w-auto no-underline"
                         >
-                          <img
-                            className='rounded-3 shadow-sm about-image'
-                            src="/assets/images/landing2.png"
-                            style={{
-                              width: "250px",
-                              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                              transform: 'scale(1)',
-                              borderRadius: '12px'
-                            }}
-                            alt="Team collaboration"
-                          />
-                        </div>
-                      </div>
-                    </ScrollAnimatedCard>
-                  </div>
-                </div>
-              </div>
-              <div className='col-12 col-lg-6'>
-                <ScrollAnimatedCard delay={500} isVisible={true}>
-                  <div
-                    className='about-content'
-                    style={{
-                      animation: `fadeInUp 0.8s ease-out 500ms forwards`,
-                      opacity: 0
-                    }}
-                  >
-                    <h3
-                      className='display-6 fw-normal mb-3 about-title'
-                      style={{
-                        transition: 'all 0.3s ease',
-                        transform: 'translateY(0)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-5px)';
-                        e.currentTarget.style.color = '#3B82F6';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.color = 'inherit';
-                      }}
-                    >
-                      All in one: AI Recruiter & HR Automation, CRM, Productivity, HRMS
-                    </h3>
-                    <p
-                      className='text-secondary-light mb-4 about-description'
-                      style={{
-                        transition: 'all 0.3s ease',
-                        animation: `fadeInUp 0.6s ease-out 700ms forwards`,
-                        opacity: 0
-                      }}
-                    >
-                      One platform for recruiting, sales, productivity, and HR. Hire, sell, and manage people from a single place.
-                    </p>
-                    <button
-                      type="button"
-                      className='btn btn-primary px-4 py-2 about-button'
-                      style={{
-                        background: 'linear-gradient(90deg, #3B82F6 0%, #EC4899 100%)',
-                        border: 'none',
-                        borderRadius: '25px',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: 'translateY(0)',
-                        boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-                        animation: `fadeInUp 0.8s ease-out 900ms forwards`,
-                        opacity: 0
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-3px) scale(1.05)';
-                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
-                        e.currentTarget.style.background = 'linear-gradient(90deg, #EC4899 0%, #3B82F6 100%)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(59, 130, 246, 0.3)';
-                        e.currentTarget.style.background = 'linear-gradient(90deg, #3B82F6 0%, #EC4899 100%)';
-                      }}
-                    >
-                      LEARN MORE
-                    </button>
-                  </div>
-                </ScrollAnimatedCard>
-              </div>
-            </div>
-          </div>
-        </ScrollAnimatedCard>
-      </section>
-
-      {/* Testimonials */}
-      <section className='container px-3 pb-5'>
-        <h3 className='display-6 display-md-5 fw-bold mb-3 mb-md-4 text-primary text-center'>AI Recruiter, CRM, Productivity & HRMS</h3>
-
-        <Slider {...carouselSettings}>
-          {[
-            {
-              name: "TechNova HR",
-              text: "AI Recruitment helped us cut screening time by 60%.",
-              color: '#3B82F6',
-              bgColor: '#EFF6FF'
-            },
-            {
-              name: "FutureHire",
-              text: "The unified dashboard keeps our team perfectly aligned.",
-              color: '#10B981',
-              bgColor: '#ECFDF5'
-            },
-            {
-              name: "SmartWorks",
-              text: "We posted jobs to multiple boards in seconds fantastic tool.",
-              color: '#F59E0B',
-              bgColor: '#FFFBEB'
-            },
-            {
-              name: "Innova Talent",
-              text: "Super intuitive interface and great automation features.",
-              color: '#EC4899',
-              bgColor: '#FDF2F8'
-            },
-          ].map((card, i) => (
-            <div key={i} className='px-2'>
-              <div
-                className='card border-0 shadow-sm text-center position-relative'
-                style={{
-                  minHeight: '200px',
-                  height: '100%',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  backgroundColor: card.bgColor,
-                  borderTop: `4px solid ${card.color}`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-                  e.currentTarget.style.boxShadow = `0 12px 30px ${card.color}40`;
-                  e.currentTarget.style.borderTop = `4px solid ${card.color}`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.borderTop = `4px solid ${card.color}`;
-                }}
-              >
-                <div className='card-body p-3 p-md-5 d-flex flex-column justify-content-between'>
-                  <p className='mb-4 mb-md-3 fw-bold fs-6' style={{ color: '#1F2937' }}>{card.text}</p>
-                  <h6 className='mb-0 fw-bold' style={{ color: card.color }}>{card.name}</h6>
-                </div>
-              </div>
-            </div>
-          ))}
-        </Slider>
-      </section>
-
-      {/* Benefits Infographic */}
-      <div className='container px-3'>
-        <ScrollAnimatedCard delay={0} isVisible={true}>
-          <div className='card border-0 shadow-lg mb-4 mb-md-5 mx-auto' style={{
-            borderRadius: '20px',
-            overflow: 'hidden',
-            animation: `fadeInUp 0.8s ease-out 0ms forwards`,
-            opacity: 0,
-            maxWidth: '100%'
-          }}>
-            <div className='row g-0 h-100'>
-              <div className='col-12 col-md-4 position-relative' style={{
-                backgroundColor: '#7C3AED',
-                padding: '3rem 2rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                minHeight: '400px'
-              }}>
-                <div>
-                  <h2 className='text-white fw-bold mb-0' style={{ fontSize: '2rem', lineHeight: '1.2' }}>
-                    <span style={{ fontSize: '1.9rem' }}>5 KEY</span><br />
-                    <span>BENEFITS OF </span><br />
-                    <span>AI IN</span><br />
-                    <span style={{ fontSize: '3.0rem' }}>RECRUITMENT</span>
-                  </h2>
-                </div>
-
-                <div className='d-flex justify-content-center align-items-center' style={{ flex: 1 }}>
-                  <Bot size={120} color="white" style={{ opacity: 0.9 }} />
-                </div>
-
-                <div className='mt-3'>
-                  <p className='text-white small mb-0' style={{ fontSize: '0.875rem' }}>recruitcrm.io</p>
-                </div>
-              </div>
-
-              <div className='col-12 col-md-8 position-relative' style={{
-                backgroundColor: '#F3E8FF',
-                padding: '3rem 2.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                gap: '1.5rem',
-                minHeight: '400px'
-              }}>
-                <div className='position-absolute' style={{
-                  top: '-50px',
-                  left: '-50px',
-                  width: '200px',
-                  height: '200px',
-                  backgroundColor: '#7C3AED',
-                  borderRadius: '50%',
-                  opacity: 0.3
-                }}></div>
-                <div className='position-absolute' style={{
-                  bottom: '-30px',
-                  left: '-30px',
-                  width: '150px',
-                  height: '150px',
-                  backgroundColor: '#7C3AED',
-                  borderRadius: '50%',
-                  opacity: 0.2
-                }}></div>
-
-                {[
-                  { text: 'Increases efficiency' },
-                  { text: 'Boosts candidate experience' },
-                  { text: 'Reduces hiring bias' },
-                  { text: 'Enhances data analysis' },
-                  { text: 'Improves candidate matching' }
-                ].map((benefit, idx) => (
-                  <div
-                    key={idx}
-                    className='d-flex align-items-center bg-white rounded-pill p-3 shadow-sm position-relative'
-                    style={{
-                      transition: 'all 0.3s ease',
-                      animation: `fadeInUp 0.6s ease-out ${(idx * 100) + 200}ms forwards`,
-                      opacity: 0
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateX(10px)';
-                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateX(0)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-                    }}
-                  >
-                    <div className='rounded-circle d-flex align-items-center justify-content-center me-3' style={{
-                      width: '40px',
-                      height: '40px',
-                      backgroundColor: '#8B5CF6',
-                      flexShrink: 0
-                    }}>
-                      <i className='ri-check-line text-white fs-5'></i>
-                    </div>
-                    <span className='fw-semibold text-dark' style={{ fontSize: '1rem' }}>{benefit.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </ScrollAnimatedCard>
-      </div>
-
-      {/* Pricing Cards */}
-      <section className='px-3 px-md-5'>
-        <div className='container card border shadow-none p-3 p-md-5'>
-          <div className='text-center text-black mb-4 mb-md-5'>
-            <h3 className='display-6 display-md-5 fw-bold text-primary text-center'> Pricing & Plans</h3>
-          </div>
-
-          <div className='d-flex justify-content-center mb-5'>
-            <div
-              className='position-relative d-flex align-items-center'
-              style={{
-                backgroundColor: 'white',
-                borderRadius: '25px',
-                padding: '4px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-            >
-              <div
-                className='position-absolute'
-                style={{
-                  backgroundColor: '#3B82F6',
-                  borderRadius: '20px',
-                  height: '36px',
-                  width: '50%',
-                  left: isYearly ? '50%' : '4px',
-                  top: '4px',
-                  transition: 'left 0.3s ease',
-                  zIndex: 1
-                }}
-              />
-
-              <button
-                className={`position-relative border-0 bg-transparent px-4 py-2 fw-bold text-uppercase ${!isYearly ? 'text-white' : 'text-dark'
-                  }`}
-                style={{
-                  borderRadius: '20px',
-                  fontSize: '14px',
-                  zIndex: 2,
-                  transition: 'color 0.3s ease'
-                }}
-                onClick={() => setIsYearly(false)}
-              >
-                MONTHLY
-              </button>
-
-              <button
-                className={`position-relative border-0 bg-transparent px-4 py-2 fw-bold text-uppercase ${isYearly ? 'text-white' : 'text-dark'
-                  }`}
-                style={{
-                  borderRadius: '20px',
-                  fontSize: '14px',
-                  zIndex: 2,
-                  transition: 'color 0.3s ease'
-                }}
-                onClick={() => setIsYearly(true)}
-              >
-                YEARLY
-              </button>
-            </div>
-          </div>
-
-          <div className='row g-3 g-md-4 justify-content-center mb-5'>
-            {pricingPlans.map((plan, index) => (
-              <div key={index} className='col-12 col-sm-6 col-lg-3'>
-                <ScrollAnimatedCard delay={index * 200} isVisible={true}>
-                  <div
-                    className='card h-100 border-0 shadow-lg position-relative pricing-card'
-                    style={{
-                      borderRadius: '20px',
-                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                      transform: 'translateY(0)',
-                      animation: `fadeInUp 0.8s ease-out ${index * 200}ms forwards`,
-                      opacity: 0
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                      e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                      e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.1)';
-                    }}
-                  >
-                    <div
-                      className='position-absolute top-0 start-0 px-3 py-2 text-white fw-bold pricing-tab'
-                      style={{
-                        backgroundColor: plan.color,
-                        borderRadius: '20px 0 20px 0',
-                        fontSize: '14px',
-                        zIndex: 1,
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      {plan.name}
-                    </div>
-
-                    <div className='card-body p-3 p-md-4 pt-4 pt-md-5'>
-                      <div className='text-center mb-3 mb-md-4'>
-                        <h4
-                          className='display-6 fw-bold text-dark mb-0 pricing-price'
-                          style={{
-                            transition: 'all 0.3s ease',
-                            transform: 'scale(1)'
-                          }}
-                        >
-                          {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
-                          <span className='fs-6 text-black'>/{isYearly ? 'year' : 'mon'}</span>
-                        </h4>
-                      </div>
-
-                      <div className='mb-4'>
-                        {plan.features.map((feature, featureIndex) => (
-                          <div
-                            key={featureIndex}
-                            className='d-flex align-items-center mb-3 pricing-feature'
-                            style={{
-                              transition: 'all 0.3s ease',
-                              transform: 'translateX(0)',
-                              animation: `fadeInUp 0.6s ease-out ${(index * 200) + (featureIndex * 100)}ms forwards`,
-                              opacity: 0
-                            }}
-                          >
-                            <div className='me-3'>
-                              {feature.included ? (
-                                <i className='ri-check-line text-success fs-5'></i>
-                              ) : (
-                                <i className='ri-close-line text-danger fs-5'></i>
-                              )}
-                            </div>
-                            <span className='text-dark'>{feature.text}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className='text-center'>
-                        <Link to='/pricing' >
-                          <button
-                            className='btn btn-primary pricing-btn w-100'
-                            style={{
-                              background: `linear-gradient(135deg, ${plan.color} 0%, ${plan.color}dd 100%)`,
-                              border: 'none',
-                              borderRadius: '12px',
-                              padding: '12px 16px',
-                              fontWeight: '600',
-                              transition: 'all 0.3s ease',
-                              transform: 'translateY(0)',
-                              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                              animation: `fadeInUp 0.8s ease-out ${(index * 200) + 400}ms forwards`,
-                              opacity: 0
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.2)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
-                            }}
-                          >
-                            Choose Plan
-                          </button>
+                          View Pricing
                         </Link>
                       </div>
                     </div>
                   </div>
-                </ScrollAnimatedCard>
-              </div>
-            ))}
-          </div>
-
-          <ScrollAnimatedCard delay={200} isVisible={true}>
-            <div className='card border-0 shadow-lg mb-5 mx-auto' style={{
-              borderRadius: '20px',
-              overflow: 'hidden',
-              animation: `fadeInUp 0.8s ease-out 200ms forwards`,
-              opacity: 0,
-              maxWidth: '100%'
-            }}>
-              <div className='row g-0 h-100'>
-                <div className='col-12 col-md-4 position-relative' style={{
-                  backgroundColor: '#0891B2',
-                  padding: '3rem 2rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  minHeight: '350px'
-                }}>
-                  <div>
-                    <h2 className='text-white fw-bold mb-0' style={{ fontSize: '2rem', lineHeight: '1.2' }}>
-                      <span style={{ fontSize: '2.5rem' }}>WHY CHOOSE</span><br />
-                      <span>OUR PRICING</span><br />
-                      <span>PLANS?</span>
-                    </h2>
-                  </div>
-
-                  <div className='d-flex justify-content-center align-items-center' style={{ flex: 1 }}>
-                    <BarChart3 size={100} color="white" style={{ opacity: 0.9 }} />
-                  </div>
-
-                  <div className='mt-3'>
-                    <p className='text-white small mb-0' style={{ fontSize: '0.875rem' }}>AI Recruitment</p>
-                  </div>
                 </div>
-
-                <div className='col-12 col-md-8 position-relative' style={{
-                  backgroundColor: '#CFFAFE',
-                  padding: '3rem 2.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  gap: '1.5rem',
-                  minHeight: '350px'
-                }}>
-                  <div className='position-absolute' style={{
-                    top: '-50px',
-                    left: '-50px',
-                    width: '200px',
-                    height: '200px',
-                    backgroundColor: '#0891B2',
-                    borderRadius: '50%',
-                    opacity: 0.3
-                  }}></div>
-                  <div className='position-absolute' style={{
-                    bottom: '-30px',
-                    left: '-30px',
-                    width: '150px',
-                    height: '150px',
-                    backgroundColor: '#0891B2',
-                    borderRadius: '50%',
-                    opacity: 0.2
-                  }}></div>
-
-                  {[
-                    { text: 'Transparent pricing' },
-                    { text: 'No hidden fees' },
-                    { text: 'Cancel anytime' },
-                    { text: 'All features included' },
-                    { text: '24/7 customer support' }
-                  ].map((benefit, idx) => (
-                    <div
-                      key={idx}
-                      className='d-flex align-items-center bg-white rounded-pill p-3 shadow-sm position-relative'
-                      style={{
-                        transition: 'all 0.3s ease',
-                        animation: `fadeInUp 0.6s ease-out ${(idx * 100) + 400}ms forwards`,
-                        opacity: 0
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateX(10px)';
-                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.15)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateX(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-                      }}
-                    >
-                      <div className='rounded-circle d-flex align-items-center justify-content-center me-3' style={{
-                        width: '40px',
-                        height: '40px',
-                        backgroundColor: '#06B6D4',
-                        flexShrink: 0
-                      }}>
-                        <i className='ri-check-line text-white fs-5'></i>
-                      </div>
-                      <span className='fw-semibold text-dark' style={{ fontSize: '1rem' }}>{benefit.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </ScrollAnimatedCard>
-        </div>
-      </section>
-
-      {/* FAQ and Video Section */}
-      <section className='container p-3 p-md-5'>
-        <div className='row align-items-center g-3 g-md-4'>
-          <div className='col-lg-6'>
-            <div className='d-flex flex-column gap-3'>
-              {[
-                {
-                  question: "Where to start?",
-                  answer: "Begin by creating your first job posting and setting up your company profile. Our AI will guide you through the process step by step."
-                },
-                {
-                  question: "Data analytics",
-                  answer: "Track your hiring metrics with comprehensive analytics including time-to-hire, candidate quality scores, and pipeline performance."
-                },
-                {
-                  question: "Understanding the market",
-                  answer: "Get insights into salary benchmarks, skill demand trends, and competitive analysis to make informed hiring decisions."
-                },
-                {
-                  question: "What can we do to help?",
-                  answer: "Our AI-powered platform automates screening, scheduling, and candidate communication, freeing you to focus on building relationships."
-                }
-              ].map((item, index) => (
-                <div
+              ))}
+            </>
+            
+            {/* Dots */}
+            <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-3 z-20">
+              {PLATFORM_TOPICS.map((_, index) => (
+                <button
                   key={index}
-                  className='card border-0 shadow-sm rounded-3 bg-white'
-                  style={{
-                    transition: 'all 0.3s ease',
-                    transform: 'translateY(0)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)';
-                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.12)';
-                    e.currentTarget.style.border = '1px solid #3B82F6';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.border = 'none';
-                  }}
-                >
-                  <div className='card-body p-4'>
-                    <div
-                      className='d-flex justify-content-between align-items-center cursor-pointer'
-                      onClick={() => toggleFAQ(index)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className='d-flex align-items-center gap-3'>
-                        <h6 className='mb-0 fw-semibold' style={{ color: '#ecaa48' }}>{item.question}</h6>
-                      </div>
-                      <i
-                        className={`ri-arrow-down-s-line fs-5 text-secondary transition-all ${openFAQ === index ? 'rotate-180' : ''
-                          }`}
-                        style={{
-                          transform: openFAQ === index ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.3s ease'
-                        }}
-                      ></i>
-                    </div>
-                    <div
-                      className={`mt-3 overflow-hidden transition-all ${openFAQ === index ? 'max-height-200 opacity-100' : 'max-height-0 opacity-0'
-                        }`}
-                      style={{
-                        maxHeight: openFAQ === index ? '200px' : '0px',
-                        opacity: openFAQ === index ? 1 : 0,
-                        transition: 'max-height 0.3s ease, opacity 0.3s ease'
-                      }}
-                    >
-                      <p className='text-secondary-light mb-0 lh-base' style={{ color: "#030108ff" }}>{item.answer}</p>
-                    </div>
-                  </div>
-                </div>
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentSlide ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/60'}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
               ))}
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className='col-lg-6'>
-            <ScrollAnimatedCard delay={300} isVisible={true}>
-              <div
-                className='position-relative rounded-3 overflow-hidden shadow-lg faq-image-container'
-                style={{
-                  animation: `fadeInUp 0.8s ease-out 300ms forwards`,
-                  opacity: 0,
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.2)';
-                  const img = e.currentTarget.querySelector('.faq-image');
-                  if (img) {
-                    img.style.transform = 'scale(1.1) rotate(2deg)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.1)';
-                  const img = e.currentTarget.querySelector('.faq-image');
-                  if (img) {
-                    img.style.transform = 'scale(1) rotate(0deg)';
-                  }
-                }}
+      {/* How It Works Section */}
+      <section id="how" className="py-10 bg-white">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="text-center mb-16" data-aos="fade-up">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">How It Works</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">Simple 4-step process to streamline your workflow and drive results.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { title: 'Create Job', desc: 'Post your job requirements and let our AI optimize', icon: '📝', color: 'bg-blue-50', textColor: 'text-blue-600', delay: '0' },
+              { title: 'Import Candidates', desc: 'Import candidates from various sources easily', icon: '👥', color: 'bg-emerald-50', textColor: 'text-emerald-600', delay: '150' },
+              { title: 'Track Pipeline', desc: 'Monitor candidate progress through stages', icon: '📊', color: 'bg-amber-50', textColor: 'text-amber-600', delay: '300' },
+              { title: 'Hire & Report', desc: 'Make offers and generate insightful reports', icon: '🎯', color: 'bg-pink-50', textColor: 'text-pink-600', delay: '450' }
+            ].map((step, idx) => (
+              <div 
+                key={idx} 
+                className={`rounded-2xl p-8 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${step.color}`}
+                data-aos="fade-up"
+                data-aos-delay={step.delay}
               >
-                <div className='bg-light' style={{ aspectRatio: '16/9', minHeight: '300px' }}>
-                  <div className='w-100 h-100 d-flex align-items-center justify-content-center bg-gradient position-relative'
-                    style={{
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      overflow: 'hidden'
-                    }}>
-
-                    <div
-                      className='position-absolute'
-                      style={{
-                        width: '200px',
-                        height: '200px',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        borderRadius: '50%',
-                        top: '-50px',
-                        right: '-50px',
-                        animation: 'float 6s ease-in-out infinite'
-                      }}
-                    ></div>
-                    <div
-                      className='position-absolute'
-                      style={{
-                        width: '150px',
-                        height: '150px',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '50%',
-                        bottom: '-30px',
-                        left: '-30px',
-                        animation: 'float 8s ease-in-out infinite reverse'
-                      }}
-                    ></div>
-
-                    <img
-                      src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop"
-                      className='w-100 faq-image position-relative'
-                      alt='Video Placeholder'
-                      style={{
-                        transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: 'scale(1)',
-                        filter: 'brightness(1.1) contrast(1.1)',
-                        borderRadius: '12px'
-                      }}
-                    />
-                  </div>
+                <div className={`w-16 h-16 mx-auto bg-white rounded-full flex items-center justify-center text-2xl shadow-sm mb-6 ${step.textColor}`}>
+                  {step.icon}
                 </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-3">{step.title}</h3>
+                <p className="text-slate-600">{step.desc}</p>
               </div>
-            </ScrollAnimatedCard>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className='container pb-5 px-3'>
-        <div
-          className='card bg-primary text-white border-0'
-          style={{
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-5px)';
-            e.currentTarget.style.boxShadow = '0 15px 40px rgba(13, 110, 253, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div className='card-body p-4 p-md-5 d-flex flex-column flex-md-row align-items-center justify-content-between gap-3'>
-            <div className='text-center text-md-start'>
-              <h5 className='mb-2 mb-md-3 text-white'>Ready to accelerate hiring?</h5>
-              <p className='mb-0 text-white small'>Start free, then choose a plan that scales with your team.</p>
+      {/* What We Offer Section */}
+      <section className="py-10 bg-slate-50">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="text-center mb-16" data-aos="fade-up">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">What We Offer</h2>
+            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+              All in one: AI Recruiter & HR Automation, CRM, Productivity, and HRMS. Built for hiring teams, sales teams, and HR departments.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {PLATFORM_TOPICS.map((topic, idx) => {
+              const Icon = topic.icon;
+              return (
+                <div 
+                  key={idx} 
+                  className="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  data-aos="fade-up" 
+                  data-aos-delay={idx * 100}
+                >
+                  <div className="p-8">
+                    <div 
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-white transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
+                      style={{ backgroundColor: topic.color }}
+                    >
+                      <Icon size={28} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-3">{topic.title}</h3>
+                    <p className="text-slate-600 text-sm mb-6 line-clamp-3">{topic.subtitle}</p>
+                    
+                    <ul className="space-y-3">
+                      {topic.points.slice(0,3).map((point, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                          <CheckCircle2 size={16} style={{ color: topic.color }} className="mt-0.5 flex-shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div 
+                    className="absolute bottom-0 left-0 h-1 w-0 transition-all duration-500 ease-out group-hover:w-full"
+                    style={{ backgroundColor: topic.color }}
+                  ></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* About Us Stats Section */}
+      <section className="py-10 bg-white">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="bg-slate-900 rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-2xl" data-aos="fade-up">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-blue-500 blur-3xl opacity-20"></div>
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 rounded-full bg-pink-500 blur-3xl opacity-20"></div>
+            
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                  Empowering teams to achieve more together.
+                </h2>
+                <p className="text-slate-300 text-lg mb-8">
+                  One platform for recruiting, sales, productivity, and HR. Hire, sell, and manage people from a single intelligent workplace.
+                </p>
+                <button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-7 rounded-full hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-1">
+                  Learn More About Us
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center" data-aos="zoom-in" data-aos-delay="200">
+                  <div className="text-4xl md:text-4xl  text-blue-400 mb-2">35+</div>
+                  <div className="text-white font-medium">Professionals</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center" data-aos="zoom-in" data-aos-delay="300">
+                  <div className="text-4xl md:text-4xl text-pink-400 mb-2">14+</div>
+                  <div className="text-white font-medium">Years Experience</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center" data-aos="zoom-in" data-aos-delay="400">
+                  <div className="text-4xl md:text-4xl text-emerald-400 mb-2">500+</div>
+                  <div className="text-white font-medium">Clients Worldwide</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center" data-aos="zoom-in" data-aos-delay="500">
+                  <div className="text-4xl md:text-4xl text-amber-400 mb-2">99%</div>
+                  <div className="text-white font-medium">Satisfaction Rate</div>
+                </div>
+              </div>
             </div>
-            <div className='d-flex align-items-center gap-2 w-100 w-md-auto justify-content-center'>
-              <Link
-                to='/login'
-                className='btn btn-light btn-sm'
-                style={{
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 255, 255, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-10 bg-slate-50">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="text-center mb-12" data-aos="fade-up">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">Pricing & Plans</h2>
+            <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">Transparent pricing that scales with your growing business.</p>
+            
+            <div className="inline-flex bg-white rounded-full p-1 shadow-sm border border-slate-200">
+              <button 
+                onClick={() => setIsYearly(false)}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${!isYearly ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                Get Started
+                MONTHLY
+              </button>
+              <button 
+                onClick={() => setIsYearly(true)}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${isYearly ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                YEARLY <span className="text-xs text-green-400 ml-1">-20%</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {pricingPlans.map((plan, idx) => (
+              <div 
+                key={idx} 
+                className={`relative bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ${plan.popular ? 'ring-2 ring-blue-500 scale-105 md:-mt-4 md:mb-4 z-10' : ''}`}
+                data-aos="fade-up"
+                data-aos-delay={idx * 150}
+              >
+                {plan.popular && (
+                  <div className="bg-blue-500 text-white text-xs font-bold uppercase tracking-wider text-center py-2">
+                    Most Popular
+                  </div>
+                )}
+                
+                <div className={`py-6 px-8 ${plan.color}`}>
+                  <h3 className="text-white text-xl font-bold mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline text-white">
+                    <span className="text-4xl font-bold">{isYearly ? plan.yearlyPrice : plan.monthlyPrice}</span>
+                    <span className="ml-2 opacity-80">/{isYearly ? 'year' : 'month'}</span>
+                  </div>
+                </div>
+                
+                <div className="p-8 flex-1 flex flex-col">
+                  <ul className="space-y-4 mb-8 flex-1">
+                    {plan.features.map((feature, fIdx) => (
+                      <li key={fIdx} className="flex items-center gap-3">
+                        {feature.included ? (
+                          <CheckCircle2 size={20} className={plan.textColor} />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex items-center justify-center">
+                            <div className="w-2.5 h-0.5 bg-slate-200 rounded-full"></div>
+                          </div>
+                        )}
+                        <span className={feature.included ? 'text-slate-700' : 'text-slate-400'}>{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <Link to="/pricing" className={`block w-full py-3 px-6 text-center rounded-xl font-bold transition-all duration-300 ${plan.popular ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'} no-underline`}>
+                    Choose Plan
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-10 bg-white">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex flex-col lg:flex-row gap-12 items-center">
+            <div className="w-full lg:w-1/2" data-aos="fade-right">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-8">Frequently Asked Questions</h2>
+              <div className="space-y-4">
+                {faqs.map((faq, idx) => (
+                  <div 
+                    key={idx} 
+                    className="border border-slate-200 rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-300 hover:shadow-md"
+                  >
+                    <button 
+                      onClick={() => toggleFAQ(idx)}
+                      className="w-full flex items-center justify-between p-5 text-left bg-white focus:outline-none"
+                    >
+                      <span className="font-semibold text-slate-800 pr-4">{faq.question}</span>
+                      <ChevronDown 
+                        size={20} 
+                        className={`text-slate-400 transition-transform duration-300 ${openFAQ === idx ? 'rotate-180 text-blue-500' : ''}`} 
+                      />
+                    </button>
+                    <div 
+                      className={`overflow-hidden transition-all duration-300 ease-in-out bg-slate-50 ${openFAQ === idx ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}
+                    >
+                      <p className="p-5 text-slate-600 border-t border-slate-100">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="w-full lg:w-1/2" data-aos="fade-left">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-purple-600/20 z-10 mix-blend-overlay"></div>
+                <img 
+                  src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop" 
+                  alt="Team working" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-10 bg-slate-50">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="bg-blue-600 rounded-3xl p-8 md:p-12 shadow-2xl text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden" data-aos="zoom-in">
+            <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="relative z-10 max-w-2xl">
+              <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to accelerate your hiring?</h3>
+              <p className="text-blue-100 text-lg">Start for free today, then choose a plan that scales with your growing team.</p>
+            </div>
+            <div className="relative z-10 flex flex-col sm:flex-row gap-4 w-full md:w-auto shrink-0">
+              <Link 
+                to="/login"
+                className="px-4 py-2 bg-white text-blue-600 font-bold rounded-full hover:bg-slate-50 hover:shadow-lg transition-all duration-300 text-center shadow-md no-underline"
+              >
+                Get Started Free
               </Link>
-              <Link
-                to='/pricing'
-                className='btn btn-outline-light btn-sm'
-                style={{
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+              <Link 
+                to="/pricing"
+                className="px-4 py-2 bg-transparent border-2 border-white/30 text-white font-bold rounded-full hover:bg-white/10 transition-all duration-300 text-center shadow-md no-underline"
               >
-                View Pricing
+                View All Plans
               </Link>
             </div>
           </div>
@@ -2112,4 +488,4 @@ const Landing = () => {
   );
 };
 
-export default Landing;
+export default HomePage;

@@ -1,87 +1,74 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import Footer from './Footer'
-import Navbar from './Navbar'
-// ==================== HeroSection ====================
-function HeroSection() {
+import Footer from './Footer';
+import Navbar from './Navbar';
+import AOS from "aos";
+import "aos/dist/aos.css";
+
+const HeroSection = () => {
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "90vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 80px",
-        backgroundImage: "url('/assets/images/bannerimg.png')",
-        backgroundColor: "#1e4f8c",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        color: "white",
-      }}
-    >
-      {/* Left Content */}
-      <div style={{ width: "50%" }}>
-        <h1 style={{ fontSize: "48px", fontWeight: "700" }}>
-          Transform Your <span style={{ color: "#ff9800" }}>Customer Relationship Management</span>
-          <br /> With AI Powered CRM
-        </h1>
-
-        <p style={{ marginTop: "20px", fontSize: "18px" }}>
-          Manage customer relationships smarter with our AI-powered CRM
-          platform. Track leads, automate follow-ups, analyze customer
-          interactions, and boost sales performance with intelligent insights
-          and real-time analytics.
-        </p>
-
-        <div style={{ marginTop: "30px", display: "flex", gap: "15px" }}>
-          <Link to="/bookademo">
-            <button
-              style={{
-                padding: "12px 25px",
-                borderRadius: "8px",
-                border: "none",
-                background: "#2f80ed",
-                fontWeight: "600",
-                color: "#fff",
-                cursor: "pointer",
-              }}
+    <section className="relative pt-24 pb-12 lg:pt-28 lg:pb-14 overflow-hidden bg-slate-50">
+      <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+        <div className="rounded-3xl overflow-hidden shadow-2xl relative min-h-[600px] lg:min-h-[600px] bg-slate-900 flex items-center" data-aos="zoom-in" data-aos-duration="1000">
+          <div className="absolute inset-0 z-0">
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url('/assets/images/bannerimg.png')` }}
             >
-              Book CRM Demo
-            </button>
-          </Link>
+              <div className="absolute inset-0 bg-slate-900/60 mix-blend-multiply"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/80 to-slate-900/20"></div>
+            </div>
+          </div>
 
-          <Link to="/contactpage">
-            <button
-              style={{
-                padding: "12px 25px",
-                borderRadius: "8px",
-                border: "none",
-                background: "#2f80ed",
-                color: "white",
-                fontWeight: "600",
-                cursor: "pointer",
-              }}
-            >
-              Start Free Trial
-            </button>
-          </Link>
+          <div className="relative z-10 w-full flex flex-col lg:flex-row items-center justify-between px-8 md:px-16 py-12 gap-10">
+            {/* Left Content */}
+            <div className="w-full lg:w-1/2 text-left" data-aos="fade-right" data-aos-duration="1200" data-aos-delay="200">
+              <div className="max-w-xl">
+                <span
+                  className="inline-block py-1.5 px-4 rounded-full text-sm font-semibold mb-6 tracking-wide shadow-lg"
+                  style={{ backgroundColor: '#ff9800', color: '#fff' }}
+                >
+                  📊 AI CRM Platform
+                </span>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight tracking-tight text-white">
+                  Transform Your <br /> <span className="text-orange-400">Customer Relationships</span>
+                </h1>
+                <p className="text-lg md:text-xl text-slate-200 mb-10 font-light leading-relaxed">
+                  Manage customer relationships smarter with our AI-powered CRM
+                  platform. Track leads, automate follow-ups, analyze customer
+                  interactions, and boost sales performance with intelligent insights.
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <Link
+                    to="/bookademo"
+                    className="px-6 py-3 rounded-full bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-300 w-full sm:w-auto text-center no-underline"
+                  >
+                    Book CRM Demo
+                  </Link>
+                  <Link
+                    to="/contactpage"
+                    className="px-6 py-3 rounded-full bg-white/10 backdrop-blur-md text-white font-bold text-lg border border-white/30 hover:bg-white/20 transition-all duration-300 w-full sm:w-auto text-center no-underline"
+                  >
+                    Start Free Trial
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Image */}
+            <div className="w-full lg:w-1/2 flex justify-center lg:justify-end" data-aos="fade-left" data-aos-duration="1200" data-aos-delay="400">
+              <div className="relative w-full max-w-[500px] animate-[float_6s_ease-in-out_infinite]">
+                <img
+                  src="/assets/images/crmbanner.png"
+                  alt="CRM Banner"
+                  className="w-full h-auto drop-shadow-2xl"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Right Image */}
-      <div style={{ width: "40%", textAlign: "center" }}>
-        <img
-          src="/assets/images/crmbanner.png"
-          alt="crm"
-          style={{
-            width: "1100px",
-            marginTop: "60px",
-            animation: "float 4s ease-in-out infinite",
-          }}
-        />
-      </div>
-
       <style>
         {`
         @keyframes float {
@@ -91,717 +78,230 @@ function HeroSection() {
         }
         `}
       </style>
-    </div>
+    </section>
   );
 }
 
-// ==================== CRMSection (Flip Cards) ====================
-function CRMSection() {
+const CRMSection = () => {
   return (
-    <div className="crm-section">
-      <h3 className="crm-title">Smart CRM Solutions For Growing Businesses</h3>
+    <div className="bg-slate-50 py-10 px-6 md:px-10 text-center">
+      <div className="max-w-7xl mx-auto">
+        <h3 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4" data-aos="fade-up">Smart CRM Solutions For Growing Businesses</h3>
+        <p className="text-lg text-slate-600 mb-16 max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="100">
+          Manage customers, automate sales, and gain insights with a powerful CRM platform.
+        </p>
 
-      <p className="crm-subtitle">
-        Manage customers, automate sales, and gain insights with a
-        powerful CRM platform.
-      </p>
-
-      <div className="crm-cards">
-        {/* Card 1 */}
-        <div className="flip-card">
-          <div className="flip-inner">
-            <div className="flip-front">
-              <div className="icon">
-                <i className="ri-team-fill"></i>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 perspective-1000">
+          {/* Card 1 */}
+          <div className="group h-[420px] w-full" data-aos="zoom-in" data-aos-delay="200">
+            <div className="relative w-full h-full transition-transform duration-700 transform-style-3d group-hover:rotate-y-180 cursor-pointer">
+              {/* Front */}
+              <div className="absolute w-full h-full backface-hidden bg-white rounded-2xl shadow-xl p-10 flex flex-col justify-center items-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-4xl mb-6 shadow-lg">
+                  <i className="ri-team-fill"></i>
+                </div>
+                <h4 className="text-2xl font-bold text-slate-800 mb-3">Customer Management</h4>
+                <p className="text-slate-600 leading-relaxed">
+                  Organize customer profiles and track all interactions in one centralized CRM platform.
+                </p>
               </div>
-              <h4>Customer Management</h4>
-              <p>
-                Organize customer profiles and track all interactions
-                in one centralized CRM platform.
-              </p>
-            </div>
-            <div className="flip-back">
-              <img
-                src="https://images.unsplash.com/photo-1551434678-e076c223a692"
-                alt="CRM"
-              />
-              <h4>Customer Management</h4>
-              <p>
-                Build stronger relationships with customers using
-                intelligent CRM tools and automated communication.
-              </p>
+              {/* Back */}
+              <div className="absolute w-full h-full backface-hidden bg-white rounded-2xl shadow-xl p-6 flex flex-col justify-center items-center rotate-y-180">
+                <img src="https://images.unsplash.com/photo-1551434678-e076c223a692" alt="CRM" className="w-full h-48 object-cover rounded-xl mb-4" />
+                <h4 className="text-xl font-bold text-slate-800 mb-2">Customer Management</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Build stronger relationships with customers using intelligent CRM tools and automated communication.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Card 2 */}
-        <div className="flip-card">
-          <div className="flip-inner">
-            <div className="flip-front">
-              <div className="icon">
-                <i className="ri-rocket-2-fill"></i>
+          {/* Card 2 */}
+          <div className="group h-[420px] w-full" data-aos="zoom-in" data-aos-delay="300">
+            <div className="relative w-full h-full transition-transform duration-700 transform-style-3d group-hover:rotate-y-180 cursor-pointer">
+              {/* Front */}
+              <div className="absolute w-full h-full backface-hidden bg-white rounded-2xl shadow-xl p-10 flex flex-col justify-center items-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-4xl mb-6 shadow-lg">
+                  <i className="ri-rocket-2-fill"></i>
+                </div>
+                <h4 className="text-2xl font-bold text-slate-800 mb-3">Sales Automation</h4>
+                <p className="text-slate-600 leading-relaxed">
+                  Automate follow-ups, pipeline tracking and lead assignments to improve sales efficiency.
+                </p>
               </div>
-              <h4>Sales Automation</h4>
-              <p>
-                Automate follow-ups, pipeline tracking and lead
-                assignments to improve sales efficiency.
-              </p>
-            </div>
-            <div className="flip-back">
-              <img
-                src="https://images.unsplash.com/photo-1552664730-d307ca884978"
-                alt="Sales"
-              />
-              <h4>Sales Automation</h4>
-              <p>
-                Increase productivity by automating repetitive
-                sales workflows and reminders.
-              </p>
+              {/* Back */}
+              <div className="absolute w-full h-full backface-hidden bg-white rounded-2xl shadow-xl p-6 flex flex-col justify-center items-center rotate-y-180">
+                <img src="https://images.unsplash.com/photo-1552664730-d307ca884978" alt="Sales" className="w-full h-48 object-cover rounded-xl mb-4" />
+                <h4 className="text-xl font-bold text-slate-800 mb-2">Sales Automation</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Increase productivity by automating repetitive sales workflows and reminders.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Card 3 */}
-        <div className="flip-card">
-          <div className="flip-inner">
-            <div className="flip-front">
-              <div className="icon">
-                <i className="ri-bar-chart-box-fill"></i>
+          {/* Card 3 */}
+          <div className="group h-[420px] w-full" data-aos="zoom-in" data-aos-delay="400">
+            <div className="relative w-full h-full transition-transform duration-700 transform-style-3d group-hover:rotate-y-180 cursor-pointer">
+              {/* Front */}
+              <div className="absolute w-full h-full backface-hidden bg-white rounded-2xl shadow-xl p-10 flex flex-col justify-center items-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-4xl mb-6 shadow-lg">
+                  <i className="ri-bar-chart-box-fill"></i>
+                </div>
+                <h4 className="text-2xl font-bold text-slate-800 mb-3">CRM Analytics</h4>
+                <p className="text-slate-600 leading-relaxed">
+                  Analyze sales performance and customer engagement with real-time dashboards.
+                </p>
               </div>
-              <h4>CRM Analytics</h4>
-              <p>
-                Analyze sales performance and customer engagement
-                with real-time dashboards.
-              </p>
-            </div>
-            <div className="flip-back">
-              <img
-                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71"
-                alt="Analytics"
-              />
-              <h4>CRM Analytics</h4>
-              <p>
-                Use powerful CRM analytics to make smarter
-                data-driven business decisions.
-              </p>
+              {/* Back */}
+              <div className="absolute w-full h-full backface-hidden bg-white rounded-2xl shadow-xl p-6 flex flex-col justify-center items-center rotate-y-180">
+                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71" alt="Analytics" className="w-full h-48 object-cover rounded-xl mb-4" />
+                <h4 className="text-xl font-bold text-slate-800 mb-2">CRM Analytics</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Use powerful CRM analytics to make smarter data-driven business decisions.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
       <style>{`
-        .crm-section{
-          padding:100px 40px;
-          text-align:center;
-          max-width:1300px;
-          margin:auto;
-        }
-        .crm-title{
-          font-size:32px;
-          font-weight:700;
-        }
-        .crm-subtitle{
-          margin-top:10px;
-          margin-bottom:60px;
-          color:#666;
-        }
-        .crm-cards{
-          display:flex;
-          justify-content:center;
-          gap:35px;
-          flex-wrap:wrap;
-        }
-        .flip-card{
-          width:360px;
-          height:420px;
-          perspective:1000px;
-        }
-        .flip-inner{
-          position:relative;
-          width:100%;
-          height:100%;
-          transition:transform 0.7s;
-          transform-style:preserve-3d;
-        }
-        .flip-card:hover .flip-inner{
-          transform:rotateY(180deg);
-        }
-        .flip-front{
-          position:absolute;
-          width:100%;
-          height:100%;
-          backface-visibility:hidden;
-          border-radius:16px;
-          background:#ffffff;
-          padding:40px 30px;
-          display:flex;
-          flex-direction:column;
-          justify-content:center;
-          align-items:center;
-          text-align:center;
-          box-shadow:0 10px 30px rgba(0,0,0,0.08);
-          transition:all 0.4s ease;
-        }
-        .flip-card:hover .flip-front{
-          transform:translateY(-8px);
-          box-shadow:0 20px 40px rgba(0,0,0,0.15);
-        }
-        .icon{
-          width:80px;
-          height:80px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:linear-gradient(135deg,#2563eb,#4f46e5);
-          border-radius:20px;
-          font-size:36px;
-          color:white;
-          margin-bottom:20px;
-        }
-        .flip-front h4{
-          font-size:22px;
-          font-weight:600;
-          margin-bottom:10px;
-          color:#1f2937;
-        }
-        .flip-front p{
-          font-size:15px;
-          color:#6b7280;
-          line-height:1.6;
-          max-width:260px;
-        }
-        .flip-back{
-          position:absolute;
-          width:100%;
-          height:100%;
-          transform:rotateY(180deg);
-          backface-visibility:hidden;
-          border-radius:16px;
-          box-shadow:0 10px 30px rgba(0,0,0,0.1);
-          background:#fff;
-          padding:25px;
-          display:flex;
-          flex-direction:column;
-          align-items:center;
-          justify-content:center;
-          text-align:center;
-        }
-        .flip-back img{
-          width:100%;
-          height:200px;
-          object-fit:cover;
-          border-radius:10px;
-          margin-bottom:15px;
-        }
-        .flip-back h4{
-          margin-bottom:10px;
-        }
-        .flip-back p{
-          color:#555;
-          line-height:1.6;
-        }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
       `}</style>
     </div>
   );
 }
 
-// ==================== CRMHubspotSection (Image + Content) ====================
-function CRMHubspotSection() {
+const CRMHubspotSection = () => {
   return (
-    <div className="crm-wrapper">
-      <div className="crm-container">
+    <div className="py-10 px-6 md:px-10 bg-white">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
         {/* LEFT IMAGE */}
-        <div className="crm-image">
+        <div className="w-full lg:w-1/2" data-aos="fade-right">
           <img
             src="https://images.unsplash.com/photo-1551434678-e076c223a692"
             alt="CRM Platform"
+            className="w-full rounded-2xl shadow-2xl"
           />
         </div>
 
         {/* RIGHT CONTENT */}
-        <div className="crm-content">
-          <h3>Powerful CRM Platform for Business Growth</h3>
-          <p>
+        <div className="w-full lg:w-1/2" data-aos="fade-left">
+          <h3 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6 leading-tight">
+            Powerful CRM Platform for Business Growth
+          </h3>
+          <p className="text-lg text-slate-600 mb-4 leading-relaxed">
             Our CRM platform helps businesses manage customer
             relationships more efficiently. Track leads, manage
             sales pipelines, and organize customer data in one
             centralized system.
           </p>
-          <p>
+          <p className="text-lg text-slate-600 mb-8 leading-relaxed">
             With smart automation, real-time analytics, and seamless
             integrations, your team can improve productivity,
             deliver better customer experiences, and grow faster.
           </p>
-          <div className="crm-buttons">
-            <button className="demo-btn">Book a Demo</button>
-            <button className="start-btn">Start Free Trial</button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button className="px-8 py-3 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/30">Book a Demo</button>
+            <button className="px-8 py-3 bg-transparent border-2 border-orange-500 text-orange-500 font-bold rounded-lg hover:bg-orange-500 hover:text-white transition-colors">Start Free Trial</button>
           </div>
         </div>
       </div>
-
-      <style>{`
-        .crm-wrapper{
-          padding:90px 40px;
-        }
-        .crm-container{
-          max-width:1200px;
-          margin:auto;
-          display:flex;
-          align-items:center;
-          gap:70px;
-          flex-wrap:wrap;
-        }
-        .crm-image{
-          flex:1;
-        }
-        .crm-image img{
-          width:100%;
-          border-radius:8px;
-          box-shadow:0 15px 40px rgba(0,0,0,0.15);
-        }
-        .crm-content{
-          flex:1;
-        }
-        .crm-content h3{
-          font-size:38px;
-          margin-bottom:20px;
-          color:#243447;
-          font-weight:700;
-        }
-        .crm-content p{
-          font-size:16px;
-          color:#555;
-          line-height:1.7;
-          margin-bottom:15px;
-        }
-        .crm-buttons{
-          margin-top:25px;
-          display:flex;
-          gap:18px;
-        }
-        .demo-btn{
-          background:#ff5c35;
-          color:white;
-          border:none;
-          padding:14px 28px;
-          border-radius:6px;
-          font-size:16px;
-          cursor:pointer;
-        }
-        .start-btn{
-          background:transparent;
-          border:2px solid #ff5c35;
-          color:#ff5c35;
-          padding:12px 28px;
-          border-radius:6px;
-          font-size:16px;
-          cursor:pointer;
-        }
-        .start-btn:hover{
-          background:#ff5c35;
-          color:white;
-        }
-        .demo-btn:hover{
-          opacity:0.9;
-        }
-      `}</style>
     </div>
   );
 }
 
-// ==================== CRMPlatform (Icons + Content) ====================
-function CRMPlatform() {
+const CRMPlatform = () => {
+  const icons = [
+    { icon: "bi-megaphone-fill", text: "Marketing Hub" },
+    { icon: "bi-bar-chart-line-fill", text: "Sales Hub" },
+    { icon: "bi-heart-fill", text: "Service Hub" },
+    { icon: "bi-play-circle-fill", text: "Content Hub" },
+    { icon: "bi-gear-fill", text: "Operations Hub" },
+    { icon: "bi-cart-fill", text: "Commerce Hub" },
+  ];
+
   return (
-    <div className="crm-wrapper-platform">
-      {/* ICON ROW */}
-      <div className="icons-row">
-        <div className="icon-item">
-          <i className="bi bi-megaphone-fill"></i>
-          <p>Marketing Hub</p>
+    <div className="py-10 px-6 md:px-10 bg-slate-50 text-center">
+      <div className="max-w-6xl mx-auto">
+        {/* ICON ROW */}
+        <div className="relative flex justify-center items-center gap-6 md:gap-16 flex-wrap mb-20" data-aos="fade-down">
+          {/* Horizontal Line behind icons */}
+          <div className="hidden md:block absolute top-1/2 left-[5%] right-[5%] h-[2px] bg-slate-200 -z-0 -translate-y-4"></div>
+
+          {icons.map((item, index) => (
+            <div key={index} className="relative z-10 flex flex-col items-center bg-slate-50 px-2 group cursor-pointer hover:-translate-y-2 transition-transform duration-300">
+              <i className={`bi ${item.icon} text-3xl text-orange-500 mb-2 group-hover:scale-110 transition-transform`}></i>
+              <p className="text-sm font-medium text-slate-700">{item.text}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="icon-item">
-          <i className="bi bi-bar-chart-line-fill"></i>
-          <p>Sales Hub</p>
-        </div>
-
-        <div className="icon-item">
-          <i className="bi bi-heart-fill"></i>
-          <p>Service Hub</p>
-        </div>
-
-        <div className="icon-item">
-          <i className="bi bi-play-circle-fill"></i>
-          <p>Content Hub</p>
-        </div>
-
-        <div className="icon-item">
-          <i className="bi bi-gear-fill"></i>
-          <p>Operations Hub</p>
-        </div>
-
-        <div className="icon-item">
-          <i className="bi bi-cart-fill"></i>
-          <p>Commerce Hub</p>
-        </div>
-      </div>
-
-      {/* CONTENT */}
-      <div className="crm-content-platform">
-        <h2 className="crm-title-platform">Your complete CRM platform</h2>
-
-        <p>
-          Our CRM platform connects marketing, sales, and customer
-          service teams in one unified system. Manage leads, automate
-          campaigns, track deals, and deliver exceptional customer
-          experiences from a single dashboard.
-        </p>
-
-        <p>
-          With powerful analytics and automation tools, businesses
-          gain complete visibility into the customer journey and
-          grow faster.
-        </p>
-
-        <div className="buttons-platform">
-          <button className="demo-platform">Get a demo</button>
-          <button className="start-platform">Get started free</button>
+        {/* CONTENT */}
+        <div className="max-w-3xl mx-auto" data-aos="fade-up">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Your complete CRM platform</h2>
+          <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+            Our CRM platform connects marketing, sales, and customer
+            service teams in one unified system. Manage leads, automate
+            campaigns, track deals, and deliver exceptional customer
+            experiences from a single dashboard.
+          </p>
+          <p className="text-lg text-slate-600 mb-10 leading-relaxed">
+            With powerful analytics and automation tools, businesses
+            gain complete visibility into the customer journey and
+            grow faster.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <button className="px-8 py-3 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/30">Get a demo</button>
+            <button className="px-8 py-3 bg-transparent border-2 border-orange-500 text-orange-500 font-bold rounded-lg hover:bg-orange-500 hover:text-white transition-colors">Get started free</button>
+          </div>
         </div>
       </div>
-
-      <style>{`
-        .crm-wrapper-platform{
-          padding:100px 40px;
-          text-align:center;
-          max-width:1200px;
-          margin:auto;
-        }
-        .icons-row{
-          display:flex;
-          justify-content:center;
-          align-items:center;
-          gap:60px;
-          flex-wrap:wrap;
-          margin-bottom:60px;
-          position:relative;
-        }
-        .icons-row::before{
-          content:"";
-          position:absolute;
-          top:35px;
-          left:5%;
-          width:90%;
-          height:2px;
-          background:#e5e5e5;
-          z-index:0;
-        }
-        .icon-item{
-          display:flex;
-          flex-direction:column;
-          align-items:center;
-          font-size:14px;
-          color:#333;
-          position:relative;
-          z-index:1;
-          background:white;
-          padding:0 10px;
-        }
-        .icon-item i{
-          font-size:30px;
-          color:#ff5c35;
-          margin-bottom:6px;
-        }
-        .crm-content-platform h2{
-          font-size:36px;
-          font-weight:700;
-          margin-bottom:15px;
-          color:#243447;
-        }
-        .crm-content-platform p{
-          color:#555;
-          line-height:1.7;
-          max-width:750px;
-          margin:10px auto;
-        }
-        .buttons-platform{
-          margin-top:25px;
-          display:flex;
-          justify-content:center;
-          gap:18px;
-        }
-        .demo-platform{
-          background:#ff5c35;
-          color:white;
-          border:none;
-          padding:14px 30px;
-          border-radius:6px;
-          cursor:pointer;
-          font-size:16px;
-        }
-        .start-platform{
-          background:transparent;
-          border:2px solid #ff5c35;
-          color:#ff5c35;
-          padding:12px 30px;
-          border-radius:6px;
-          cursor:pointer;
-          font-size:16px;
-        }
-        .start-platform:hover{
-          background:#ff5c35;
-          color:white;
-        }
-      `}</style>
     </div>
   );
 }
 
-// ==================== Card Component for CRMGrid ====================
-const Card = ({ icon, title, desc, features }) => {
+const Card = ({ icon, title, desc, features, delay }) => {
   return (
-    <div className="card">
-      <div className="title">
-        <i className={`bi ${icon}`}></i>
-        <h5>{title}</h5>
+    <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col min-h-[300px] border border-slate-100" data-aos="fade-up" data-aos-delay={delay}>
+      <div className="flex items-center gap-3 mb-4">
+        <i className={`bi ${icon} text-2xl text-orange-500`}></i>
+        <h5 className="text-xl font-bold text-slate-800 m-0">{title}</h5>
       </div>
-
-      <p className="desc">{desc}</p>
-
-      <div className="line"></div>
-
-      <p className="feature-title">Popular Features</p>
-
-      <ul>
+      <p className="text-slate-600 text-sm leading-relaxed mb-6">{desc}</p>
+      <div className="h-[1px] w-full bg-slate-100 mb-6"></div>
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Popular Features</p>
+      <ul className="flex-1 space-y-3 mb-6">
         {features.map((f, i) => (
-          <li key={i}>
-            <i className="bi bi-check-circle-fill"></i>
+          <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
+            <i className="bi bi-check-circle-fill text-slate-800 mt-0.5"></i>
             {f}
           </li>
         ))}
       </ul>
-
-      <button className="btn">Learn more</button>
+      <button className="w-full px-6 py-2.5 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-sm">
+        Learn more
+      </button>
     </div>
   );
 };
 
-// ==================== CRMGrid Component ====================
-function CRMGrid() {
-  return (
-    <div className="wrapper">
-      <div className="grid">
-        <Card
-          icon="bi-megaphone-fill"
-          title="Marketing Hub®"
-          desc="AI-powered marketing software that helps generate leads and automate marketing."
-          features={[
-            "Breeze social media agent",
-            "Marketing automation",
-            "Analytics"
-          ]}
-        />
-
-        <Card
-          icon="bi-bar-chart-fill"
-          title="Sales Hub®"
-          desc="Easy-to-adopt sales software that leverages AI to build pipelines."
-          features={[
-            "Sales workspace",
-            "Deal management",
-            "Breeze prospecting agent"
-          ]}
-        />
-
-        <Card
-          icon="bi-heart-fill"
-          title="Service Hub®"
-          desc="Customer service software powered by AI to scale support."
-          features={[
-            "Omni-channel help desk",
-            "Breeze customer agent",
-            "Customer success workspace"
-          ]}
-        />
-
-        <Card
-          icon="bi-play-circle-fill"
-          title="Content Hub™"
-          desc="All-in-one AI-powered content marketing software."
-          features={[
-            "Scalable CMS",
-            "Brand voice",
-            "Breeze content agent"
-          ]}
-        />
-
-        <Card
-          icon="bi-gear-fill"
-          title="Operations Hub®"
-          desc="Operations software that leverages AI to manage data."
-          features={[
-            "Data sync",
-            "Programmable automation",
-            "AI-powered data quality automation"
-          ]}
-        />
-
-        <Card
-          icon="bi-arrow-up-right-circle-fill"
-          title="Commerce Hub™"
-          desc="B2B commerce software designed to collect payments."
-          features={[
-            "Invoices & subscriptions",
-            "Quotes",
-            "Payment links"
-          ]}
-        />
-
-        <Card
-          icon="bi-circle-fill"
-          title="Smart CRM™"
-          desc="AI-powered CRM software that unifies customer data."
-          features={[
-            "AI-powered reporting",
-            "Contact management",
-            "Custom properties"
-          ]}
-        />
-
-        <div className="bundle">
-          <h3>Small Business Bundle</h3>
-
-          <p>
-            The Starter edition of every HubSpot product bundled together
-            at a discounted price for startups and small businesses.
-          </p>
-
-          <div className="bundle-icons">
-            <i className="bi bi-megaphone-fill"></i>
-            <i className="bi bi-bar-chart-fill"></i>
-            <i className="bi bi-heart-fill"></i>
-            <i className="bi bi-play-circle-fill"></i>
-            <i className="bi bi-gear-fill"></i>
-            <i className="bi bi-arrow-up-right-circle-fill"></i>
-          </div>
-
-          <button className="btn">Learn more</button>
-        </div>
-      </div>
-
-      <style>{`
-        body{
-          background:transparent;
-          font-family:Arial;
-        }
-        .wrapper{
-          max-width:1100px;
-          margin:auto;
-          padding:40px;
-        }
-        .grid{
-          display:grid;
-          grid-template-columns:repeat(3, 1fr);
-          gap:24px;
-        }
-        .card{
-          background:white;
-          padding:24px;
-          border-radius:12px;
-          display:flex;
-          flex-direction:column;
-          justify-content:space-between;
-          min-height:260px;
-          box-shadow:0 4px 10px rgba(0,0,0,0.05);
-          transition:0.3s;
-        }
-        .card:hover{
-          transform:translateY(-6px);
-          box-shadow:0 10px 20px rgba(0,0,0,0.1);
-        }
-        .title{
-          display:flex;
-          align-items:center;
-          gap:10px;
-          margin-bottom:8px;
-        }
-        .title i{
-          color:#ff5c35;
-          font-size:24px;
-        }
-        .title h5{
-          font-size:18px;
-          margin:0;
-          font-weight:600;
-        }
-        .desc{
-          font-size:14px;
-          color:#555;
-          line-height:1.6;
-          margin-bottom:12px;
-        }
-        .line{
-          height:1px;
-          background:#eee;
-          margin:12px 0;
-        }
-        .feature-title{
-          font-size:13px;
-          color:#666;
-          margin-bottom:6px;
-          font-weight:600;
-        }
-        ul{
-          list-style:none;
-          padding:0;
-          margin-bottom:14px;
-        }
-        ul li{
-          display:flex;
-          align-items:center;
-          gap:8px;
-          font-size:13px;
-          margin-bottom:6px;
-        }
-        ul i{
-          color:black;
-          font-size:13px;
-        }
-        .btn{
-          background:#ff5c35;
-          border:none;
-          color:white;
-          padding:10px 14px;
-          border-radius:6px;
-          cursor:pointer;
-          font-size:13px;
-          width:120px;
-        }
-        .bundle{
-          background:white;
-          padding:28px;
-          border-radius:12px;
-          grid-column:span 2;
-          text-align:center;
-          box-shadow:0 4px 10px rgba(0,0,0,0.05);
-        }
-        .bundle-icons{
-          display:flex;
-          justify-content:center;
-          gap:22px;
-          margin:20px 0;
-          font-size:26px;
-          color:#ff5c35;
-        }
-      `}</style>
-      
-    </div>
-  );
-}
-
 // ==================== Main Component ====================
-export default function CRMFeatures() {
+const CRMFeatures = () => {
+  useEffect(() => {
+    AOS.init({
+      once: false,
+      offset: 80,
+      duration: 900,
+      easing: "ease-out-cubic",
+    });
+  }, []);
+
   return (
-    <>
+    <div className="font-sans antialiased bg-slate-50 overflow-hidden">
       {/* Bootstrap Icons CDN (included once) */}
       <link
         rel="stylesheet"
@@ -812,13 +312,15 @@ export default function CRMFeatures() {
         href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
         rel="stylesheet"
       />
-<Navbar/>
+
+      <Navbar />
       <HeroSection />
       <CRMSection />
       <CRMHubspotSection />
       <CRMPlatform />
-      <Footer/>
-   
-    </>
+      <Footer />
+    </div>
   );
 }
+
+export default CRMFeatures;

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import Modal from '../../../shared/components/Modal';
 import CandidateDetailsView from './components/CandidateDetailsView';
+import StatCard from '../../../shared/components/StatCard';
 import { BASE_URL } from '../../../shared/constants/api.config';
 
 const DashboardOverview = () => {
@@ -216,58 +217,35 @@ const DashboardOverview = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-deatail_shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Total Jobs</p>
-              <p className="text-2xl font-bold text-midnight_text mt-1">{stats.totalJobs}</p>
-              <p className="text-xs text-gray-400 mt-1">{stats.activeJobs} active</p>
-            </div>
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Icon icon="heroicons:briefcase" className="h-5 w-5 text-primary" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-deatail_shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Total Candidates</p>
-              <p className="text-2xl font-bold text-midnight_text mt-1">{stats.totalCandidates}</p>
-              <p className="text-xs text-gray-400 mt-1">{stats.pendingApplications} pending</p>
-            </div>
-            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-              <Icon icon="heroicons:user-group" className="h-5 w-5 text-emerald-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-deatail_shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Applications</p>
-              <p className="text-2xl font-bold text-midnight_text mt-1">{stats.totalApplications}</p>
-              <p className="text-xs text-gray-400 mt-1">All time</p>
-            </div>
-            <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-              <Icon icon="heroicons:document-text" className="h-5 w-5 text-indigo-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-deatail_shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 uppercase font-semibold">Hired</p>
-              <p className="text-2xl font-bold text-midnight_text mt-1">{stats.hiredCandidates}</p>
-              <p className="text-xs text-gray-400 mt-1">This month</p>
-            </div>
-            <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
-              <Icon icon="heroicons:check-badge" className="h-5 w-5 text-amber-600" />
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Jobs"
+          value={stats.totalJobs}
+          subtitle={`${stats.activeJobs} active`}
+          icon="heroicons:briefcase"
+          color="blue"
+        />
+        <StatCard
+          title="Total Candidates"
+          value={stats.totalCandidates}
+          subtitle={`${stats.pendingApplications} pending`}
+          icon="heroicons:user-group"
+          color="green"
+        />
+        <StatCard
+          title="Applications"
+          value={stats.totalApplications}
+          subtitle="All time"
+          icon="heroicons:document-text"
+          color="purple"
+        />
+        <StatCard
+          title="Hired"
+          value={stats.hiredCandidates}
+          subtitle="This month"
+          icon="heroicons:check-badge"
+          color="yellow"
+        />
       </div>
 
       {/* Main Content */}

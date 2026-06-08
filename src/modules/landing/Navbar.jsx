@@ -37,7 +37,7 @@ const Navbar = () => {
         },
         {
           name: 'Productivity',
-          path: '/products/productivity',
+          path: '/productivity',
           icon: <Sparkles size={18} />,
           color: '#F59E0B',
           description: 'Productivity boosts team efficiency with smart workflows'
@@ -70,9 +70,8 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white ${
-        isScrolled ? 'shadow-lg py-2' : 'py-4'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white ${isScrolled ? 'shadow-lg py-2' : 'py-4'
+        }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
@@ -89,79 +88,77 @@ const Navbar = () => {
             />
           </Link>
 
-     <div className="hidden lg:flex items-center space-x-1">
-  {navLinks.map((link, index) => (
-    <div key={index} className="relative">
+          <div className="hidden lg:flex items-center space-x-1">
+            {navLinks.map((link, index) => (
+              <div key={index} className="relative">
 
-      {link.dropdown ? (
-        <button
-          onClick={() =>
-            setActiveDropdown(activeDropdown === index ? null : index)
-          }
-          className="px-4 py-2 rounded-lg font-medium text-lg transition-all duration-300 flex items-center space-x-1 text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-        >
-          <span>{link.name}</span>
-          <ChevronDown
-            size={16}
-            className={`transition-transform duration-300 ${
-              activeDropdown === index ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-      ) : (
-        <button
-          onClick={() => handleNavigation(link.path)}
-          className="px-4 py-2 rounded-lg font-medium text-lg transition-all duration-300 inline-block text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-        >
-          {link.name}
-        </button>
-      )}
+                {link.dropdown ? (
+                  <button
+                    onClick={() =>
+                      setActiveDropdown(activeDropdown === index ? null : index)
+                    }
+                    className="px-4 py-2 rounded-lg font-medium text-lg transition-all duration-300 flex items-center space-x-1 text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  >
+                    <span>{link.name}</span>
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform duration-300 ${activeDropdown === index ? "rotate-180" : ""
+                        }`}
+                    />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleNavigation(link.path)}
+                    className="px-4 py-2 rounded-lg font-medium text-lg transition-all duration-300 inline-block text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  >
+                    {link.name}
+                  </button>
+                )}
 
-      {/* Dropdown Menu */}
-      {link.dropdown && (
-        <div
-          className={`absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl py-2 border border-gray-100 transform transition-all duration-300 origin-top
-          ${
-            activeDropdown === index
-              ? "opacity-100 scale-100 translate-y-0"
-              : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
-          }`}
-        >
-          {link.items.map((item, itemIndex) => (
-            <button
-              key={itemIndex}
-              onClick={() => handleNavigation(item.path)}
-              className="flex items-start w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 group"
-            >
-              <div
-                className="p-1.5 rounded-lg mr-3 mt-1"
-                style={{ backgroundColor: `${item.color}15` }}
-              >
-                <span style={{ color: item.color }}>{item.icon}</span>
+                {/* Dropdown Menu */}
+                {link.dropdown && (
+                  <div
+                    className={`absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl py-2 border border-gray-100 transform transition-all duration-300 origin-top
+          ${activeDropdown === index
+                        ? "opacity-100 scale-100 translate-y-0"
+                        : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+                      }`}
+                  >
+                    {link.items.map((item, itemIndex) => (
+                      <button
+                        key={itemIndex}
+                        onClick={() => handleNavigation(item.path)}
+                        className="flex items-start w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 group"
+                      >
+                        <div
+                          className="p-1.5 rounded-lg mr-3 mt-1"
+                          style={{ backgroundColor: `${item.color}15` }}
+                        >
+                          <span style={{ color: item.color }}>{item.icon}</span>
+                        </div>
+
+                        <div className="flex-1">
+                          <span className="font-medium text-lg block">
+                            {item.name}
+                          </span>
+                          <span className="text-sm text-gray-500 block leading-tight">
+                            {item.description}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <div className="flex-1">
-                <span className="font-medium text-lg block">
-                  {item.name}
-                </span>
-                <span className="text-sm text-gray-500 block leading-tight">
-                  {item.description}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  ))}
-</div>
-       {/* Desktop Auth Buttons */}
+            ))}
+          </div>
+          {/* Desktop Auth Buttons */}
           <div className="hidden lg:flex items-center space-x-3">
- <button
+            <button
               onClick={() => navigate('/login')}
               className="px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transform hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
             >
-             Sign in
+              Sign in
             </button>
             <button
               onClick={() => navigate('/signup')}
@@ -180,18 +177,11 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         <div
-          className={`lg:hidden fixed inset-x-0 top-[72px] transition-all duration-300 ease-in-out ${
-            isOpen
+          className={`lg:hidden fixed inset-x-0 top-[72px] transition-all duration-300 ease-in-out bg-white/95 backdrop-blur-md shadow-md ${isOpen
               ? 'opacity-100 visible translate-y-0'
               : 'opacity-0 invisible -translate-y-4'
-          }`}
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.98)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}
+            }`}
         >
           <div className="container mx-auto px-4 py-4">
             {navLinks.map((link, index) => (
@@ -205,17 +195,15 @@ const Navbar = () => {
                       <span>{link.name}</span>
                       <ChevronDown
                         size={16}
-                        className={`transition-transform duration-300 ${
-                          activeDropdown === index ? 'rotate-180' : ''
-                        }`}
+                        className={`transition-transform duration-300 ${activeDropdown === index ? 'rotate-180' : ''
+                          }`}
                       />
                     </button>
 
                     {/* Mobile Dropdown with descriptions */}
                     <div
-                      className={`overflow-hidden transition-all duration-300 ${
-                        activeDropdown === index ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'
-                      }`}
+                      className={`overflow-hidden transition-all duration-300 ${activeDropdown === index ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'
+                        }`}
                     >
                       {link.items.map((item, itemIndex) => (
                         <button

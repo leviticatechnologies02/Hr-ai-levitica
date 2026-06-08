@@ -19,7 +19,7 @@ import {
   FiBarChart2
 } from 'react-icons/fi';
 import { BASE_URL } from "../../../shared/constants/api.config";
-
+import StatCard from '../../../shared/components/StatCard';
 const PipelineOverview = () => {
   const navigate = useNavigate();
   const [candidates, setCandidates] = useState([]);
@@ -332,53 +332,34 @@ const PipelineOverview = () => {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Total Candidates</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{totalCandidates}</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FiUsers className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Applied</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stages.Applied.length}</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <FiUserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">In Interview</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stages.Interview.length}</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                <FiMessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Hired</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stages.Hired.length}</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <FiCheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-              </div>
-            </div>
-          </div>
+          <StatCard 
+            title="Total Candidates"
+            value={totalCandidates}
+            subtitle="All candidates"
+            icon="lucide:users"
+            color="blue"
+          />
+          <StatCard 
+            title="Applied"
+            value={stages.Applied.length}
+            subtitle="New applications"
+            icon="lucide:user-plus"
+            color="purple"
+          />
+          <StatCard 
+            title="In Interview"
+            value={stages.Interview.length}
+            subtitle="Currently active"
+            icon="lucide:message-circle"
+            color="yellow"
+          />
+          <StatCard 
+            title="Hired"
+            value={stages.Hired.length}
+            subtitle="Successfully joined"
+            icon="lucide:check-circle"
+            color="green"
+          />
         </div>
 
         {/* Search and Filter */}

@@ -23,6 +23,7 @@ import {
 import { BASE_URL } from "../../../shared/constants/api.config";
 import { assessmentAPI } from "../../../shared/utils/api";
 import Modal from '../../../shared/components/Modal';
+import StatCard from '../../../shared/components/StatCard';
 
 const ResumeScreening = () => {
   const location = useLocation();
@@ -320,41 +321,27 @@ const ResumeScreening = () => {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Total Screened</p>
-                  <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{totalScreened}</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FiUsers className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Shortlisted</p>
-                  <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{shortlisted}</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <FiAward className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Avg Score</p>
-                  <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{avgScore}%</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                  <FiBarChart2 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
-                </div>
-              </div>
-            </div>
+            <StatCard 
+              title="Total Screened"
+              value={totalScreened}
+              subtitle="All candidates"
+              icon="lucide:users"
+              color="blue"
+            />
+            <StatCard 
+              title="Shortlisted"
+              value={shortlisted}
+              subtitle="Passed screening"
+              icon="lucide:award"
+              color="green"
+            />
+            <StatCard 
+              title="Avg Score"
+              value={`${avgScore}%`}
+              subtitle="Overall performance"
+              icon="lucide:bar-chart-2"
+              color="purple"
+            />
           </div>
 
           {/* Tab Navigation */}

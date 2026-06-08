@@ -5,12 +5,14 @@ import { BrowserRouter } from "react-router-dom";
 import './styles/index.css';
 import App from './App';
 import ChatBot from "./shared/components/ChatBot";
+import ScrollToTop from './shared/components/ScrollToTop';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <BrowserRouter>
     <ChatBot/> 
+      <ScrollToTop />
       <App />
     </BrowserRouter>
   </React.StrictMode>

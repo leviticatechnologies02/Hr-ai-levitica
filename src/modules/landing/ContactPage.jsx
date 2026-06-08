@@ -1,1231 +1,245 @@
 import React, { useState, useEffect } from "react";
+import { Mail, Phone, MapPin, Send, CheckCircle } from "lucide-react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
-const ContactBody = () => {
-  const [currentPage, setCurrentPage] = useState("contact"); // "contact", "verification", or "landing"
+const ContactPage = () => {
+  useEffect(() => {
+    AOS.init({ once: false, offset: 80, duration: 900, easing: "ease-out-cubic" });
+  }, []);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    phoneNumber: "",
-    email: "", 
+    email: "",
+    phone: "",
     message: "",
-    file: null,
-    consent: false
+    interest: "HR Automation"
   });
 
-  // Generate random 6-digit OTP
-  const generateRandomOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const [otp, setOtp] = useState(generateRandomOTP());
-  const [userOtp, setUserOtp] = useState(["", "", "", "", "", ""]);
-  const [showInvalidOtp, setShowInvalidOtp] = useState(false);
-  const [tab, setTab] = useState("recruiter");
-  const [showMore, setShowMore] = useState(false);
-  const [resendTimer, setResendTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // Timer for resend code
-  useEffect(() => {
-    let timer;
-    if (resendTimer > 0 && !canResend) {
-      timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-    } else {
-      setCanResend(true);
-    }
-    return () => clearTimeout(timer);
-  }, [resendTimer, canResend]);
-
-  // Auto redirect to dashboard after success message
-  useEffect(() => {
-    if (showSuccess) {
-      const timer = setTimeout(() => {
-        window.location.href = "/dashboard"; // Redirect to dashboard
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccess]);
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value
-    }));
-  };
-
-  const handleFileChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      file: e.target.files[0]
-    }));
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Generate new OTP when navigating to verification
-    setOtp(generateRandomOTP());
-    setUserOtp(["", "", "", "", "", ""]);
-    setShowInvalidOtp(false);
-    setResendTimer(30);
-    setCanResend(false);
-    // Navigate to verification page
-    setCurrentPage("verification");
+    setIsSubmitted(true);
+    // Auto reset for demo purposes
+    setTimeout(() => setIsSubmitted(false), 5000);
   };
-
-  const handleOtpChange = (index, value) => {
-    if (value.length <= 1) {
-      const newOtp = [...userOtp];
-      newOtp[index] = value;
-      setUserOtp(newOtp);
-      
-      // Auto-focus next input
-      if (value && index < 5) {
-        const nextInput = document.getElementById(`otp-${index + 1}`);
-        if (nextInput) nextInput.focus();
-      }
-    }
-  };
-
-  const handleVerify = () => {
-    const enteredOtp = userOtp.join("");
-    
-    if (enteredOtp === otp) {
-      setShowInvalidOtp(false);
-      setShowSuccess(true);
-      // Don't redirect immediately, show success message first
-    } else {
-      setShowInvalidOtp(true);
-    }
-  };
-
-  const handleResendCode = () => {
-    if (canResend) {
-      // Generate new OTP
-      const newOtp = generateRandomOTP();
-      setOtp(newOtp);
-      setUserOtp(["", "", "", "", "", ""]);
-      setShowInvalidOtp(false);
-      setResendTimer(30);
-      setCanResend(false);
-      
-      // Show the new OTP (for demo purposes - remove in production)
-      alert(`New verification code: ${newOtp}`);
-    }
-  };
-
-  const handleBackToContact = () => {
-    setCurrentPage("contact");
-  };
-
-  const handleBackToHome = () => {
-    setCurrentPage("contact");
-    // Reset form
-    setFormData({
-      firstName: "",
-      lastName: "",
-      phoneNumber: "",
-      email: "jksdh@gmail.com",
-      message: "",
-      file: null,
-      consent: false
-    });
-  };
-
-  const styles = {
-    page: {
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      minHeight: "100vh",
-      padding: "80px 20px",
-      fontFamily: "'Poppins', sans-serif",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      position: "relative"
-    },
-
-    container: {
-      maxWidth: "1300px",
-      width: "100%",
-      display: "grid",
-      gridTemplateColumns: currentPage === "contact" ? "1fr 1.2fr" : "1fr",
-      gap: "40px",
-      background: currentPage === "landing" ? "transparent" : "rgba(255, 255, 255, 0.95)",
-      borderRadius: "30px",
-      boxShadow: currentPage === "landing" ? "none" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-      overflow: "hidden",
-      backdropFilter: currentPage === "landing" ? "none" : "blur(10px)"
-    },
-
-    // Landing Page Styles
-    landingContainer: {
-      maxWidth: "1200px",
-      width: "100%",
-      margin: "0 auto"
-    },
-
-    hero: {
-      textAlign: "center",
-      color: "white",
-      marginBottom: "60px"
-    },
-
-    heroTitle: {
-      fontSize: "52px",
-      fontWeight: 700,
-      marginBottom: "20px",
-      animation: "fadeInDown 0.8s ease"
-    },
-
-    heroSubtitle: {
-      fontSize: "18px",
-      opacity: 0.9,
-      maxWidth: "600px",
-      margin: "0 auto",
-      animation: "fadeInUp 0.8s ease"
-    },
-
-    features: {
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: "30px",
-      marginBottom: "60px"
-    },
-
-    featureCard: {
-      background: "white",
-      padding: "40px 30px",
-      borderRadius: "20px",
-      textAlign: "center",
-      boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.2)",
-      animation: "fadeIn 1s ease"
-    },
-
-    featureIcon: {
-      width: "70px",
-      height: "70px",
-      background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      margin: "0 auto 25px",
-      color: "white",
-      fontSize: "30px"
-    },
-
-    featureTitle: {
-      fontSize: "22px",
-      fontWeight: 600,
-      color: "#1f2937",
-      marginBottom: "15px"
-    },
-
-    featureDesc: {
-      fontSize: "14px",
-      color: "#6b7280",
-      lineHeight: 1.6
-    },
-
-    ctaSection: {
-      textAlign: "center",
-      background: "white",
-      padding: "60px",
-      borderRadius: "20px",
-      boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.2)"
-    },
-
-    ctaTitle: {
-      fontSize: "32px",
-      fontWeight: 700,
-      color: "#1f2937",
-      marginBottom: "15px"
-    },
-
-    ctaText: {
-      fontSize: "16px",
-      color: "#6b7280",
-      marginBottom: "30px"
-    },
-
-    ctaButton: {
-      background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-      color: "white",
-      border: "none",
-      padding: "16px 40px",
-      borderRadius: "50px",
-      fontSize: "18px",
-      fontWeight: 600,
-      cursor: "pointer",
-      transition: "all 0.3s ease"
-    },
-
-    successMessage: {
-      position: "fixed",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      background: "white",
-      padding: "30px 50px",
-      borderRadius: "16px",
-      boxShadow: "0 20px 40px -10px rgba(0, 0, 0, 0.3)",
-      textAlign: "center",
-      zIndex: 1000,
-      animation: "slideUp 0.5s ease"
-    },
-
-    successIcon: {
-      width: "60px",
-      height: "60px",
-      background: "#10b981",
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      margin: "0 auto 20px",
-      color: "white",
-      fontSize: "30px"
-    },
-
-    successTitle: {
-      fontSize: "24px",
-      fontWeight: 600,
-      color: "#1f2937",
-      marginBottom: "10px"
-    },
-
-    successText: {
-      fontSize: "14px",
-      color: "#6b7280"
-    },
-
-    overlay: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: "rgba(0, 0, 0, 0.5)",
-      zIndex: 999
-    },
-
-    // Verification Page Styles - Ultra Small Card
-    smallCard: {
-      background: "white",
-      borderRadius: "16px",
-      padding: "25px",
-      maxWidth: "340px",
-      width: "100%",
-      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-      position: "relative",
-      margin: "0 auto"
-    },
-
-    backButton: {
-      position: "absolute",
-      top: "12px",
-      left: "12px",
-      background: "#f3f4f6",
-      border: "none",
-      color: "#4b5563",
-      fontSize: "12px",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "4px",
-      padding: "4px 10px",
-      borderRadius: "20px",
-      transition: "all 0.2s ease"
-    },
-
-    cardHeader: {
-      textAlign: "center",
-      marginBottom: "15px",
-      marginTop: "5px"
-    },
-
-    iconWrapper: {
-      width: "45px",
-      height: "45px",
-      background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      margin: "0 auto 10px",
-      color: "white",
-      fontSize: "20px"
-    },
-
-    cardTitle: {
-      fontSize: "18px",
-      fontWeight: 600,
-      color: "#1f2937",
-      marginBottom: "4px"
-    },
-
-    cardSubtitle: {
-      fontSize: "12px",
-      color: "#6b7280"
-    },
-
-    emailBox: {
-      background: "#f9fafb",
-      padding: "8px 12px",
-      borderRadius: "8px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: "15px",
-      fontSize: "12px"
-    },
-
-    emailText: {
-      color: "#374151",
-      fontWeight: 500
-    },
-
-    otpContainer: {
-      display: "flex",
-      gap: "6px",
-      justifyContent: "center",
-      marginBottom: "12px"
-    },
-
-    otpInput: {
-      width: "38px",
-      height: "45px",
-      border: "2px solid #e5e7eb",
-      borderRadius: "8px",
-      fontSize: "18px",
-      fontWeight: 600,
-      textAlign: "center",
-      color: "#1f2937",
-      outline: "none",
-      background: "white"
-    },
-
-    otpDisplay: {
-      background: "#f0f9ff",
-      padding: "8px",
-      borderRadius: "6px",
-      textAlign: "center",
-      marginBottom: "12px",
-      border: "1px dashed #4f46e5"
-    },
-
-    otpDisplayText: {
-      fontSize: "16px",
-      fontWeight: 600,
-      color: "#4f46e5",
-      letterSpacing: "2px"
-    },
-
-    otpDisplayLabel: {
-      fontSize: "10px",
-      color: "#6b7280",
-      marginBottom: "2px"
-    },
-
-    invalidOtp: {
-      color: "#ef4444",
-      fontSize: "11px",
-      marginBottom: "10px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "4px",
-      background: "#fef2f2",
-      padding: "6px 10px",
-      borderRadius: "6px"
-    },
-
-    resendRow: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: "15px",
-      padding: "8px 0",
-      borderTop: "1px solid #f3f4f6",
-      borderBottom: "1px solid #f3f4f6",
-      fontSize: "12px"
-    },
-
-    timerText: {
-      color: "#4f46e5",
-      fontWeight: 600,
-      marginRight: "8px"
-    },
-
-    resendButton: {
-      background: "none",
-      border: "none",
-      color: canResend ? "#4f46e5" : "#9ca3af",
-      fontWeight: 600,
-      fontSize: "12px",
-      cursor: canResend ? "pointer" : "not-allowed",
-      padding: "4px 10px"
-    },
-
-    verifyButton: {
-      background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-      color: "white",
-      border: "none",
-      padding: "10px",
-      borderRadius: "8px",
-      fontSize: "14px",
-      fontWeight: 600,
-      cursor: "pointer",
-      width: "100%",
-      marginBottom: "12px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "6px"
-    },
-
-    footerText: {
-      fontSize: "10px",
-      color: "#9ca3af",
-      textAlign: "center",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "4px",
-      marginBottom: "8px"
-    },
-
-    recaptchaRow: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "12px",
-      fontSize: "10px",
-      color: "#9ca3af"
-    },
-
-    recaptchaLink: {
-      color: "#4f46e5",
-      textDecoration: "none"
-    },
-
-    /* LEFT SIDE - Contact Page */
-    left: {
-      background: "linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%)",
-      padding: "50px 40px",
-      color: "white",
-      position: "relative",
-      overflow: "hidden"
-    },
-
-    decorativeCircle1: {
-      position: "absolute",
-      width: "300px",
-      height: "300px",
-      borderRadius: "50%",
-      background: "rgba(255, 255, 255, 0.1)",
-      top: "-100px",
-      right: "-100px"
-    },
-
-    decorativeCircle2: {
-      position: "absolute",
-      width: "200px",
-      height: "200px",
-      borderRadius: "50%",
-      background: "rgba(255, 255, 255, 0.1)",
-      bottom: "-50px",
-      left: "-50px"
-    },
-
-    smallTitle: {
-      fontSize: "14px",
-      fontWeight: 600,
-      letterSpacing: "2px",
-      textTransform: "uppercase",
-      background: "rgba(255, 255, 255, 0.2)",
-      display: "inline-block",
-      padding: "6px 16px",
-      borderRadius: "30px",
-      marginBottom: "25px",
-      position: "relative",
-      zIndex: 1
-    },
-
-    title: {
-      fontSize: "42px",
-      fontWeight: 700,
-      lineHeight: 1.2,
-      marginBottom: "25px",
-      position: "relative",
-      zIndex: 1
-    },
-
-    description: {
-      fontSize: "16px",
-      lineHeight: 1.7,
-      opacity: 0.9,
-      marginBottom: "40px",
-      position: "relative",
-      zIndex: 1
-    },
-
-    productList: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: "15px",
-      marginBottom: "40px",
-      position: "relative",
-      zIndex: 1
-    },
-
-    productItem: {
-      background: "rgba(255, 255, 255, 0.1)",
-      padding: "10px 15px",
-      borderRadius: "30px",
-      fontSize: "14px",
-      fontWeight: 500,
-      backdropFilter: "blur(5px)",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px"
-    },
-
-    social: {
-      display: "flex",
-      gap: "15px",
-      position: "relative",
-      zIndex: 1
-    },
-
-    socialIcon: {
-      width: "45px",
-      height: "45px",
-      background: "rgba(255, 255, 255, 0.2)",
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: "20px",
-      cursor: "pointer",
-      transition: "all 0.3s ease",
-      color: "white",
-      textDecoration: "none",
-      border: "none"
-    },
-
-    /* RIGHT SIDE - Contact Form */
-    formCard: {
-      padding: "50px 45px",
-      background: "white",
-      position: "relative"
-    },
-
-    toggleWrap: {
-      marginBottom: "35px"
-    },
-
-    toggle: {
-      display: "flex",
-      background: "#f3f4f6",
-      padding: "5px",
-      borderRadius: "50px",
-      position: "relative"
-    },
-
-    toggleBtn: (active) => ({
-      flex: 1,
-      padding: "12px 20px",
-      border: "none",
-      background: active ? "white" : "transparent",
-      color: active ? "#4f46e5" : "#6b7280",
-      fontWeight: 600,
-      fontSize: "15px",
-      borderRadius: "50px",
-      cursor: "pointer",
-      transition: "all 0.3s ease",
-      boxShadow: active ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "none",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px"
-    }),
-
-    row: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: "20px",
-      marginBottom: "20px"
-    },
-
-    inputGroup: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "8px",
-      marginBottom: "20px"
-    },
-
-    label: {
-      fontSize: "14px",
-      fontWeight: 600,
-      color: "#374151",
-      letterSpacing: "0.3px",
-      display: "flex",
-      alignItems: "center",
-      gap: "6px"
-    },
-
-    input: {
-      padding: "14px 16px",
-      borderRadius: "12px",
-      border: "2px solid #e5e7eb",
-      fontSize: "15px",
-      transition: "all 0.3s ease",
-      outline: "none",
-      width: "100%"
-    },
-
-    fullInput: {
-      width: "100%",
-      padding: "14px 16px",
-      borderRadius: "12px",
-      border: "2px solid #e5e7eb",
-      fontSize: "15px",
-      transition: "all 0.3s ease",
-      outline: "none"
-    },
-
-    upload: {
-      border: "2px dashed #4f46e5",
-      borderRadius: "16px",
-      padding: "30px 20px",
-      textAlign: "center",
-      marginBottom: "25px",
-      background: "#f5f3ff",
-      cursor: "pointer",
-      transition: "all 0.3s ease",
-      position: "relative"
-    },
-
-    uploadText: {
-      fontSize: "14px",
-      color: "#4f46e5",
-      fontWeight: 600,
-      marginBottom: "8px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px"
-    },
-
-    uploadSubtext: {
-      fontSize: "13px",
-      color: "#9ca3af"
-    },
-
-    textarea: {
-      width: "100%",
-      minHeight: "120px",
-      borderRadius: "12px",
-      border: "2px solid #e5e7eb",
-      padding: "14px 16px",
-      fontSize: "15px",
-      transition: "all 0.3s ease",
-      outline: "none",
-      fontFamily: "inherit"
-    },
-
-    checkbox: {
-      fontSize: "14px",
-      color: "#6b7280",
-      display: "flex",
-      gap: "10px",
-      marginBottom: "30px",
-      lineHeight: 1.6,
-      alignItems: "flex-start"
-    },
-
-    checkboxInput: {
-      width: "18px",
-      height: "18px",
-      marginTop: "2px",
-      cursor: "pointer"
-    },
-
-    viewMoreBtn: {
-      color: "#4f46e5",
-      cursor: "pointer",
-      fontWeight: 600,
-      marginLeft: "5px",
-      background: "none",
-      border: "none",
-      fontSize: "14px"
-    },
-
-    buttons: {
-      display: "flex",
-      gap: "15px",
-      alignItems: "center"
-    },
-
-    submit: {
-      padding: "16px 32px",
-      borderRadius: "50px",
-      border: "none",
-      background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-      color: "white",
-      fontSize: "16px",
-      fontWeight: 600,
-      cursor: "pointer",
-      transition: "all 0.3s ease",
-      flex: 1,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px"
-    },
-
-    viewJobs: {
-      padding: "16px 32px",
-      borderRadius: "50px",
-      border: "2px solid #e5e7eb",
-      background: "white",
-      color: "#374151",
-      fontSize: "16px",
-      fontWeight: 600,
-      cursor: "pointer",
-      transition: "all 0.3s ease",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px"
-    },
-
-    fileName: {
-      marginTop: "10px",
-      fontSize: "13px",
-      color: "#4f46e5",
-      fontWeight: 500
-    },
-
-    logoutBtn: {
-      position: "absolute",
-      top: "20px",
-      right: "20px",
-      background: "white",
-      border: "none",
-      padding: "10px 20px",
-      borderRadius: "30px",
-      color: "#4f46e5",
-      fontWeight: 600,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
-    },
-
-    dashboardLink: {
-      position: "fixed",
-      bottom: "20px",
-      right: "20px",
-      background: "white",
-      padding: "12px 24px",
-      borderRadius: "50px",
-      color: "#4f46e5",
-      textDecoration: "none",
-      fontWeight: 600,
-      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-      zIndex: 1000,
-      display: "flex",
-      alignItems: "center",
-      gap: "8px"
-    }
-  };
-
-  // Add keyframes animation
-  const styleSheet = document.createElement("style");
-  styleSheet.textContent = `
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    @keyframes fadeInDown {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -30%);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-      }
-    }
-  `;
-  document.head.appendChild(styleSheet);
 
   return (
-    <>
+    <div className="font-sans antialiased bg-slate-50 min-h-screen flex flex-col">
       <Navbar />
-      {showSuccess ? (
-        <div style={styles.page}>
-          <div style={styles.overlay} />
-          <div style={styles.successMessage}>
-            <div style={styles.successIcon}>
-              <i className="bi bi-check-lg"></i>
-            </div>
-            <h3 style={styles.successTitle}>Verification Successful!</h3>
-            <p style={styles.successText}>Redirecting to dashboard...</p>
-          </div>
-        </div>
-      ) : currentPage === "verification" ? (
-        <div style={styles.page}>
-          <div style={styles.smallCard}>
-            <button style={styles.backButton} onClick={handleBackToContact}>
-              <i className="bi bi-arrow-left"></i> Back
-            </button>
 
-            <div style={styles.cardHeader}>
-              <div style={styles.iconWrapper}>
-                <i className="bi bi-shield-check"></i>
+      {/* Hero Section */}
+      <section className="relative pt-24 pb-12 lg:pt-28 lg:pb-14 overflow-hidden bg-slate-50">
+        <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+          <div className="rounded-3xl overflow-hidden shadow-2xl relative min-h-[400px] lg:min-h-[400px] bg-slate-900 flex items-center" data-aos="zoom-in" data-aos-duration="900">
+            <div className="absolute inset-0 z-0">
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url('/assets/images/bannerimg.png')` }}
+              >
+                <div className="absolute inset-0 bg-slate-900/70 mix-blend-multiply"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/80 to-slate-900/30"></div>
               </div>
-              <h3 style={styles.cardTitle}>Verify Email</h3>
-              <p style={styles.cardSubtitle}>Enter 6-digit code</p>
             </div>
 
-            {/* Email Display */}
-            <div style={styles.emailBox}>
-              <span style={styles.emailText}>
-                <i className="bi bi-envelope" style={{ marginRight: "6px" }}></i>
-                {formData.email}
-              </span>
-              <i className="bi bi-check-circle-fill" style={{ color: "#10b981", fontSize: "14px" }}></i>
-            </div>
-
-            {/* OTP Input Boxes */}
-            <div style={styles.otpContainer}>
-              {userOtp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-${index}`}
-                  type="text"
-                  maxLength="1"
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  style={{
-                    ...styles.otpInput,
-                    borderColor: showInvalidOtp ? "#ef4444" : "#e5e7eb"
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Demo OTP Display - Remove in production */}
-            <div style={styles.otpDisplay}>
-              <div style={styles.otpDisplayLabel}>Demo code:</div>
-              <div style={styles.otpDisplayText}>{otp}</div>
-            </div>
-
-            {/* Invalid OTP Message */}
-            {showInvalidOtp && (
-              <div style={styles.invalidOtp}>
-                <i className="bi bi-exclamation-circle-fill"></i>
-                Invalid code
-              </div>
-            )}
-
-            {/* Resend Row */}
-            <div style={styles.resendRow}>
-              <span>Didn't get code?</span>
-              <div>
-                {!canResend && <span style={styles.timerText}>{resendTimer}s</span>}
-                <button
-                  style={styles.resendButton}
-                  onClick={handleResendCode}
-                  disabled={!canResend}
+            <div className="relative z-10 w-full flex flex-col items-center justify-center px-8 md:px-16 py-12 gap-10 text-center">
+              <div className="max-w-3xl" data-aos="fade-up" data-aos-duration="1200" data-aos-delay="200">
+                <span
+                  className="inline-block py-1.5 px-4 rounded-full text-sm font-semibold mb-6 tracking-wide shadow-lg"
+                  style={{ backgroundColor: '#3B82F6', color: '#fff' }}
                 >
-                  Resend
-                </button>
-              </div>
-            </div>
-
-            {/* Verify Button */}
-            <button style={styles.verifyButton} onClick={handleVerify}>
-              Verify <i className="bi bi-check-lg"></i>
-            </button>
-
-            {/* Footer */}
-            <div style={styles.footerText}>
-              <i className="bi bi-shield"></i>
-              By verifying, you agree to our terms
-            </div>
-
-            <div style={styles.recaptchaRow}>
-              <span>
-                <i className="bi bi-shield-lock"></i> reCAPTCHA
-              </span>
-              <a href="#" style={styles.recaptchaLink}>Privacy</a>
-              <span>•</span>
-              <a href="#" style={styles.recaptchaLink}>Terms</a>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div style={styles.page} className="mt-18">
-          <div style={styles.container}>
-            {/* LEFT SIDE */}
-            <div style={styles.left}>
-              <div style={styles.decorativeCircle1}></div>
-              <div style={styles.decorativeCircle2}></div>
-              
-              <div style={styles.smallTitle}>
-                <i className="bi bi-envelope-paper" style={{ marginRight: "8px" }}></i>
-                CONTACT US
-              </div>
-              <div style={styles.title}>
-                Let's Create<br />
-                Something Amazing
-              </div>
-              <div style={styles.description}>
-                Whether you're looking for product information, demos, pricing, or 
-                technical assistance, our team is ready to help you succeed.
-              </div>
-
-              {/* PRODUCT LIST with Icons */}
-              <div style={styles.productList}>
-                <div style={styles.productItem}>
-                  <i className="bi bi-people"></i> CRM Solutions
-                </div>
-                <div style={styles.productItem}>
-                  <i className="bi bi-graph-up"></i> Productivity Platform
-                </div>
-                <div style={styles.productItem}>
-                  <i className="bi bi-person-badge"></i> HRMS Management
-                </div>
-                <div style={styles.productItem}>
-                  <i className="bi bi-robot"></i> HR-AI Recruitment
-                </div>
-              </div>
-
-              {/* SOCIAL ICONS - Bootstrap Icons */}
-              <div style={styles.social}>
-                <a href="#" style={styles.socialIcon}>
-                  <i className="bi bi-twitter-x"></i>
-                </a>
-                <a href="#" style={styles.socialIcon}>
-                  <i className="bi bi-linkedin"></i>
-                </a>
-                <a href="#" style={styles.socialIcon}>
-                  <i className="bi bi-facebook"></i>
-                </a>
-                <a href="#" style={styles.socialIcon}>
-                  <i className="bi bi-instagram"></i>
-                </a>
-              </div>
-            </div>
-
-            {/* RIGHT FORM */}
-            <div style={styles.formCard}>
-              {/* Toggle Buttons */}
-              <div style={styles.toggleWrap}>
-                <div style={styles.toggle}>
-                  <button
-                    style={styles.toggleBtn(tab === "recruiter")}
-                    onClick={() => setTab("recruiter")}
-                    type="button"
-                  >
-                    <i className="bi bi-briefcase"></i> Recruiter
-                  </button>
-                  <button
-                    style={styles.toggleBtn(tab === "candidate")}
-                    onClick={() => setTab("candidate")}
-                    type="button"
-                  >
-                    <i className="bi bi-person-check"></i> Candidate
-                  </button>
-                </div>
-              </div>
-
-              {/* Form Fields */}
-              <div style={styles.row}>
-                <div style={styles.inputGroup}>
-                  <label style={styles.label}>
-                    <i className="bi bi-person"></i> First Name *
-                  </label>
-                  <input
-                    style={styles.input}
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    placeholder="John"
-                    required
-                  />
-                </div>
-                <div style={styles.inputGroup}>
-                  <label style={styles.label}>
-                    <i className="bi bi-person"></i> Last Name
-                  </label>
-                  <input
-                    style={styles.input}
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="Doe"
-                  />
-                </div>
-              </div>
-
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>
-                  <i className="bi bi-telephone"></i> Phone Number *
-                </label>
-                <input
-                  style={styles.fullInput}
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleInputChange}
-                  placeholder="+1 (555) 000-0000"
-                  type="tel"
-                  required
-                />
-              </div>
-
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>
-                  <i className="bi bi-envelope"></i> Email Address *
-                </label>
-                <input
-                  style={styles.fullInput}
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="john@company.com"
-                  type="email"
-                  required
-                />
-              </div>
-
-              {tab === "candidate" && (
-                <div style={styles.upload}>
-                  <div style={styles.uploadText}>
-                    <i className="bi bi-cloud-upload"></i> Click to upload or drag and drop
-                  </div>
-                  <div style={styles.uploadSubtext}>
-                    <i className="bi bi-file-pdf"></i> PDF, DOC, DOCX (Max 10MB)
-                  </div>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    style={{
-                      opacity: 0,
-                      position: "absolute",
-                      width: "100%",
-                      height: "100%",
-                      top: 0,
-                      left: 0,
-                      cursor: "pointer"
-                    }}
-                    onChange={handleFileChange}
-                  />
-                  {formData.file && (
-                    <div style={styles.fileName}>
-                      <i className="bi bi-check-circle-fill"></i> {formData.file.name}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>
-                  <i className="bi bi-chat-dots"></i> How can we help? *
-                </label>
-                <textarea
-                  style={styles.textarea}
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  placeholder="Tell us about your requirements..."
-                  required
-                ></textarea>
-              </div>
-
-              {/* Consent Checkbox */}
-              <div style={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  style={styles.checkboxInput}
-                  name="consent"
-                  checked={formData.consent}
-                  onChange={handleInputChange}
-                />
-                <span>
-                  By clicking submit, you agree to our privacy policy and terms of service.
-                  <button
-                    style={styles.viewMoreBtn}
-                    onClick={() => setShowMore(!showMore)}
-                    type="button"
-                  >
-                    {showMore ? "View Less" : "View More"} 
-                    <i className={`bi bi-chevron-${showMore ? 'up' : 'down'}`}></i>
-                  </button>
-                  {showMore && (
-                    <span style={{ display: "block", marginTop: "10px", color: "#6b7280" }}>
-                      <i className="bi bi-shield-check"></i> We'll use your information to process your request and send relevant updates. 
-                      Your data is securely stored and never shared with third parties.
-                    </span>
-                  )}
+                  💬 Let's Connect
                 </span>
-              </div>
-
-              {/* Buttons */}
-              <div style={styles.buttons}>
-                <button style={styles.submit} type="submit" onClick={handleSubmit}>
-                  Send Message <i className="bi bi-send"></i>
-                </button>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight tracking-tight text-white">
+                  We're Here To <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Help You Grow</span>
+                </h1>
+                <p className="text-lg md:text-xl text-slate-200 font-light leading-relaxed max-w-2xl mx-auto">
+                  Whether you have a question about our HR platform, need a custom solution, or just want to see a demo our team is ready to answer all your questions.
+                </p>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </section>
+
+      {/* Contact Cards & Form Section */}
+      <section className="py-10 px-6 lg:px-8 relative z-20 bg-slate-50">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12">
+
+          {/* Left Side: Contact Info */}
+          <div className="w-full lg:w-1/3 space-y-8" data-aos="fade-right">
+            <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center text-center hover:-translate-y-2 transition-transform duration-300">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-inner">
+                <Mail />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Email Us</h3>
+              <p className="text-slate-500 mb-4">Our friendly team is here to help.</p>
+              <a href="mailto:hello@levitica.com" className="text-blue-600 font-bold hover:text-blue-700">hello@levitica.com</a>
+            </div>
+
+            <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center text-center hover:-translate-y-2 transition-transform duration-300">
+              <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-inner">
+                <MapPin />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Visit Us</h3>
+              <p className="text-slate-500 mb-4">Come say hello at our office HQ.</p>
+              <p className="text-slate-800 font-medium">100 Innovation Drive<br />Tech City, TC 10020</p>
+            </div>
+
+            <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center text-center hover:-translate-y-2 transition-transform duration-300">
+              <div className="w-16 h-16 bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-inner">
+                <Phone />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Call Us</h3>
+              <p className="text-slate-500 mb-4">Mon-Fri from 8am to 5pm.</p>
+              <a href="tel:+1234567890" className="text-pink-600 font-bold hover:text-pink-700">+1 (234) 567-890</a>
+            </div>
+          </div>
+
+          {/* Right Side: Contact Form */}
+          <div className="w-full lg:w-2/3" data-aos="fade-left">
+            <div className="bg-white p-4 lg:p-14 rounded-3xl shadow-2xl border border-slate-100 relative overflow-hidden">
+              {/* Background Decoration */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -z-10 transform translate-x-1/2 -translate-y-1/2"></div>
+
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Send us a message</h2>
+              <p className="text-slate-500 mb-8">We'll get back to you within 24 hours.</p>
+
+              {isSubmitted ? (
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center flex flex-col items-center justify-center h-[400px] animate-[fadeIn_0.5s_ease-out]">
+                  <CheckCircle className="text-green-500 w-20 h-20 mb-4" />
+                  <h3 className="text-2xl font-bold text-green-800 mb-2">Message Sent!</h3>
+                  <p className="text-green-600">Thank you for reaching out. Our team will contact you shortly.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-slate-50 hover:bg-white"
+                        placeholder="John"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name</label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-slate-50 hover:bg-white"
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-slate-50 hover:bg-white"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-slate-50 hover:bg-white"
+                        placeholder="+1 (555) 000-0000"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">What are you interested in?</label>
+                    <select
+                      name="interest"
+                      value={formData.interest}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-slate-50 hover:bg-white cursor-pointer"
+                    >
+                      <option value="HR Automation">HR Automation Platform</option>
+                      <option value="CRM">AI CRM Platform</option>
+                      <option value="Productivity">Productivity Suite</option>
+                      <option value="Other">Other Query</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Message</label>
+                    <textarea
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      required
+                      rows="4"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-slate-50 hover:bg-white resize-none"
+                      placeholder="Tell us how we can help..."
+                    ></textarea>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3 px-8 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Send size={20} />
+                    Send Message
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Global Map / Locations Section */}
+      <section className="py-10 px-6 bg-slate-100 text-center relative overflow-hidden">
+        <div className="max-w-6xl mx-auto" data-aos="fade-up">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Come Visit Us</h2>
+          <p className="text-slate-600 text-lg mb-10">We are located in the heart of Hyderabad's tech district.</p>
+          <div className="w-full h-80 md:h-[400px] rounded-3xl bg-slate-200 overflow-hidden relative shadow-lg border border-slate-300">
+            <iframe
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              scrolling="no"
+              marginHeight="0"
+              marginWidth="0"
+              src="https://maps.google.com/maps?width=100%25&amp;height=600&amp;hl=en&amp;q=Levitica%20Technologies%20PVT%20LTD,%20Madhapur,%20Hyderabad+(Levitica%20Technologies)&amp;t=&amp;z=16&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"
+              title="Levitica Technologies Map"
+              style={{ filter: "contrast(1.05) opacity(0.95)" }}
+            ></iframe>
+          </div>
+        </div>
+      </section>
+
       <Footer />
-    </>
+    </div>
   );
 };
 
-export default ContactBody;
-
-
-
-
-
-
-
-
-
-
-
-
-
+export default ContactPage;
