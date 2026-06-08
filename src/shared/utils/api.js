@@ -123,11 +123,11 @@ export const jobAPI = {
     apiCall(`/api/jobs/${id}`),
 
   // Update job
-  update: (id, formData) => 
-    apiCall(`/api/jobs/update/${id}`, {
-      method: 'PUT',
-      body: formData
-    }),
+  update: (id, formData) =>
+  apiCall(`/api/jobs/api/jobs/update/${id}`, {
+    method: 'PUT',
+    body: formData
+  }),
 
   // Delete job
   delete: (id) => 
@@ -164,7 +164,7 @@ export const assetsAPI = {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(id),
-     }),
+    }),
 
   // Allocations
   listAllocations: () => apiCall('/asset-allocations'),
@@ -304,11 +304,11 @@ export const pipelineAPI = {
 export const analyticsAPI = {
   // Get hiring funnel data
   getHiringFunnel: () => 
-    apiCall('/api/hiring_funnel'),
+    apiCall('/api/hiring_funnel/'),
 
   // Get time to hire metrics
   getTimeToHire: () => 
-    apiCall('/api/time_to_hire'),
+    apiCall('/api/hiring_funnel/time-to-hire'),
 
   // Get recruiter dashboard stats
   getRecruiterStats: () => 
@@ -1146,10 +1146,138 @@ export const adminAPI = {
     })
 };
 
+// ==========================================
+// EMPLOYEE MANAGEMENT APIs
+// ==========================================
+export const employeeAPI = {
+  list: () => apiCall('/api/employees/'),
+  getById: (id) => apiCall(`/api/employees/${id}`),
+  deactivate: (id) => apiCall(`/api/employees/${id}/deactivate`, { method: 'PATCH' }),
+  activate: (id) => apiCall(`/api/employees/${id}/activate`, { method: 'PATCH' }),
+  createMaster: (data) => apiCall('/api/employees/master/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listMaster: () => apiCall('/api/employees/master/'),
+  getMaster: (id) => apiCall(`/api/employees/master/${id}`),
+  updateMaster: (id, data) => apiCall(`/api/employees/master/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteMaster: (id) => apiCall(`/api/employees/master/${id}`, { method: 'DELETE' }),
+  getDocuments: (employeeId) => apiCall(`/api/employees/documents/${employeeId}`),
+  uploadDocument: (data) => apiCall('/api/employees/documents/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  verifyDocument: (docId) => apiCall(`/api/employees/documents/${docId}/verify`, { method: 'PATCH' }),
+  deleteDocument: (docId) => apiCall(`/api/employees/documents/${docId}`, { method: 'DELETE' }),
+  listDepartments: () => apiCall('/api/employees/departments/'),
+  getDepartmentTree: () => apiCall('/api/employees/departments/tree'),
+  createDepartment: (data) => apiCall('/api/employees/departments/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateDepartment: (id, data) => apiCall(`/api/employees/departments/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteDepartment: (id) => apiCall(`/api/employees/departments/${id}`, { method: 'DELETE' }),
+};
+
+// ==========================================
+// PAYROLL APIs
+// ==========================================
+export const payrollAPI = {
+  listStructures: () => apiCall('/api/payroll/salary-structures/'),
+  createStructure: (data) => apiCall('/api/payroll/salary-structures/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  assignStructure: (data) => apiCall('/api/payroll/salary-structures/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getEmployeeStructure: (employeeId) => apiCall(`/api/payroll/salary-structures/employee/${employeeId}`),
+  listSlips: () => apiCall('/api/payroll/salary-slips/'),
+  generateSlip: (data) => apiCall('/api/payroll/salary-slips/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getSlip: (id) => apiCall(`/api/payroll/salary-slips/${id}`),
+  getEmployeeSlips: (employeeId) => apiCall(`/api/payroll/salary-slips/employee/${employeeId}`),
+  listRuns: () => apiCall('/api/payroll/runs/'),
+  createRun: (data) => apiCall('/api/payroll/runs/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getRun: (id) => apiCall(`/api/payroll/runs/${id}`),
+  approveRun: (id) => apiCall(`/api/payroll/runs/${id}/approve`, { method: 'PATCH' }),
+  listLoans: () => apiCall('/api/payroll/loans/'),
+  createLoan: (data) => apiCall('/api/payroll/loans/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getEmployeeLoans: (employeeId) => apiCall(`/api/payroll/loans/employee/${employeeId}`),
+  listTransfers: () => apiCall('/api/payroll/bank-transfers/'),
+  createTransfer: (data) => apiCall('/api/payroll/bank-transfers/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listReimbursements: () => apiCall('/api/payroll/reimbursements/'),
+  createReimbursement: (data) => apiCall('/api/payroll/reimbursements/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listSettlements: () => apiCall('/api/payroll/final-settlements/'),
+  createSettlement: (data) => apiCall('/api/payroll/final-settlements/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getEmployeeSettlement: (employeeId) => apiCall(`/api/payroll/final-settlements/employee/${employeeId}`),
+  getStatutory: () => apiCall('/api/payroll/statutory/'),
+  createStatutory: (data) => apiCall('/api/payroll/statutory/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateStatutory: (id, data) => apiCall(`/api/payroll/statutory/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+};
+
+// ==========================================
+// HR OPERATIONS APIs
+// ==========================================
+export const hrOpsAPI = {
+  listExits: () => apiCall('/api/hr-ops/exit-management/'),
+  createExit: (data) => apiCall('/api/hr-ops/exit-management/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateExit: (id, data) => apiCall(`/api/hr-ops/exit-management/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listNotice: () => apiCall('/api/hr-ops/notice-period/'),
+  createNotice: (data) => apiCall('/api/hr-ops/notice-period/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listLetters: () => apiCall('/api/hr-ops/letter-generation/'),
+  createLetter: (data) => apiCall('/api/hr-ops/letter-generation/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listTickets: () => apiCall('/api/hr-ops/helpdesk/'),
+  createTicket: (data) => apiCall('/api/hr-ops/helpdesk/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listConfirmations: () => apiCall('/api/hr-ops/confirmations/'),
+  createConfirmation: (data) => apiCall('/api/hr-ops/confirmations/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listTransfers: () => apiCall('/api/hr-ops/transfers/'),
+  createTransfer: (data) => apiCall('/api/hr-ops/transfers/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listPromotions: () => apiCall('/api/hr-ops/promotions/'),
+  createPromotion: (data) => apiCall('/api/hr-ops/promotions/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+};
+
+// ==========================================
+// REPORTS APIs
+// ==========================================
+export const reportsAPI = {
+  getEmployeeReport: () => apiCall('/api/reports/employees/'),
+  getAttendanceReport: () => apiCall('/api/reports/attendance/'),
+  getLeaveReport: () => apiCall('/api/reports/leave/'),
+  getPayrollReport: () => apiCall('/api/reports/payroll/'),
+  getComplianceReport: () => apiCall('/api/reports/compliance/'),
+  buildCustomReport: (data) => apiCall('/api/reports/custom/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getExecutiveDashboard: () => apiCall('/api/reports/dashboard/'),
+  getAIInsights: () => apiCall('/api/reports/ai-insights/'),
+};
+
+// ==========================================
+// FORMS & WORKFLOWS APIs
+// ==========================================
+export const formsAPI = {
+  listForms: () => apiCall('/api/forms/custom-forms/'),
+  createForm: (data) => apiCall('/api/forms/custom-forms/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getForm: (id) => apiCall(`/api/forms/custom-forms/${id}`),
+  updateForm: (id, data) => apiCall(`/api/forms/custom-forms/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteForm: (id) => apiCall(`/api/forms/custom-forms/${id}`, { method: 'DELETE' }),
+  listWorkflows: () => apiCall('/api/forms/workflows/'),
+  createWorkflow: (data) => apiCall('/api/forms/workflows/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listRequests: () => apiCall('/api/forms/requests/'),
+  createRequest: (data) => apiCall('/api/forms/requests/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listSurveys: () => apiCall('/api/forms/surveys/'),
+  createSurvey: (data) => apiCall('/api/forms/surveys/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listApprovals: () => apiCall('/api/forms/approvals/'),
+  createApproval: (data) => apiCall('/api/forms/approvals/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateApproval: (id, data) => apiCall(`/api/forms/approvals/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+};
+
+// ==========================================
+// SUPER ADMIN APIs
+// ==========================================
+export const superAdminAPI = {
+  listRoles: () => apiCall('/api/super-admin/roles/'),
+  createRole: (data) => apiCall('/api/super-admin/roles/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateRole: (id, data) => apiCall(`/api/super-admin/roles/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteRole: (id) => apiCall(`/api/super-admin/roles/${id}`, { method: 'DELETE' }),
+  listTenants: () => apiCall('/api/super-admin/tenants/'),
+  createTenant: (data) => apiCall('/api/super-admin/tenants/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateTenant: (id, data) => apiCall(`/api/super-admin/tenants/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getCompanySettings: () => apiCall('/api/super-admin/company-settings/'),
+  updateCompanySettings: (data) => apiCall('/api/super-admin/company-settings/', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+};
+
+// ==========================================
 // Export default for convenience
+// ==========================================
 const apiServices = {
   authAPI,
   jobAPI,
+  assetsAPI,
   candidateAPI,
   pipelineAPI,
   analyticsAPI,
@@ -1157,13 +1285,19 @@ const apiServices = {
   aiInterviewAPI,
   hrAPI,
   resumeAPI,
+  activitiesAPI,
   contactsAPI,
   leadsAPI,
   dealsAPI,
   companiesAPI,
   crmPipelinesAPI,
-  adminAPI
+  adminAPI,
+  employeeAPI,
+  payrollAPI,
+  hrOpsAPI,
+  reportsAPI,
+  formsAPI,
+  superAdminAPI,
 };
 
 export default apiServices;
-
