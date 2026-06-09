@@ -117,152 +117,13 @@ const attendanceReducer = (state, action) => {
 };
 
 // ==================== INITIAL DATA ====================
-const initialEmployees = [
-  {
-    id: "EMP001",
-    name: "Khuswanth Rao",
-    department: "IT",
-    position: "Developer",
-    status: "Active",
-  },
-  {
-    id: "EMP002",
-    name: "John Smith",
-    department: "HR",
-    position: "Manager",
-    status: "Active",
-  },
-  {
-    id: "EMP003",
-    name: "Sarah Johnson",
-    department: "Finance",
-    position: "Analyst",
-    status: "Active",
-  },
-  {
-    id: "EMP004",
-    name: "Mike Brown",
-    department: "Sales",
-    position: "Executive",
-    status: "Active",
-  },
-  {
-    id: "EMP005",
-    name: "Emma Wilson",
-    department: "IT",
-    position: "Tester",
-    status: "Active",
-  },
-  {
-    id: "EMP006",
-    name: "David Lee",
-    department: "Engineering",
-    position: "Lead",
-    status: "Active",
-  },
-  {
-    id: "EMP007",
-    name: "Lisa Wang",
-    department: "Marketing",
-    position: "Specialist",
-    status: "Active",
-  },
-  {
-    id: "EMP008",
-    name: "Robert Chen",
-    department: "Operations",
-    position: "Coordinator",
-    status: "Active",
-  },
-];
+const initialEmployees = [];
 
-const initialDevices = [
-  {
-    id: 1,
-    vendor: "ZKTeco",
-    model: "iClock 880",
-    ipAddress: "192.168.1.100",
-    status: "Online",
-    lastSync: new Date().toISOString(),
-    employees: 50,
-    health: 95,
-    type: "fingerprint",
-  },
-  {
-    id: 2,
-    vendor: "eSSL",
-    model: "BioTime 8.0",
-    ipAddress: "192.168.1.101",
-    status: "Syncing",
-    lastSync: new Date(Date.now() - 300000).toISOString(),
-    employees: 45,
-    health: 70,
-    type: "face",
-  },
-  {
-    id: 3,
-    vendor: "Honeywell",
-    model: "Pro-Watch 3.0",
-    ipAddress: "192.168.1.102",
-    status: "Offline",
-    lastSync: new Date(Date.now() - 600000).toISOString(),
-    employees: 30,
-    health: 40,
-    type: "rfid",
-  },
-  {
-    id: 4,
-    vendor: "ZKTeco",
-    model: "ZK4500",
-    ipAddress: "192.168.1.103",
-    status: "Online",
-    lastSync: new Date(Date.now() - 120000).toISOString(),
-    employees: 60,
-    health: 85,
-    type: "iris",
-  },
-];
+const initialDevices = [];
 
-const initialLocations = [
-  {
-    id: 1,
-    name: "Main Office",
-    radius: 100,
-    lat: 17.385,
-    lng: 78.4867,
-    address: "123 Main Street, Hyderabad",
-    employees: 45,
-  },
-  {
-    id: 2,
-    name: "Branch Office",
-    radius: 150,
-    lat: 17.4065,
-    lng: 78.4772,
-    address: "456 Branch Road, Hyderabad",
-    employees: 25,
-  },
-  {
-    id: 3,
-    name: "Remote Work",
-    radius: 500,
-    lat: 17.4254,
-    lng: 78.5075,
-    address: "Work From Home Zone",
-    employees: 15,
-  },
-];
+const initialLocations = [];
 
-const initialHolidays = [
-  { id: 1, date: "2024-01-26", name: "Republic Day", type: "National Holiday" },
-  { id: 2, date: "2024-03-25", name: "Holi", type: "Festival" },
-  {
-    id: 3,
-    date: "2024-08-15",
-    name: "Independence Day",
-    type: "National Holiday",
-  },
-];
+const initialHolidays = [];
 
 const initialSettings = {
   geoFencing: true,
@@ -397,40 +258,7 @@ const AttendanceCapture = () => {
     currentIP: "192.168.1.100", // Simulated IP
     ipAllowed: true,
     wfhRequests: [],
-    fieldEmployees: [
-      {
-        id: "FE001",
-        name: "Alex Johnson",
-        location: "Client Site A",
-        status: "Active",
-        lastCheckIn: "09:30",
-        type: "Field Sales",
-      },
-      {
-        id: "FE002",
-        name: "Maria Garcia",
-        location: "On Route",
-        status: "Traveling",
-        lastCheckIn: "08:45",
-        type: "Service Engineer",
-      },
-      {
-        id: "FE003",
-        name: "David Chen",
-        location: "Remote Site",
-        status: "Working",
-        lastCheckIn: "10:15",
-        type: "Site Supervisor",
-      },
-      {
-        id: "FE004",
-        name: "Sarah Wilson",
-        location: "Warehouse",
-        status: "Active",
-        lastCheckIn: "09:00",
-        type: "Inventory Manager",
-      },
-    ],
+    fieldEmployees: [],
     showWebcamModal: false,
     fieldLocations: [],
   });
@@ -5747,17 +5575,7 @@ const AttendanceCapture = () => {
 
       // Add audit log
       const auditLog = {
-        id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: now.toISOString(),
-        action: "MANUAL_CHECKOUT",
-        user: "Admin",
-        employeeId: record.employeeId,
-        employeeName: record.employeeName,
-        checkOutTime: checkOutTimeDisplay,
-        workHours: netWorkHours.toFixed(2),
-        details: `Manual check-out for ${record.employeeName} at ${checkOutTimeDisplay}`,
-        ipAddress: "192.168.1.100",
-      };
+        };
 
       const auditTrail = loadFromLocalStorage(LS_KEYS.AUDIT_TRAIL, []);
       auditTrail.unshift(auditLog);
@@ -5795,54 +5613,7 @@ const AttendanceCapture = () => {
       // Simulate processing
       setTimeout(() => {
         const now = new Date();
-        const records = [
-          {
-            id: `bulk_${Date.now() + 1}_${Math.random()
-              .toString(36)
-              .substr(2, 9)}`,
-            employeeId: "EMP001",
-            employeeName: "Khuswanth Rao",
-            employeeDepartment: "IT",
-            date: now.toISOString().split("T")[0],
-            checkIn: `${now.toISOString().split("T")[0]}T09:00:00`,
-            checkOut: `${now.toISOString().split("T")[0]}T18:00:00`,
-            status: "Present",
-            method: "manual",
-            workHours: 8.5,
-            overtime: 0.5,
-            approvedBy: "Admin",
-            importedFrom: file.name,
-            importType: "bulk_upload",
-            canCheckOut: false,
-            checkedOut: true,
-            syncStatus: "synced",
-            createdAt: now.toISOString(),
-            createdBy: "System",
-          },
-          {
-            id: `bulk_${Date.now() + 2}_${Math.random()
-              .toString(36)
-              .substr(2, 9)}`,
-            employeeId: "EMP002",
-            employeeName: "John Smith",
-            employeeDepartment: "HR",
-            date: now.toISOString().split("T")[0],
-            checkIn: `${now.toISOString().split("T")[0]}T09:30:00`,
-            checkOut: `${now.toISOString().split("T")[0]}T17:30:00`,
-            status: "Present",
-            method: "manual",
-            workHours: 7.5,
-            overtime: 0,
-            approvedBy: "Admin",
-            importedFrom: file.name,
-            importType: "bulk_upload",
-            canCheckOut: false,
-            checkedOut: true,
-            syncStatus: "synced",
-            createdAt: now.toISOString(),
-            createdBy: "System",
-          },
-        ];
+        const records = [];
 
         // Add records to state
         records.forEach((record) => {
@@ -5858,18 +5629,7 @@ const AttendanceCapture = () => {
         saveToLocalStorage(LS_KEYS.MANUAL_ATTENDANCE, manualRecords);
 
         // Add to import history
-        const importRecord = {
-          id: `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: now.toISOString(),
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          recordsImported: records.length,
-          status: "Success",
-          importedBy: "Admin",
-          source: "bulk_upload",
-          details: `Bulk upload completed: ${records.length} records imported`,
-        };
+        const importRecord = {};
 
         const importHistory = loadFromLocalStorage(LS_KEYS.IMPORT_HISTORY, []);
         importHistory.unshift(importRecord);
@@ -5922,49 +5682,7 @@ const AttendanceCapture = () => {
       let template, filename, mimeType;
 
       if (format === "csv") {
-        template = [
-          [
-            "Employee ID",
-            "Date",
-            "Check In",
-            "Check Out",
-            "Status",
-            "Overtime Hours",
-            "Reason",
-            "Approved By",
-          ],
-          [
-            "EMP001",
-            "2024-01-15",
-            "09:00",
-            "18:00",
-            "Present",
-            "2",
-            "Regular work",
-            "Admin",
-          ],
-          [
-            "EMP002",
-            "2024-01-15",
-            "09:30",
-            "17:30",
-            "Present",
-            "1",
-            "Regular work",
-            "Admin",
-          ],
-          ["EMP003", "2024-01-15", "", "", "Absent", "0", "Sick leave", "HR"],
-          [
-            "EMP004",
-            "2024-01-15",
-            "09:00",
-            "13:00",
-            "Half Day",
-            "0",
-            "Medical appointment",
-            "Manager",
-          ],
-        ]
+        template = []
           .map((row) => row.join(","))
           .join("\n");
         filename = "attendance_template.csv";
