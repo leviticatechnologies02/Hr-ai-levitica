@@ -22,10 +22,10 @@ export const API_ENDPOINTS = {
   
   // Jobs (Note: create.py and update.py have double prefix, others have single)
   JOBS: {
-    CREATE: '/api/jobs/api/jobs/create',  // Double prefix (create.py has prefix)
+    CREATE: '/api/jobs/create',  // Double prefix (create.py has prefix)
     LIST: '/api/jobs/list',                // Single prefix
     GET: (id) => `/api/jobs/${id}`,        // Single prefix
-    UPDATE: (id) => `/api/jobs/api/jobs/update/${id}`,  // Double prefix (update.py has prefix)
+    UPDATE: (id) => `/api/jobs/update/${id}`,  // Double prefix (update.py has prefix)
     DELETE: (id) => `/api/jobs/delete/${id}`,  // Single prefix
     SEARCH: '/api/jobs/search',            // Single prefix
   },

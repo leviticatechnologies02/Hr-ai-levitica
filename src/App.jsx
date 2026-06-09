@@ -151,6 +151,15 @@ import TimeTracking from './modules/productivity/tasks/TimeTracking';
 import Projects from './modules/productivity/projects/Projects';
 
 
+import ResetPassword from './modules/auth/ResetPassword';
+
+import CandidateLogin from './modules/candidate/CandidateLogin';
+import CandidateDashboard from './modules/candidate/CandidateDashboard';
+import CandidateJobSearch from './modules/candidate/CandidateJobSearch';
+import CandidateApplications from './modules/candidate/CandidateApplications';
+import CandidateProfile from './modules/candidate/CandidateProfile';
+
+
 
 
 
@@ -1585,6 +1594,16 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+
+
+      <Route path='/reset-password' element={<ResetPassword />} />
+
+      {/* Candidate Portal Routes */}
+      <Route path='/candidate/login' element={<CandidateLogin />} />
+      <Route path='/candidate/dashboard' element={<CandidateDashboard />} />
+      <Route path='/candidate/jobs' element={<CandidateJobSearch />} />
+      <Route path='/candidate/applications' element={<CandidateApplications />} />
+      <Route path='/candidate/profile' element={<CandidateProfile />} />
 
       <Route path='*' element={<Navigate to='/' replace />} />
     </Routes>
