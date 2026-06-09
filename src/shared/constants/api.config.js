@@ -51,8 +51,8 @@ export const API_ENDPOINTS = {
   
   // Analytics
   ANALYTICS: {
-    HIRING_FUNNEL: '/api/hiring_funnel',
-    TIME_TO_HIRE: '/api/time_to_hire',
+  HIRING_FUNNEL: '/api/hiring_funnel/',
+  TIME_TO_HIRE: '/api/hiring_funnel/time-to-hire',
     RECRUITER_STATS: '/api/recruiter_dashboard/analytics',
     APPLICATIONS_OVER_TIME: '/api/recruiter_dashboard/analytics/applications-over-time',
   },
