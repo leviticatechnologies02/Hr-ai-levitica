@@ -423,7 +423,6 @@ const ReviewAIInterview = () => {
   return (
     <div className="">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -443,7 +442,6 @@ const ReviewAIInterview = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Sidebar - Candidate List */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow">
               <div className="p-4 border-b border-gray-100">
@@ -498,7 +496,6 @@ const ReviewAIInterview = () => {
             </div>
           </div>
 
-          {/* Right Panel - Interview Details */}
           <div className="lg:col-span-2">
             {!candidate ? (
               <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow text-center py-12">
@@ -508,7 +505,6 @@ const ReviewAIInterview = () => {
               </div>
             ) : (
               <>
-                {/* Video/Answer Player */}
                 <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow mb-4">
                   <div className="p-4 border-b border-gray-100">
                     <div className="flex items-center justify-between flex-wrap gap-3">
@@ -531,7 +527,6 @@ const ReviewAIInterview = () => {
                       <p className="text-sm text-midnight_text">{candidate.questions[currentQuestion].q}</p>
                     </div>
 
-                    {/* Video/Audio Player */}
                     {(() => {
                       const currentQ = candidate.questions[currentQuestion];
                       const videoPath = currentQ.video_path;
@@ -618,13 +613,11 @@ const ReviewAIInterview = () => {
                   </div>
                 </div>
 
-                {/* AI Feedback Panel */}
                 <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow mb-4">
                   <div className="p-4 border-b border-gray-100">
                     <h5 className="font-semibold text-midnight_text">AI Feedback</h5>
                   </div>
                   <div className="p-4 space-y-4">
-                    {/* Keyword Analysis */}
                     <div>
                       <h6 className="text-xs font-semibold text-gray-500 mb-2">Keyword Analysis</h6>
                       <div className="flex flex-wrap gap-2">
@@ -636,7 +629,6 @@ const ReviewAIInterview = () => {
                       </div>
                     </div>
 
-                    {/* Sentiment Analysis */}
                     <div>
                       <h6 className="text-xs font-semibold text-gray-500 mb-2">Sentiment Analysis</h6>
                       <div className="grid grid-cols-3 gap-3">
@@ -655,7 +647,6 @@ const ReviewAIInterview = () => {
                       </div>
                     </div>
 
-                    {/* AI Evaluation Score */}
                     <div>
                       <h6 className="text-xs font-semibold text-gray-500 mb-2">AI Evaluation Score</h6>
                       <div className="space-y-2">
@@ -680,7 +671,6 @@ const ReviewAIInterview = () => {
                       </div>
                     </div>
 
-                    {/* AI Verdict */}
                     <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
                       <p className="text-xs text-gray-500 font-medium mb-1">AI Verdict:</p>
                       <p className="text-sm text-gray-700">{candidate.verdict}</p>
@@ -688,7 +678,6 @@ const ReviewAIInterview = () => {
                   </div>
                 </div>
 
-                {/* Recruiter Notes */}
                 <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow mb-4">
                   <div className="p-4 border-b border-gray-100">
                     <h5 className="font-semibold text-midnight_text">Recruiter Notes</h5>
@@ -721,7 +710,6 @@ const ReviewAIInterview = () => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3">
                   <button onClick={() => handleAction('Shortlist')} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-all">
                     <FiCheckCircle className="h-4 w-4" />
@@ -742,7 +730,6 @@ const ReviewAIInterview = () => {
         </div>
       </div>
 
-      {/* Candidate Details Modal */}
       <Modal
         isOpen={showCandidateModal}
         onClose={closeModal}
@@ -752,7 +739,6 @@ const ReviewAIInterview = () => {
         {selectedCandidateForModal && (
           <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Personal Info */}
               <div className="md:col-span-1 space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h6 className="text-sm font-semibold text-midnight_text mb-3">Personal Information</h6>
@@ -784,7 +770,6 @@ const ReviewAIInterview = () => {
                 </div>
               </div>
 
-              {/* Interview Details */}
               <div className="md:col-span-2 space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -842,7 +827,6 @@ const ReviewAIInterview = () => {
         )}
       </Modal>
 
-      {/* Offer Template Modal */}
       <Modal
         isOpen={showOfferModal}
         onClose={() => setShowOfferModal(false)}

@@ -300,7 +300,6 @@ const ResumeScreening = () => {
     <div className="">
       <div className="max-w-7xl mx-auto">
         <div className="space-y-4 sm:space-y-6">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -319,7 +318,6 @@ const ResumeScreening = () => {
             </button>
           </div>
 
-          {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             <StatCard 
               title="Total Screened"
@@ -344,7 +342,6 @@ const ResumeScreening = () => {
             />
           </div>
 
-          {/* Tab Navigation */}
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow">
             <div className="border-b border-gray-100 px-3 sm:px-4">
               <div className="flex gap-3 sm:gap-4 overflow-x-auto">
@@ -375,10 +372,8 @@ const ResumeScreening = () => {
             </div>
           </div>
 
-          {/* Tab Content */}
           {activeTab === 'candidates' ? (
             <>
-              {/* Bulk Actions */}
               {selectedCandidateIds.length > 0 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-primary/5 border border-primary/20 rounded-lg p-3 sm:p-4">
                   <div className="flex items-center gap-3">
@@ -426,7 +421,6 @@ const ResumeScreening = () => {
                 </div>
               )}
 
-              {/* Mobile View - Card Layout */}
               <div className="block md:hidden">
                 {currentCandidates.length === 0 ? (
                   <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-8 text-center">
@@ -523,7 +517,6 @@ const ResumeScreening = () => {
                 )}
               </div>
 
-              {/* Desktop View - Table Layout */}
               <div className="hidden md:block">
                 {candidates.length === 0 ? (
                   <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-8 text-center">
@@ -633,7 +626,6 @@ const ResumeScreening = () => {
                       </div>
                     </div>
 
-                    {/* Pagination */}
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-gray-50/30 rounded-lg">
                       <div className="text-xs text-gray-500 text-center sm:text-left">
                         Showing {indexOfFirstJob + 1} to {Math.min(indexOfLastJob, candidates.length)} of {candidates.length} candidates
@@ -688,7 +680,6 @@ const ResumeScreening = () => {
               </div>
             </>
           ) : (
-            /* Upload Tab */
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4 sm:p-6 md:p-8">
               <div className="max-w-2xl mx-auto">
                 <div className="text-center mb-6">
@@ -781,7 +772,6 @@ const ResumeScreening = () => {
         </div>
       </div>
 
-      {/* Upload Result Modal */}
       <Modal
         isOpen={showResultModal}
         onClose={() => {
@@ -795,7 +785,6 @@ const ResumeScreening = () => {
       >
         {uploadResult && (
           <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
-            {/* Modal content remains the same */}
             {uploadResult.status === 'error' ? (
               <div className="flex items-center gap-3 p-4 bg-rose-50 rounded-lg border border-rose-100">
                 <FiAlertCircle className="h-6 w-6 text-rose-500 flex-shrink-0" />

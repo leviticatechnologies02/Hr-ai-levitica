@@ -300,15 +300,12 @@ const CreateJob = () => {
   return (
     <div className="">
       <div className=" mx-auto space-y-6">
-        {/* Back to Jobs Link */}
         <div>
           <Link to="/jobslist" className="inline-flex items-center gap-2 text-gray-600 hover:text-primary transition-colors text-sm font-medium">
             <FiArrowLeft className="h-4 w-4" />
             Back to Jobs
           </Link>
         </div>
-
-        {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-midnight_text flex items-center gap-2">
             <FiBriefcase className="text-gray-600 text-2xl" />
@@ -320,7 +317,6 @@ const CreateJob = () => {
         </div>
 
         <form className="space-y-6">
-          {/* Basic Information */}
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-6">
             <h4 className="text-base font-semibold text-midnight_text mb-4">Basic Information</h4>
             <div className="space-y-4">
@@ -396,7 +392,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Job Details */}
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-6">
             <h4 className="text-base font-semibold text-midnight_text mb-4">Job Details</h4>
             <div className="space-y-4">
@@ -436,7 +431,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Compensation & Benefits */}
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-6">
             <h4 className="text-base font-semibold text-midnight_text mb-4">Compensation & Benefits</h4>
             <div className="space-y-4">
@@ -490,7 +484,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Skills & Keywords */}
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-6">
             <h4 className="text-base font-semibold text-midnight_text mb-4">Skills & Keywords</h4>
             <div>
@@ -521,7 +514,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Additional Information */}
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-6">
             <h4 className="text-base font-semibold text-midnight_text mb-4">Additional Information</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -547,7 +539,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Attachments */}
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-6">
             <h4 className="text-base font-semibold text-midnight_text mb-4">Attachments</h4>
             <div>
@@ -562,7 +553,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-6 border-t border-gray-100 w-full">
             <button
               type="button"
@@ -627,7 +617,6 @@ const CreateJob = () => {
         </div>
       )}
 
-      {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full shadow-deatail_shadow text-center p-6">

@@ -266,7 +266,6 @@ Recruitment Team
   return (
     <div className="">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -307,7 +306,6 @@ Recruitment Team
           </div>
         ) : (
           <>
-            {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
                 <div className="flex items-center justify-between">
@@ -362,7 +360,6 @@ Recruitment Team
               </div>
             </div>
 
-            {/* Filters */}
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="relative">
@@ -417,9 +414,7 @@ Recruitment Team
               </div>
             </div>
 
-            {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Candidates Table */}
               <div className={selectedCandidate ? 'lg:col-span-2' : 'lg:col-span-3'}>
                 <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow overflow-hidden">
                   {filteredCandidates.length === 0 ? (
@@ -503,7 +498,6 @@ Recruitment Team
                 </div>
               </div>
 
-              {/* Candidate Details Sidebar */}
               {selectedCandidate && (
                 <div className="lg:col-span-1">
                   <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow sticky top-4">
@@ -529,7 +523,6 @@ Recruitment Team
                     </div>
 
                     <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                      {/* Strengths */}
                       <div>
                         <div className="flex items-center gap-2 mb-2">
                           <FiCheckCircle className="h-4 w-4 text-emerald-500" />
@@ -545,7 +538,6 @@ Recruitment Team
                         </ul>
                       </div>
 
-                      {/* Areas for Improvement */}
                       <div>
                         <div className="flex items-center gap-2 mb-2">
                           <FiAlertTriangle className="h-4 w-4 text-amber-500" />
@@ -561,7 +553,6 @@ Recruitment Team
                         </ul>
                       </div>
 
-                      {/* Evaluation Metrics */}
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <FiTrendingUp className="h-4 w-4 text-primary" />
@@ -594,13 +585,11 @@ Recruitment Team
                         </div>
                       </div>
 
-                      {/* AI Recommendations */}
                       <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
                         <h6 className="text-sm font-semibold text-midnight_text mb-2">AI Recommendations</h6>
                         <p className="text-xs text-gray-600">{selectedCandidate.recommendation}</p>
                       </div>
 
-                      {/* Current Stage */}
                       <div>
                         <h6 className="text-sm font-semibold text-midnight_text mb-2">Current Stage</h6>
                         <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${getStageColor(selectedCandidate.stage)}`}>
@@ -608,7 +597,6 @@ Recruitment Team
                         </span>
                       </div>
 
-                      {/* Action Buttons */}
                       <div className="flex gap-2 pt-2">
                         <button
                           onClick={handleShortlist}

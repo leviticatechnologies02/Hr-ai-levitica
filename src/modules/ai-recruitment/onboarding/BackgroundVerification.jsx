@@ -23,17 +23,13 @@ const BackgroundVerification = () => {
   const [showRequestDetails, setShowRequestDetails] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailTemplate, setEmailTemplate] = useState("");
-  // Add these to your existing useState declarations
   const [newRequestPhone, setNewRequestPhone] = useState("");
   const [newRequestDepartment, setNewRequestDepartment] = useState("");
   const [newRequestDesignation, setNewRequestDesignation] = useState("");
   const [newRequestEmployeeId, setNewRequestEmployeeId] = useState("");
-  // Add these to your useState declarations
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
-  // Add these state variables with your other useState declarations
   const [emailUploads, setEmailUploads] = useState([]);
   const [emailUploadedDocuments, setEmailUploadedDocuments] = useState([]);
-  // Add these state variables with your other useState declarations
   const [isExperienced, setIsExperienced] = useState(false);
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [currentOrganization, setCurrentOrganization] = useState("");
@@ -42,14 +38,11 @@ const BackgroundVerification = () => {
   const [currentSalary, setCurrentSalary] = useState("");
   const [noticePeriod, setNoticePeriod] = useState("");
   const [previousExperiences, setPreviousExperiences] = useState([]);
-  // Add this with your other state declarations
   const [globalUploadedDocuments, setGlobalUploadedDocuments] = useState([]);
-  // Personal Information - NEW FIELDS
   const [newRequestDob, setNewRequestDob] = useState("");
   const [newRequestGender, setNewRequestGender] = useState("");
   const [newRequestMaritalStatus, setNewRequestMaritalStatus] = useState("");
 
-  // Parent/Guardian Details - NEW FIELDS
   const [newRequestParentName, setNewRequestParentName] = useState("");
   const [newRequestParentRelationship, setNewRequestParentRelationship] = useState("");
   const [newRequestParentPhone, setNewRequestParentPhone] = useState("");
@@ -61,12 +54,10 @@ const BackgroundVerification = () => {
   const [newRequestParentAddress, setNewRequestParentAddress] = useState("");
   const [newRequestIsGuardian, setNewRequestIsGuardian] = useState(false);
 
-  // Add these state variables with your other useState declarations
   const [educationQualifications, setEducationQualifications] = useState([]);
   const [showEducationForm, setShowEducationForm] = useState(false);
   const [editingEducation, setEditingEducation] = useState(null);
 
-  // Education form fields
   const [educationLevel, setEducationLevel] = useState("");
   const [schoolCollegeName, setSchoolCollegeName] = useState("");
   const [boardUniversity, setBoardUniversity] = useState("");
@@ -76,8 +67,7 @@ const BackgroundVerification = () => {
   const [branch, setBranch] = useState("");
   const [percentage, setPercentage] = useState("");
   const [cgpa, setCgpa] = useState("");
-  const [gradingSystem, setGradingSystem] = useState("percentage"); // 'percentage' or 'cgpa'
-
+  const [gradingSystem, setGradingSystem] = useState("percentage");
   const [experienceOrgName, setExperienceOrgName] = useState("");
   const [experienceRole, setExperienceRole] = useState("");
   const [experienceType, setExperienceType] = useState("");
@@ -87,7 +77,6 @@ const BackgroundVerification = () => {
   const [experienceRelievingDate, setExperienceRelievingDate] = useState("");
   const [experienceHistory, setExperienceHistory] = useState([]);
   {
-    /* Add these new state variables at the top of your component with other useState declarations */
   }
   const [currentAddress, setCurrentAddress] = useState({
     address1: "",
@@ -112,12 +101,10 @@ const BackgroundVerification = () => {
   });
 
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
-  // Add these near your other useState declarations
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Add these state variables with your other useState declarations
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editEmployeeName, setEditEmployeeName] = useState("");
   const [editEmployeePhone, setEditEmployeePhone] = useState("");
@@ -132,8 +119,7 @@ const BackgroundVerification = () => {
   const [documentRequests, setDocumentRequests] = useState([]);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState({ type: "", message: "" });
-  const [emailMethod, setEmailMethod] = useState("api"); // 'api', 'clipboard', 'mailto'
-  const [ccEmails, setCcEmails] = useState("");
+  const [emailMethod, setEmailMethod] = useState("api"); const [ccEmails, setCcEmails] = useState("");
   const [bccEmails, setBccEmails] = useState("");
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [newRequestEmail, setNewRequestEmail] = useState("");
@@ -143,7 +129,6 @@ const BackgroundVerification = () => {
     "Background Verification - Document Request",
   );
 
-  // Add this function with your other functions
   const getRequiredDocuments = () => {
     const baseDocuments = [
       { id: "aadhar", name: "Aadhar Card", required: true },
@@ -157,7 +142,6 @@ const BackgroundVerification = () => {
       { id: "intership", name: "InterShip Certificates", required: false },
     ];
 
-    // If experienced, add experience-related documents
     if (isExperienced) {
       return [
         ...baseDocuments,
@@ -172,16 +156,13 @@ const BackgroundVerification = () => {
       ];
     }
 
-    // For freshers, only include basic documents
     return baseDocuments;
   };
-  // Required documents list
   const requiredDocuments = useMemo(
     () => getRequiredDocuments(),
     [isExperienced],
   );
 
-  // Load employees from localStorage
   useEffect(() => {
     loadEmployees();
     loadDocumentRequests();
@@ -191,7 +172,11 @@ const BackgroundVerification = () => {
     const savedProfiles = localStorage.getItem("employeeProfiles");
     if (savedProfiles) {
       const profiles = JSON.parse(savedProfiles);
-      const employeeList = profiles.map((profile) => ({
+      const filteredProfiles = profiles.filter(
+        (profile) =>
+          !["EMP001", "EMP002", "EMP003", "CAND001", "CAND002", "CAND003"].includes(profile.employeeId || profile.id)
+      );
+      const employeeList = filteredProfiles.map((profile) => ({
         id: profile.employeeId || profile.id,
         employeeId: profile.employeeId,
         name: `${profile.firstName} ${profile.middleName ? profile.middleName + " " : ""}${profile.lastName}`.trim(),
@@ -205,50 +190,7 @@ const BackgroundVerification = () => {
       }));
       setEmployees(employeeList);
     } else {
-      // Sample data if no profiles exist
-      const sampleEmployees = [
-        {
-          id: "EMP001",
-          employeeId: "EMP001",
-          name: "Rajesh Kumar",
-          email: "rajesh.kumar@company.com",
-          phone: "+91 98765 43210",
-          department: "Engineering",
-          designation: "Software Engineer",
-          joiningDate: new Date().toISOString().split("T")[0],
-          status: "Pending",
-          candidateId: "CAND001",
-        },
-        {
-          id: "EMP002",
-          employeeId: "EMP002",
-          name: "Priya Sharma",
-          email: "priya.sharma@company.com",
-          phone: "+91 98765 43211",
-          department: "Marketing",
-          designation: "Marketing Executive",
-          joiningDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          status: "In Progress",
-          candidateId: "CAND002",
-        },
-        {
-          id: "EMP003",
-          employeeId: "EMP003",
-          name: "Amit Kumar Patel",
-          email: "amit.patel@company.com",
-          phone: "+91 98765 43212",
-          department: "Sales",
-          designation: "Sales Manager",
-          joiningDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          status: "Completed",
-          candidateId: "CAND003",
-        },
-      ];
-      setEmployees(sampleEmployees);
+      setEmployees([]);
     }
   };
 
@@ -256,23 +198,23 @@ const BackgroundVerification = () => {
     const savedRequests = localStorage.getItem("bgvDocumentRequests");
     if (savedRequests) {
       const parsedRequests = JSON.parse(savedRequests);
+      const filteredRequests = parsedRequests.filter(
+        (request) =>
+          !["EMP001", "EMP002", "EMP003", "CAND001", "CAND002", "CAND003"].includes(request.employeeId || request.id)
+      );
 
-      // ===== FIXED: ENSURE ALL FIELDS EXIST IN OLD REQUESTS =====
-      const updatedRequests = parsedRequests.map((request) => ({
+      const updatedRequests = filteredRequests.map((request) => ({
         ...request,
-        // Personal Information
         dateOfBirth: request.dateOfBirth || request.dob || "",
         gender: request.gender || "",
         maritalStatus: request.maritalStatus || "",
 
-        // Personal Info object (standardized)
         personalInfo: request.personalInfo || {
           dob: request.dateOfBirth || request.dob || "",
           gender: request.gender || "",
           maritalStatus: request.maritalStatus || ""
         },
 
-        // Parent/Guardian Details - Handle multiple possible structures
         parentGuardian: request.parentGuardian ||
           request.parentGuardianDetails ||
         {
@@ -285,21 +227,17 @@ const BackgroundVerification = () => {
           isLegalGuardian: request.isGuardian || request.parentGuardianDetails?.isGuardian || false
         },
 
-        // Education Qualifications - Ensure it's an array
         educationQualifications: Array.isArray(request.educationQualifications)
           ? request.educationQualifications
           : request.educationQualifications
-            ? [request.educationQualifications] // Convert object to array
-            : request.education
+            ? [request.educationQualifications] : request.education
               ? (Array.isArray(request.education) ? request.education : [request.education])
               : [],
 
-        // Department & Designation
         department: request.department || "",
         designation: request.designation || "",
         phone: request.phone || "",
 
-        // Address fields
         currentAddress: request.currentAddress || {
           address1: "",
           address2: "",
@@ -322,12 +260,10 @@ const BackgroundVerification = () => {
         },
         sameAsCurrentAddress: request.sameAsCurrentAddress || false,
 
-        // Experience fields
         isExperienced: request.isExperienced || false,
         yearsOfExperience: request.yearsOfExperience || "",
         experienceData: request.experienceData || request.experience || null,
 
-        // Completed date
         completedDate: request.completedDate || null,
         addressVerified: request.addressVerified || null
       }));
@@ -341,12 +277,10 @@ const BackgroundVerification = () => {
     setDocumentRequests(requests);
   };
 
-  // Handle document upload
   const handleDocumentUpload = (event, documentId) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = [
       "application/pdf",
       "image/jpeg",
@@ -360,14 +294,11 @@ const BackgroundVerification = () => {
       return;
     }
 
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
+    const maxSize = 5 * 1024 * 1024; if (file.size > maxSize) {
       alert("File size should be less than 5MB");
       return;
     }
 
-    // Create a preview URL
     const fileUrl = URL.createObjectURL(file);
 
     const newUploadedDoc = {
@@ -377,25 +308,20 @@ const BackgroundVerification = () => {
       size: file.size,
       uploadDate: new Date().toISOString(),
       fileUrl: fileUrl,
-      file: file, // Store the file object for later use
+      file: file,
     };
 
     setUploadedDocuments((prev) => {
-      // Remove if already exists
       const filtered = prev.filter((doc) => doc.id !== documentId);
       return [...filtered, newUploadedDoc];
     });
 
-    // Reset the file input
     event.target.value = "";
   };
 
-  // Function to handle replacing a document in new uploads
   const handleReplaceDocument = (docId, newFile) => {
-    // Create object URL for preview
     const fileUrl = URL.createObjectURL(newFile);
 
-    // Create updated document object
     const updatedDoc = {
       id: docId,
       name: newFile.name,
@@ -406,19 +332,15 @@ const BackgroundVerification = () => {
       uploadDate: new Date().toISOString(),
     };
 
-    // Update the uploadedDocuments array
     setUploadedDocuments((prev) => {
-      // First, revoke old URL if exists
       const oldDoc = prev.find((d) => d.id === docId);
       if (oldDoc && oldDoc.fileUrl) {
         URL.revokeObjectURL(oldDoc.fileUrl);
       }
 
-      // Replace the document
       return prev.map((doc) => (doc.id === docId ? updatedDoc : doc));
     });
 
-    // Show success message
     setEmailStatus({
       type: "success",
       message: "Document replaced successfully",
@@ -430,7 +352,6 @@ const BackgroundVerification = () => {
     isFromExistingRequest = false,
     existingDoc = null,
   ) => {
-    // Create a hidden file input
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pdf,.jpg,.jpeg,.png,.doc,.docx";
@@ -441,7 +362,6 @@ const BackgroundVerification = () => {
       if (files && files.length > 0) {
         const file = files[0];
 
-        // Validate file size (5MB max)
         const maxSize = 5 * 1024 * 1024;
         if (file.size > maxSize) {
           setEmailStatus({
@@ -452,7 +372,6 @@ const BackgroundVerification = () => {
           return;
         }
 
-        // Validate file type
         const validTypes = [
           "application/pdf",
           "image/jpeg",
@@ -475,7 +394,6 @@ const BackgroundVerification = () => {
         if (isFromExistingRequest) {
           handleUpdateExistingDocument(docId, file, existingDoc);
         } else {
-          // For new uploads, use handleReplaceDocument
           const fileUrl = URL.createObjectURL(file);
 
           const updatedDoc = {
@@ -488,15 +406,12 @@ const BackgroundVerification = () => {
             uploadDate: new Date().toISOString(),
           };
 
-          // Update the uploadedDocuments array
           setUploadedDocuments((prev) => {
-            // First, revoke old URL if exists
             const oldDoc = prev.find((d) => d.id === docId);
             if (oldDoc && oldDoc.fileUrl) {
               URL.revokeObjectURL(oldDoc.fileUrl);
             }
 
-            // Replace the document
             return prev.map((doc) => (doc.id === docId ? updatedDoc : doc));
           });
 
@@ -507,20 +422,16 @@ const BackgroundVerification = () => {
         }
       }
 
-      // Clean up the temporary input
       document.body.removeChild(input);
     };
 
-    // Add to body and trigger click
     document.body.appendChild(input);
     input.click();
   };
-  // Function to handle updating existing document requests
   const handleUpdateExistingDocument = async (docId, newFile, existingDoc) => {
     try {
       const fileUrl = URL.createObjectURL(newFile);
 
-      // Create a new version object
       const newVersion = {
         id: docId,
         name: newFile.name,
@@ -534,15 +445,12 @@ const BackgroundVerification = () => {
         originalDocument: existingDoc?.originalDocument,
       };
 
-      // Add to uploadedDocuments as an update
       setUploadedDocuments((prev) => {
-        // Check if there's already an update for this document
         const existingUpdateIndex = prev.findIndex(
           (d) => d.id === docId && d.isUpdate,
         );
 
         if (existingUpdateIndex >= 0) {
-          // Replace existing update
           const updated = [...prev];
           if (updated[existingUpdateIndex].fileUrl) {
             URL.revokeObjectURL(updated[existingUpdateIndex].fileUrl);
@@ -550,7 +458,6 @@ const BackgroundVerification = () => {
           updated[existingUpdateIndex] = newVersion;
           return updated;
         } else {
-          // Add new update
           return [...prev, newVersion];
         }
       });
@@ -578,7 +485,6 @@ const BackgroundVerification = () => {
     }
   };
 
-  // Load documents on component mount
   useEffect(() => {
     const savedDocuments = loadDocumentsFromLocalStorage();
     if (savedDocuments.length > 0) {
@@ -586,27 +492,22 @@ const BackgroundVerification = () => {
     }
   }, []);
 
-  // Handle remove document
   const handleRemoveDocument = (docId) => {
     setUploadedDocuments((prevDocs) => {
       const docToRemove = prevDocs.find((d) => d.id === docId);
 
-      // Clean up object URL (important)
       if (docToRemove?.fileUrl) {
         URL.revokeObjectURL(docToRemove.fileUrl);
       }
 
-      // Remove ONLY from local session uploads
       return prevDocs.filter((d) => d.id !== docId);
     });
   };
 
-  // Handle re-upload/replace document
   const handleReuploadDocument = (event, documentId) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = [
       "application/pdf",
       "image/jpeg",
@@ -623,9 +524,7 @@ const BackgroundVerification = () => {
       return;
     }
 
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
+    const maxSize = 5 * 1024 * 1024; if (file.size > maxSize) {
       setEmailStatus({
         type: "error",
         message: "File size should be less than 5MB",
@@ -633,13 +532,11 @@ const BackgroundVerification = () => {
       return;
     }
 
-    // Find the existing document to revoke its URL
     const existingDoc = uploadedDocuments.find((doc) => doc.id === documentId);
     if (existingDoc && existingDoc.fileUrl) {
       URL.revokeObjectURL(existingDoc.fileUrl);
     }
 
-    // Create a new preview URL
     const fileUrl = URL.createObjectURL(file);
 
     const updatedDoc = {
@@ -653,22 +550,18 @@ const BackgroundVerification = () => {
     };
 
     setUploadedDocuments((prev) => {
-      // Remove old document and add new one
       const filtered = prev.filter((doc) => doc.id !== documentId);
       return [...filtered, updatedDoc];
     });
 
-    // Show success message
     setEmailStatus({
       type: "success",
       message: "Document updated successfully!",
     });
 
-    // Reset the file input
     event.target.value = "";
   };
 
-  // Add these functions
   const handleEmailDocumentUpload = (e, docId) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -676,7 +569,6 @@ const BackgroundVerification = () => {
     const blobUrl = URL.createObjectURL(file);
 
     setUploadedDocuments((prev) => {
-      // remove old entry for same doc
       const filtered = prev.filter((d) => d.id !== docId);
       return [
         ...filtered,
@@ -685,9 +577,8 @@ const BackgroundVerification = () => {
           name: file.name,
           size: file.size,
           type: file.type,
-          fileUrl: blobUrl, // ✅ VALID
-          uploadDate: new Date().toISOString(),
-          file, // keep original file
+          fileUrl: blobUrl, uploadDate: new Date().toISOString(),
+          file,
         },
       ];
     });
@@ -699,7 +590,6 @@ const BackgroundVerification = () => {
     }
   };
 
-  // Filter employees
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
       emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -711,7 +601,6 @@ const BackgroundVerification = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Handle employee selection
   const handleSelectEmployee = (employeeId) => {
     setSelectedEmployees((prev) => {
       if (prev.includes(employeeId)) {
@@ -730,7 +619,6 @@ const BackgroundVerification = () => {
     }
   };
 
-  // Generate personalized email template
   const generateEmailTemplate = (employeeName) => {
     return `Dear ${employeeName},\n\nWe hope this email finds you well.\n\nAs part of our standard background verification process, we require the following documents from you:\n\n${requiredDocuments
       .filter((doc) => doc.required)
@@ -740,9 +628,7 @@ const BackgroundVerification = () => {
       )}\n\nPlease submit scanned copies (PDF format) of these documents at your earliest convenience.\n\nYou can upload the documents through our employee portal or send them via email reply.\n\nIf you have any questions or concerns, please feel free to contact us.\n\nBest regards,\nHR Team\n\n---\nThis is an automated email. Please do not reply directly to this message.`;
   };
 
-  // Handle new request modal open
   const handleNewRequest = () => {
-    // Reset all form fields to empty/default values
     setNewRequestEmail("");
     setNewRequestName("");
     setNewRequestPhone("");
@@ -760,13 +646,9 @@ const BackgroundVerification = () => {
     setNewRequestParentOrganization("");
     setNewRequestParentDesignation("");
     setNewRequestIsGuardian(false);
-    // ========== EDUCATION QUALIFICATION RESET ==========
-    // Clear all education qualifications array
     setEducationQualifications([]);
-    // Reset education form state
     setShowEducationForm(false);
     setEditingEducation(null);
-    // Reset education form fields
     setEducationLevel("");
     setSchoolCollegeName("");
     setBoardUniversity("");
@@ -817,7 +699,6 @@ const BackgroundVerification = () => {
     });
     setSameAsCurrent(false);
 
-    // Reset the email template to default
     const defaultTemplate = `Dear [Employee Name],\n\nWe hope this email finds you well.\n\nAs part of our standard background verification process, we require the following documents from you:\n\n${getRequiredDocuments()
       .filter((doc) => doc.required)
       .map((doc) => `- ${doc.name}`)
@@ -827,12 +708,9 @@ const BackgroundVerification = () => {
 
     setNewRequestTemplate(defaultTemplate);
 
-    // Reset email settings
     setCcEmails("");
     setBccEmails("");
-    setEmailMethod("api"); // Reset to default method
-
-    // Reset experience fields
+    setEmailMethod("api");
     setIsExperienced(false);
     setYearsOfExperience("");
     setCurrentOrganization("");
@@ -851,30 +729,22 @@ const BackgroundVerification = () => {
     setExperienceRelievingDate("");
     setExperienceHistory([]);
 
-    // IMPORTANT: Clear all uploaded documents from previous sessions
-    // First revoke all object URLs to prevent memory leaks
     uploadedDocuments.forEach((doc) => {
       if (doc.fileUrl) {
         URL.revokeObjectURL(doc.fileUrl);
       }
     });
 
-    // Then clear the uploadedDocuments array
     setUploadedDocuments([]);
 
-    // Clear any previous status messages
     setEmailStatus({ type: "", message: "" });
 
-    // Clear sending state
     setSendingEmail(false);
 
-    // Finally, open the modal
     setShowNewRequestModal(true);
   };
 
-  // Handle send new request
   const handleSendNewRequest = async () => {
-    // Replace alerts with setEmailStatus
     if (!newRequestEmail.trim() || !newRequestName.trim()) {
       setEmailStatus({ type: "error", message: "Please enter email and name" });
       return;
@@ -896,7 +766,6 @@ const BackgroundVerification = () => {
     try {
       let emailResult;
 
-      // Personalize template with name
       const personalizedTemplate = newRequestTemplate
         .replace(/\[Employee Name\]/g, newRequestName)
         .replace(/Dear\s+[^,\n]+/, `Dear ${newRequestName}`);
@@ -945,15 +814,12 @@ const BackgroundVerification = () => {
       }
 
       if (emailResult && emailResult.success > 0) {
-        // Generate employee ID if not provided
         const employeeId = newRequestEmployeeId.trim() || `EXT-${Date.now()}`;
 
-        // Check if all required documents are uploaded
         const allRequiredUploaded = requiredDocuments
           .filter((doc) => doc.required)
           .every((doc) => uploadedDocuments.some((ud) => ud.id === doc.id));
 
-        // Determine initial status based on upload completion
         const initialStatus = allRequiredUploaded
           ? "Completed"
           : "Request Sent";
@@ -1001,8 +867,7 @@ const BackgroundVerification = () => {
               currentOrganization: currentOrganization,
               currentRole: currentRole,
               employmentType: employmentType,
-              location: experienceLocation, // Keep as location, not experienceLocation
-              currentSalary: currentSalary,
+              location: experienceLocation, currentSalary: currentSalary,
               noticePeriod: noticePeriod,
               joiningDate: experienceJoiningDate,
               relievingDate: experienceRelievingDate,
@@ -1020,7 +885,6 @@ const BackgroundVerification = () => {
               })),
             }
             : null,
-          // Add address information
           currentAddress: {
             address1: currentAddress.address1,
             address2: currentAddress.address2,
@@ -1074,7 +938,6 @@ const BackgroundVerification = () => {
           emailSentDate: timestamp,
           emailMethod: emailMethod,
           completedDate: allRequiredUploaded ? timestamp : null,
-          // Store the actual uploaded files if needed
           uploadedFiles: uploadedDocuments.map((doc) => ({
             id: doc.id,
             name: doc.name,
@@ -1085,7 +948,6 @@ const BackgroundVerification = () => {
         const updatedRequests = [...documentRequests, newRequest];
         saveDocumentRequests(updatedRequests);
 
-        // Add to employees list if not exists
         const existingEmp = employees.find(
           (emp) => emp.email === newRequestEmail,
         );
@@ -1147,10 +1009,8 @@ const BackgroundVerification = () => {
               pincode: permanentAddress.pincode,
             },
             sameAsCurrentAddress: sameAsCurrent,
-            // Add experience info
             isExperienced: isExperienced,
             yearsOfExperience: isExperienced ? yearsOfExperience : null,
-            // Add address information
 
             experienceData: isExperienced
               ? {
@@ -1189,7 +1049,6 @@ const BackgroundVerification = () => {
           };
           setEmployees([...employees, newEmployee]);
 
-          // Also update localStorage employeeProfiles
           const savedProfiles = localStorage.getItem("employeeProfiles");
           if (savedProfiles) {
             const profiles = JSON.parse(savedProfiles);
@@ -1213,7 +1072,6 @@ const BackgroundVerification = () => {
             );
           }
         } else {
-          // Update existing employee status if all documents uploaded
           if (allRequiredUploaded) {
             const updatedEmployees = employees.map((emp) => {
               if (emp.email === newRequestEmail) {
@@ -1223,7 +1081,6 @@ const BackgroundVerification = () => {
             });
             setEmployees(updatedEmployees);
 
-            // Update localStorage
             const savedProfiles = localStorage.getItem("employeeProfiles");
             if (savedProfiles) {
               const profiles = JSON.parse(savedProfiles);
@@ -1253,7 +1110,6 @@ const BackgroundVerification = () => {
 
         setTimeout(() => {
           setShowNewRequestModal(false);
-          // Reset all form fields
           setNewRequestEmail("");
           setNewRequestName("");
           setNewRequestPhone("");
@@ -1264,7 +1120,6 @@ const BackgroundVerification = () => {
           setEmailStatus({ type: "", message: "" });
           setCcEmails("");
           setBccEmails("");
-          // Clear uploaded documents and revoke URLs
           uploadedDocuments.forEach((doc) => {
             if (doc.fileUrl) {
               URL.revokeObjectURL(doc.fileUrl);
@@ -1284,14 +1139,12 @@ const BackgroundVerification = () => {
     }
   };
 
-  // Handle send email
   const handleSendEmail = () => {
     if (selectedEmployees.length === 0) {
       alert("Please select at least one employee");
       return;
     }
 
-    // Load existing uploaded documents for the selected employee
     if (selectedEmployees.length === 1) {
       const employeeId = selectedEmployees[0];
       const employeeRequest = documentRequests.find(
@@ -1300,7 +1153,6 @@ const BackgroundVerification = () => {
       const employee = employees.find((emp) => emp.id === employeeId);
 
       if (employeeRequest) {
-        // Convert document request documents to uploadedDocuments format
         const existingUploads = employeeRequest.documents
           .filter((doc) => doc.status === "Completed" && doc.fileUrl)
           .map((doc) => ({
@@ -1313,12 +1165,9 @@ const BackgroundVerification = () => {
             uploaded: true,
           }));
 
-        // Merge with any existing uploadedDocuments
-        // Also include documents uploaded in New Request modal
         setUploadedDocuments((prev) => {
           const combined = [...prev];
 
-          // Add existing request uploads
           existingUploads.forEach((newDoc) => {
             if (!combined.some((existing) => existing.id === newDoc.id)) {
               combined.push(newDoc);
@@ -1328,7 +1177,6 @@ const BackgroundVerification = () => {
           return combined;
         });
 
-        // Set employee details in state
         setNewRequestEmail(employee.email);
         setNewRequestName(employee.name);
         setNewRequestPhone(employee.phone || "");
@@ -1336,12 +1184,10 @@ const BackgroundVerification = () => {
         setNewRequestDesignation(employee.designation || "");
         setNewRequestEmployeeId(employee.employeeId || "");
 
-        // Populate experience details from the existing request
         if (employeeRequest.isExperienced) {
           setIsExperienced(true);
           setYearsOfExperience(employeeRequest.yearsOfExperience || "");
 
-          // Populate from experienceDetails if available
           if (employeeRequest.experienceDetails) {
             setCurrentOrganization(
               employeeRequest.experienceDetails.orgName || "",
@@ -1360,7 +1206,6 @@ const BackgroundVerification = () => {
             );
           }
 
-          // Populate from experienceHistory if available
           if (
             employeeRequest.experienceHistory &&
             employeeRequest.experienceHistory.length > 0
@@ -1369,7 +1214,6 @@ const BackgroundVerification = () => {
           }
         } else {
           setIsExperienced(false);
-          // Clear experience fields
           setCurrentOrganization("");
           setCurrentRole("");
           setEmploymentType("");
@@ -1408,7 +1252,6 @@ const BackgroundVerification = () => {
 
         setSameAsCurrent(employeeRequest.sameAsCurrentAddress || false);
       } else if (employee && employee.currentAddress) {
-        // Load from employee object if request doesn't exist
         setCurrentAddress(employee.currentAddress);
         setPermanentAddress(
           employee.permanentAddress || {
@@ -1430,7 +1273,6 @@ const BackgroundVerification = () => {
       selectedEmployees.includes(emp.id),
     );
 
-    // Use first employee's name for template preview
     const defaultTemplate = generateEmailTemplate(
       selectedEmps[0]?.name || "Employee",
     );
@@ -1443,7 +1285,6 @@ const BackgroundVerification = () => {
     if (emailUploads.length === 0) return;
 
     if (window.confirm("Clear all new document uploads?")) {
-      // Revoke all object URLs to prevent memory leaks
       emailUploads.forEach((upload) => {
         if (upload.fileUrl) {
           URL.revokeObjectURL(upload.fileUrl);
@@ -1459,14 +1300,12 @@ const BackgroundVerification = () => {
   };
 
   const handleUpdateEmailDocument = (documentId) => {
-    // Trigger file input click
     const fileInput = document.getElementById(`email-upload-${documentId}`);
     if (fileInput) {
       fileInput.click();
     }
   };
 
-  // Update handleConfirmSendEmail to include uploaded documents
   const handleConfirmSendEmail = async () => {
     const selectedEmps = employees.filter((emp) =>
       selectedEmployees.includes(emp.id),
@@ -1520,13 +1359,9 @@ const BackgroundVerification = () => {
           },
         );
       }
-      // ... rest of your email sending logic
 
-      // Create document requests with uploaded documents
       const newRequests = selectedEmps.map((emp) => {
-        // For single employee with uploads, include them
         let employeeDocuments = requiredDocuments.map((doc) => {
-          // Check if document exists in existing request
           const existingRequest = documentRequests.find(
             (req) => req.employeeId === emp.id,
           );
@@ -1534,7 +1369,6 @@ const BackgroundVerification = () => {
             (d) => d.id === doc.id,
           );
 
-          // Check if there's a new upload for this document
           const newUpload = emailUploads.find(
             (upload) => upload.documentId === doc.id,
           );
@@ -1574,10 +1408,8 @@ const BackgroundVerification = () => {
       const updatedRequests = [...documentRequests, ...newRequests];
       saveDocumentRequests(updatedRequests);
 
-      // Clear uploads after successful send
       handleClearEmailUploads();
 
-      // ... rest of your success handling
     } catch (error) {
       console.error("Error sending email:", error);
       setEmailStatus({
@@ -1597,7 +1429,6 @@ const BackgroundVerification = () => {
     }
   };
 
-  // Handle update existing document
   const handleUpdateDocument = (documentId) => {
     const fileInput = document.getElementById(`email-upload-${documentId}`);
     if (fileInput) {
@@ -1605,7 +1436,6 @@ const BackgroundVerification = () => {
     }
   };
 
-  // Get status color
   const getStatusColor = (status) => {
     switch (status) {
       case "Completed":
@@ -1623,12 +1453,10 @@ const BackgroundVerification = () => {
     }
   };
 
-  // Get document request for employee
   const getDocumentRequest = (employeeId) => {
     return documentRequests.find((req) => req.employeeId === employeeId);
   };
 
-  // Calculate completion percentage
   const getCompletionPercentage = (request) => {
     if (!request) return 0;
     const totalDocs = request.documents.length;
@@ -1638,7 +1466,6 @@ const BackgroundVerification = () => {
     return Math.round((completedDocs / totalDocs) * 100);
   };
 
-  // Handle Edit Employee
   const handleEditEmployee = (employee) => {
     setEditingEmployeeId(employee.id);
     setEditEmployeeName(employee.name || "");
@@ -1649,14 +1476,12 @@ const BackgroundVerification = () => {
     setEditEmployeeId(employee.employeeId || "");
   };
 
-  // Handle Save Employee Edit
   const handleSaveEmployeeEdit = () => {
     if (!editEmployeeName.trim() || !editEmployeeEmail.trim()) {
       setEmailStatus({ type: "error", message: "Please enter name and email" });
       return;
     }
 
-    // Update employees list
     const updatedEmployees = employees.map((emp) => {
       if (emp.id === editingEmployeeId) {
         return {
@@ -1673,7 +1498,6 @@ const BackgroundVerification = () => {
     });
     setEmployees(updatedEmployees);
 
-    // Update document requests with new employee info
     const updatedRequests = documentRequests.map((req) => {
       if (req.employeeId === editingEmployeeId) {
         return {
@@ -1686,7 +1510,6 @@ const BackgroundVerification = () => {
     });
     saveDocumentRequests(updatedRequests);
 
-    // Update localStorage
     const savedProfiles = localStorage.getItem("employeeProfiles");
     if (savedProfiles) {
       const profiles = JSON.parse(savedProfiles);
@@ -1718,13 +1541,11 @@ const BackgroundVerification = () => {
       message: "Employee details updated successfully!",
     });
 
-    // Clear edit form
     setTimeout(() => {
       setEditingEmployeeId(null);
     }, 1500);
   };
 
-  // Updated send email function that includes employee edits
   const handleConfirmSendEmailWithEdits = async () => {
     const selectedEmps = employees.filter((emp) =>
       selectedEmployees.includes(emp.id),
@@ -1737,7 +1558,6 @@ const BackgroundVerification = () => {
       return;
     }
 
-    // If we're editing an employee, save changes first
     if (editingEmployeeId) {
       handleSaveEmployeeEdit();
     }
@@ -1750,19 +1570,14 @@ const BackgroundVerification = () => {
     try {
       let emailResult;
 
-      // Rest of your existing email sending logic...
-      // ... (keep your existing email sending code here)
 
-      // Create/update document requests
       const newRequests = selectedEmps.map((emp) => {
         const existingRequest = documentRequests.find(
           (req) => req.employeeId === emp.id,
         );
 
         if (existingRequest) {
-          // Update existing request
           const updatedDocuments = existingRequest.documents.map((doc) => {
-            // Check if this document was uploaded in email uploads
             const uploadedDoc = emailUploads.find(
               (up) => up.documentId === doc.id,
             );
@@ -1791,7 +1606,6 @@ const BackgroundVerification = () => {
             status: "Request Sent",
           };
         } else {
-          // Create new request
           return {
             id: Date.now() + Math.random(),
             employeeId: emp.id,
@@ -1815,7 +1629,6 @@ const BackgroundVerification = () => {
         }
       });
 
-      // Update or add requests
       const updatedRequests = [...documentRequests];
       newRequests.forEach((newReq) => {
         const index = updatedRequests.findIndex(
@@ -1829,7 +1642,6 @@ const BackgroundVerification = () => {
       });
       saveDocumentRequests(updatedRequests);
 
-      // Update employee status
       const updatedEmployees = employees.map((emp) => {
         if (selectedEmployees.includes(emp.id)) {
           return { ...emp, status: "In Progress" };
@@ -1838,7 +1650,6 @@ const BackgroundVerification = () => {
       });
       setEmployees(updatedEmployees);
 
-      // Update localStorage
       const savedProfiles = localStorage.getItem("employeeProfiles");
       if (savedProfiles) {
         const profiles = JSON.parse(savedProfiles);
@@ -1867,7 +1678,6 @@ const BackgroundVerification = () => {
         setCcEmails("");
         setBccEmails("");
         setEditingEmployeeId(null);
-        // Clear email uploads
         emailUploads.forEach((doc) => {
           if (doc.fileUrl) URL.revokeObjectURL(doc.fileUrl);
         });
@@ -1889,11 +1699,10 @@ const BackgroundVerification = () => {
   const modalProps = { employees, setEmployees, selectedEmployees, setSelectedEmployees, activeSection, setActiveSection, searchTerm, setSearchTerm, statusFilter, setStatusFilter, selectedRequest, setSelectedRequest, showRequestDetails, setShowRequestDetails, showEmailModal, setShowEmailModal, emailTemplate, setEmailTemplate, newRequestPhone, setNewRequestPhone, newRequestDepartment, setNewRequestDepartment, newRequestDesignation, setNewRequestDesignation, newRequestEmployeeId, setNewRequestEmployeeId, uploadedDocuments, setUploadedDocuments, emailUploads, setEmailUploads, emailUploadedDocuments, setEmailUploadedDocuments, isExperienced, setIsExperienced, yearsOfExperience, setYearsOfExperience, currentOrganization, setCurrentOrganization, currentRole, setCurrentRole, employmentType, setEmploymentType, currentSalary, setCurrentSalary, noticePeriod, setNoticePeriod, previousExperiences, setPreviousExperiences, globalUploadedDocuments, setGlobalUploadedDocuments, newRequestDob, setNewRequestDob, newRequestGender, setNewRequestGender, newRequestMaritalStatus, setNewRequestMaritalStatus, newRequestParentName, setNewRequestParentName, newRequestParentRelationship, setNewRequestParentRelationship, newRequestParentPhone, setNewRequestParentPhone, newRequestParentEmail, setNewRequestParentEmail, newRequestParentEmployment, setNewRequestParentEmployment, newRequestParentOrganization, setNewRequestParentOrganization, newRequestParentDesignation, setNewRequestParentDesignation, newRequestParentIncome, setNewRequestParentIncome, newRequestParentAddress, setNewRequestParentAddress, newRequestIsGuardian, setNewRequestIsGuardian, educationQualifications, setEducationQualifications, showEducationForm, setShowEducationForm, editingEducation, setEditingEducation, educationLevel, setEducationLevel, schoolCollegeName, setSchoolCollegeName, boardUniversity, setBoardUniversity, passingYear, setPassingYear, joiningYear, setJoiningYear, degree, setDegree, branch, setBranch, percentage, setPercentage, cgpa, setCgpa, gradingSystem, setGradingSystem, experienceOrgName, setExperienceOrgName, experienceRole, setExperienceRole, experienceType, setExperienceType, experienceLocation, setExperienceLocation, experienceSalary, setExperienceSalary, experienceJoiningDate, setExperienceJoiningDate, experienceRelievingDate, setExperienceRelievingDate, experienceHistory, setExperienceHistory, currentAddress, setCurrentAddress, permanentAddress, setPermanentAddress, sameAsCurrent, setSameAsCurrent, showDeleteModal, setShowDeleteModal, employeeToDelete, setEmployeeToDelete, deleting, setDeleting, editingEmployeeId, setEditingEmployeeId, editEmployeeName, setEditEmployeeName, editEmployeePhone, setEditEmployeePhone, editEmployeeEmail, setEditEmployeeEmail, editEmployeeDepartment, setEditEmployeeDepartment, editEmployeeDesignation, setEditEmployeeDesignation, editEmployeeId, setEditEmployeeId, emailSubject, setEmailSubject, documentRequests, setDocumentRequests, sendingEmail, setSendingEmail, emailStatus, setEmailStatus, emailMethod, setEmailMethod, ccEmails, setCcEmails, bccEmails, setBccEmails, showNewRequestModal, setShowNewRequestModal, newRequestEmail, setNewRequestEmail, newRequestName, setNewRequestName, newRequestTemplate, setNewRequestTemplate, newRequestSubject, setNewRequestSubject, handleNewRequest, handleSendEmail, getRequiredDocuments, handleDocumentUpload, handleReplaceDocumentClick, handleRemoveDocument, handleViewDocument, handleReuploadDocument, requiredDocuments, handleUpdateExistingDocument, handleSendNewRequest, handleEmailDocumentUpload, handleSelectEmployee, handleSelectAll, handleClearEmailUploads, handleUpdateEmailDocument, handleConfirmSendEmail, handlePreviewDocument, handleUpdateDocument, handleEditEmployee, handleSaveEmployeeEdit, handleConfirmSendEmailWithEdits };
 
   return (
-    <div className="bg-gray-50 min-h-screen w-full overflow-x-auto">
-      <div className="w-full px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 min-w-[320px] max-w-full mx-auto space-y-4 md:space-y-6">
+    <div className="min-h-screen w-full">
+      <div className="w-full max-w-screen-xl mx-auto space-y-4 sm:space-y-6">
 
-        {/* Header - Responsive */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1 sm:mb-2">
               {activeSection !== "configuration" && (
@@ -1916,7 +1725,6 @@ const BackgroundVerification = () => {
             </p>
           </div>
 
-          {/* Action Buttons - Responsive */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleNewRequest}
@@ -1939,8 +1747,7 @@ const BackgroundVerification = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
+        <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-end">
             <div className="flex-1 w-full">
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
@@ -1967,7 +1774,7 @@ const BackgroundVerification = () => {
               </div>
             </div>
 
-            <div className="w-full sm:w-64">
+            <div className="w-full sm:w-52 lg:w-64 flex-shrink-0">
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                 Status Filter
               </label>
@@ -1987,8 +1794,7 @@ const BackgroundVerification = () => {
           </div>
         </div>
 
-        {/* Statistics KPI Cards - Responsive Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
             {
               title: "Total Employees",
@@ -2019,7 +1825,7 @@ const BackgroundVerification = () => {
               iconColor: "text-emerald-500",
             },
           ].map((item, index) => (
-            <div key={index} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 md:p-5 flex items-center shadow-md gap-3 sm:gap-4 transition-all hover:shadow-md">
+            <div key={index} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 lg:p-5 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
               <div className={`w-10 h-10 sm:w-12 sm:h-12 ${item.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
                 <Icon icon={item.icon} className={`w-5 h-5 sm:w-6 sm:h-6 ${item.iconColor}`} />
               </div>
@@ -2031,10 +1837,8 @@ const BackgroundVerification = () => {
           ))}
         </div>
 
-        {/* Document Requests Cards - Responsive */}
         {documentRequests.length > 0 && (
           <div className="mb-4 sm:mb-6">
-            {/* Header */}
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h4 className="text-lg sm:text-xl font-semibold text-gray-900">
                 Document Requests
@@ -2046,7 +1850,6 @@ const BackgroundVerification = () => {
               </span>
             </div>
 
-            {/* Cards Grid - Responsive */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {documentRequests.map((request) => {
                 const completion = getCompletionPercentage(request);
@@ -2055,7 +1858,6 @@ const BackgroundVerification = () => {
                   <div key={request.id} className="h-full">
                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full justify-between p-4 sm:p-5">
                       <div>
-                        {/* Employee + Status */}
                         <div className="flex justify-between items-start mb-3 sm:mb-4 gap-2">
                           <div className="min-w-0 flex-1">
                             <h6 className="font-semibold text-gray-900 mb-1 truncate text-sm sm:text-base">
@@ -2078,7 +1880,6 @@ const BackgroundVerification = () => {
                           </span>
                         </div>
 
-                        {/* Progress */}
                         <div className="mb-3 sm:mb-4">
                           <div className="flex justify-between items-center mb-1.5">
                             <span className="text-xs text-gray-500 font-medium">
@@ -2098,7 +1899,6 @@ const BackgroundVerification = () => {
                           </div>
                         </div>
 
-                        {/* Requested Date */}
                         <div className="border-b border-gray-100 pb-2 sm:pb-3 mb-3 sm:mb-4">
                           <span className="text-xs text-gray-400 block mb-1">
                             Requested Date
@@ -2116,7 +1916,6 @@ const BackgroundVerification = () => {
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div className="flex justify-end gap-2 mt-2">
                         <button
                           className="p-1 sm:p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-100 transition-colors"
@@ -2150,7 +1949,6 @@ const BackgroundVerification = () => {
           </div>
         )}
 
-        {/* Employees Table - With Horizontal Scroll on Small Screens */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-base sm:text-lg font-bold text-gray-900">Employees List</h2>
@@ -2160,7 +1958,7 @@ const BackgroundVerification = () => {
               <table className="min-w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 w-10 sm:w-12 text-center">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={
@@ -2171,25 +1969,25 @@ const BackgroundVerification = () => {
                         className="h-3 w-3 sm:h-4 sm:w-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
                       />
                     </th>
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Employee
                     </th>
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Contact
                     </th>
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">
                       Department
                     </th>
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
                       Joining Date
                     </th>
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Status
                     </th>
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
                       Progress
                     </th>
-                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
+                    <th className="px-3 sm:px-4 lg:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">
                       Actions
                     </th>
                   </tr>
@@ -2222,7 +2020,7 @@ const BackgroundVerification = () => {
                           key={employee.id}
                           className="hover:bg-gray-50/50 transition-colors"
                         >
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3 text-center">
                             <input
                               type="checkbox"
                               checked={selectedEmployees.includes(employee.id)}
@@ -2230,7 +2028,7 @@ const BackgroundVerification = () => {
                               className="h-3 w-3 sm:h-4 sm:w-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
                             />
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3">
                             <div className="font-semibold text-gray-900 text-xs sm:text-sm">
                               {employee.name}
                             </div>
@@ -2238,15 +2036,15 @@ const BackgroundVerification = () => {
                               ID: {employee.employeeId}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4">
-                            <div className="text-gray-900 text-xs sm:text-sm truncate max-w-[140px] sm:max-w-[180px]">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3">
+                            <div className="text-gray-800 text-xs sm:text-sm max-w-[120px] sm:max-w-none truncate">
                               {employee.email}
                             </div>
                             <span className="text-gray-400 text-xs block">
                               {employee.phone || "N/A"}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 hidden sm:table-cell">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3 hidden sm:table-cell">
                             <div className="text-gray-900 text-xs sm:text-sm">
                               {employee.department}
                             </div>
@@ -2254,7 +2052,7 @@ const BackgroundVerification = () => {
                               {employee.designation}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 hidden lg:table-cell text-xs sm:text-sm text-gray-600">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3 hidden lg:table-cell text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                             {new Date(employee.joiningDate).toLocaleDateString(
                               "en-US",
                               {
@@ -2264,9 +2062,9 @@ const BackgroundVerification = () => {
                               },
                             )}
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3">
                             <span
-                              className={`inline-flex items-center px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-xs font-medium border whitespace-nowrap ${employee.status === "Completed"
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${employee.status === "Completed"
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                                 : employee.status === "In Progress" || employee.status === "Request Sent"
                                   ? "bg-blue-50 text-blue-700 border-blue-100"
@@ -2278,7 +2076,7 @@ const BackgroundVerification = () => {
                               {employee.status}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 hidden md:table-cell">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3 hidden md:table-cell">
                             {request ? (
                               <div className="w-24 sm:w-32">
                                 <div className="flex justify-between items-center mb-1">
@@ -2300,8 +2098,8 @@ const BackgroundVerification = () => {
                               </span>
                             )}
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
-                            <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+                          <td className="px-3 sm:px-4 lg:px-6 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
                               <button
                                 className="p-1 sm:p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg hover:border-blue-100 border border-transparent transition-colors"
                                 onClick={() => {
@@ -2326,7 +2124,6 @@ const BackgroundVerification = () => {
                                 </button>
                               )}
 
-                              {/* Approve Button */}
                               {request && employee.status === "In Progress" && (
                                 <button
                                   className="p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg hover:border-emerald-100 border border-transparent transition-colors"
@@ -2336,7 +2133,6 @@ const BackgroundVerification = () => {
                                         `Approve background verification for ${employee.name}?`
                                       )
                                     ) {
-                                      // Update employee status
                                       const updatedEmployees = employees.map(
                                         (emp) =>
                                           emp.id === employee.id
@@ -2345,7 +2141,6 @@ const BackgroundVerification = () => {
                                       );
                                       setEmployees(updatedEmployees);
 
-                                      // Update document request status
                                       const updatedRequests =
                                         documentRequests.map((req) =>
                                           req.employeeId === employee.id
@@ -2359,7 +2154,6 @@ const BackgroundVerification = () => {
                                         );
                                       saveDocumentRequests(updatedRequests);
 
-                                      // Update localStorage
                                       const savedProfiles =
                                         localStorage.getItem("employeeProfiles");
                                       if (savedProfiles) {
@@ -2392,7 +2186,6 @@ const BackgroundVerification = () => {
                                 </button>
                               )}
 
-                              {/* Reject Button */}
                               {request &&
                                 (employee.status === "In Progress" ||
                                   employee.status === "Pending") && (
@@ -2404,7 +2197,6 @@ const BackgroundVerification = () => {
                                           `Reject background verification for ${employee.name}?`
                                         )
                                       ) {
-                                        // Update employee status
                                         const updatedEmployees = employees.map(
                                           (emp) =>
                                             emp.id === employee.id
@@ -2413,7 +2205,6 @@ const BackgroundVerification = () => {
                                         );
                                         setEmployees(updatedEmployees);
 
-                                        // Update document request status
                                         const updatedRequests =
                                           documentRequests.map((req) =>
                                             req.employeeId === employee.id
@@ -2422,7 +2213,6 @@ const BackgroundVerification = () => {
                                           );
                                         saveDocumentRequests(updatedRequests);
 
-                                        // Update localStorage
                                         const savedProfiles =
                                           localStorage.getItem(
                                             "employeeProfiles"

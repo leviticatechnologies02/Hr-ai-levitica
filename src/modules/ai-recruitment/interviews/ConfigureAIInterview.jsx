@@ -231,7 +231,6 @@ const ConfigureAIInterview = () => {
   return (
     <div className="">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -251,7 +250,6 @@ const ConfigureAIInterview = () => {
           </div>
         </div>
 
-        {/* Alert */}
         {alert && (
           <div className={`flex items-center justify-between gap-3 p-3 rounded-lg ${
             alert.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'
@@ -266,7 +264,6 @@ const ConfigureAIInterview = () => {
           </div>
         )}
 
-        {/* Templates List */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4" />
@@ -290,7 +287,6 @@ const ConfigureAIInterview = () => {
             {templates.map((template) => (
               <div key={template.id} className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow hover:shadow-property transition-all">
                 <div className="p-4">
-                  {/* Header */}
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-midnight_text truncate" title={template.name}>
@@ -307,7 +303,6 @@ const ConfigureAIInterview = () => {
                     </div>
                   </div>
 
-                  {/* Details */}
                   <div className="space-y-2 mb-3">
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <FiClipboard className="h-4 w-4" />
@@ -321,7 +316,6 @@ const ConfigureAIInterview = () => {
                     )}
                   </div>
 
-                  {/* Preview */}
                   {template.questions && template.questions.length > 0 && (
                     <div className="mb-3">
                       <p className="text-xs text-gray-500 mb-1">Preview:</p>
@@ -333,7 +327,6 @@ const ConfigureAIInterview = () => {
                     </div>
                   )}
 
-                  {/* Interview Link */}
                   <div className="mb-3 p-2 bg-primary/5 rounded-lg border border-primary/20">
                     <div className="flex items-center gap-2 mb-1">
                       <FiLink className="h-3 w-3 text-primary" />
@@ -348,7 +341,6 @@ const ConfigureAIInterview = () => {
                     </button>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEditModal(template)}
@@ -372,7 +364,6 @@ const ConfigureAIInterview = () => {
         )}
       </div>
 
-      {/* Create/Edit Template Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -380,7 +371,6 @@ const ConfigureAIInterview = () => {
         size="lg"
       >
         <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
-          {/* Template Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Template Name <span className="text-rose-500">*</span>
@@ -394,7 +384,6 @@ const ConfigureAIInterview = () => {
             />
           </div>
 
-          {/* Interview Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Interview Type <span className="text-rose-500">*</span>
@@ -411,7 +400,6 @@ const ConfigureAIInterview = () => {
             </select>
           </div>
 
-          {/* Difficulty */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty Level</label>
             <select
@@ -425,7 +413,6 @@ const ConfigureAIInterview = () => {
             </select>
           </div>
 
-          {/* Time Limit */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Time Limit (minutes)</label>
             <input
@@ -438,13 +425,11 @@ const ConfigureAIInterview = () => {
             />
           </div>
 
-          {/* Questions */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Questions <span className="text-rose-500">*</span>
             </label>
 
-            {/* Question List */}
             {formData.questions.length > 0 && (
               <div className="space-y-2 mb-3">
                 {formData.questions.map((q, idx) => (
@@ -472,7 +457,6 @@ const ConfigureAIInterview = () => {
               </div>
             )}
 
-            {/* Add Question Form */}
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
               <h6 className="text-sm font-semibold text-midnight_text mb-3 flex items-center gap-2">
                 <FiMessageSquare className="h-4 w-4 text-primary" />
