@@ -23,7 +23,6 @@ const JobAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch jobs and applications data
   const fetchJobData = async () => {
     const token = localStorage.getItem('token');
     
@@ -34,7 +33,6 @@ const JobAnalytics = () => {
     }
 
     try {
-      // Fetch jobs
       const jobsResponse = await fetch(`${BASE_URL}/api/jobs/list`, {
         method: 'GET',
         headers: {
@@ -43,7 +41,6 @@ const JobAnalytics = () => {
         }
       });
 
-      // Fetch candidates (which includes application data)
       const candidatesResponse = await fetch(`${BASE_URL}/api/recruiter_dashboard/candidates`, {
         method: 'GET',
         headers: {
@@ -72,9 +69,7 @@ const JobAnalytics = () => {
 
   useEffect(() => {
     fetchJobData();
-  }, []);
-
-  // Calculate job statistics
+  }, [])
   const getJobStats = () => {
     const totalJobs = jobs.length;
     const activeJobs = jobs.filter(job => job.status === 'Active').length;
@@ -88,13 +83,10 @@ const JobAnalytics = () => {
       avgApplicationsPerJob
     };
   };
-
-  // Get applications per job
   const getApplicationsPerJob = () => {
     return jobs.map(job => {
-      // For now, we'll assume all applications are for the first job
-      // In a real scenario, you'd have job_id in the application data
-      const jobApplications = applications.length; // Simplified for demo
+      
+      const jobApplications = applications.length; 
       return {
         ...job,
         applicationCount: jobApplications,
@@ -212,7 +204,6 @@ const JobAnalytics = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Job Analytics</h1>
@@ -227,7 +218,6 @@ const JobAnalytics = () => {
         </button>
       </div>
 
-      {/* Statistics Cards */}
       <div className="dashboard-grid">
         <StatCard
           title="Total Jobs"
@@ -259,7 +249,6 @@ const JobAnalytics = () => {
         />
       </div>
 
-      {/* Job Performance Chart */}
       <div className="chart-container">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Job Performance</h2>
@@ -290,7 +279,6 @@ const JobAnalytics = () => {
         </div>
       </div>
 
-      {/* Job List */}
       <div className="dashboard-card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Job Listings</h2>
@@ -309,7 +297,6 @@ const JobAnalytics = () => {
         </div>
       </div>
 
-      {/* Application Trends */}
       <div className="dashboard-grid-2">
         <div className="dashboard-card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Application Sources</h3>

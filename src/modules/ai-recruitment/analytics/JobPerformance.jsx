@@ -3,7 +3,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Calendar, Users, UserCheck, Clock, TrendingUp, Download, Mail, Filter } from 'lucide-react';
 
 const JobPerformance = () => {
-  // Sample data
   const jobData = [
     {
       id: 1,
@@ -77,7 +76,6 @@ const JobPerformance = () => {
   const [selectedRecruiter, setSelectedRecruiter] = useState('All Recruiters');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
 
-  // Filter data based on selections
   const filteredData = useMemo(() => {
     return jobData.filter(job => {
       if (selectedJob !== 'All Jobs' && job.jobRole !== selectedJob) return false;
@@ -87,7 +85,6 @@ const JobPerformance = () => {
     });
   }, [selectedJob, selectedRecruiter, selectedDepartment]);
 
-  // Calculate KPIs
   const kpis = useMemo(() => {
     const totals = filteredData.reduce((acc, job) => ({
       applications: acc.applications + job.applications,
@@ -103,7 +100,6 @@ const JobPerformance = () => {
     };
   }, [filteredData]);
 
-  // Prepare chart data
   const barChartData = filteredData.map(job => ({
     name: job.jobRole,
     applications: job.applications,

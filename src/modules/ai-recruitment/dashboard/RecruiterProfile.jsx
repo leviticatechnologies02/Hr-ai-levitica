@@ -84,7 +84,6 @@ const RecruiterProfile = () => {
             </div>
             <div className="card-body p-4">
               <div className="row">
-                {/* Personal Information */}
                 <div className="col-12 col-md-6 mb-4">
                   <h5 className="text-primary mb-3 d-flex align-items-center">
                     <Icon icon="f7:person" className="me-2" />
@@ -116,7 +115,6 @@ const RecruiterProfile = () => {
                   </div>
                 </div>
 
-                {/* Company Information */}
                 <div className="col-12 col-md-6 mb-4">
                   <h5 className="text-primary mb-3 d-flex align-items-center">
                     <Icon icon="mdi:office-building" className="me-2" />
@@ -155,7 +153,6 @@ const RecruiterProfile = () => {
                 </div>
               </div>
 
-              {/* Account Status */}
               <div className="row mt-4">
                 <div className="col-12">
                   <div className="alert alert-info d-flex align-items-center mb-0">

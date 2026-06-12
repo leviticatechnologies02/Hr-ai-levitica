@@ -17,6 +17,7 @@ import {
 import { assessmentAPI } from "../../../shared/utils/api";
 import { BASE_URL } from "../../../shared/constants/api.config";
 import Modal from '../../../shared/components/Modal';
+import StatCard from '../../../shared/components/StatCard';
 
 const TestResultsViewer = () => {
   const [candidateResults, setCandidateResults] = useState([]);
@@ -242,57 +243,34 @@ const TestResultsViewer = () => {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Average Score</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.avgScore}%</p>
-                <p className="text-xs text-gray-400 mt-1">Across all tests</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FiBarChart2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Total Candidates</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.totalCandidates}</p>
-                <p className="text-xs text-gray-400 mt-1">With any test result</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <FiUsers className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Passed</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.passed}</p>
-                <p className="text-xs text-gray-400 mt-1">Qualified status</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <FiCheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Failed</p>
-                <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.failed}</p>
-                <p className="text-xs text-gray-400 mt-1">Regret status</p>
-              </div>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-rose-50 flex items-center justify-center">
-                <FiXCircle className="h-4 w-4 sm:h-5 sm:w-5 text-rose-600" />
-              </div>
-            </div>
-          </div>
+          <StatCard 
+            title="Average Score"
+            value={`${stats.avgScore}%`}
+            subtitle="Across all tests"
+            icon="lucide:bar-chart-2"
+            color="blue"
+          />
+          <StatCard 
+            title="Total Candidates"
+            value={stats.totalCandidates}
+            subtitle="With any test result"
+            icon="lucide:users"
+            color="purple"
+          />
+          <StatCard 
+            title="Passed"
+            value={stats.passed}
+            subtitle="Qualified status"
+            icon="lucide:check-circle"
+            color="green"
+          />
+          <StatCard 
+            title="Failed"
+            value={stats.failed}
+            subtitle="Regret status"
+            icon="lucide:x-circle"
+            color="yellow"
+          />
         </div>
 
         {/* Filters */}

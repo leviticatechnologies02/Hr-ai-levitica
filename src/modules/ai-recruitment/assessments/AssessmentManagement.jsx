@@ -33,10 +33,9 @@ const AssessmentManagement = () => {
     difficulty: 'medium',
     role: '',
     question_count: 25,
-    created_by: 1 // Get from auth context
+    created_by: 1 
   });
 
-  // Fetch assessments
   const fetchAssessments = async () => {
     setLoading(true);
     try {
@@ -49,7 +48,6 @@ const AssessmentManagement = () => {
     }
   };
 
-  // Fetch assignments
   const fetchAssignments = async () => {
     setLoading(true);
     try {
@@ -143,7 +141,6 @@ const AssessmentManagement = () => {
 
   return (
     <div className="dashboard-main-body">
-      {/* Page Header */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
         <h6 className="fw-semibold mb-0">Assessment Management</h6>
         <ul className="d-flex align-items-center gap-2">
@@ -158,7 +155,6 @@ const AssessmentManagement = () => {
         </ul>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-24">
         <StatCard 
           title="Total Assessments"
@@ -190,7 +186,6 @@ const AssessmentManagement = () => {
         />
       </div>
 
-      {/* Tabs */}
       <div className="card mb-24">
         <div className="card-body p-0">
           <div className="d-flex border-bottom">
@@ -220,7 +215,6 @@ const AssessmentManagement = () => {
         </div>
       </div>
 
-      {/* Assessments Tab */}
       {activeTab === 'assessments' && (
         <div className="card shadow-none border">
           <div className="card-header d-flex justify-content-between align-items-center">
@@ -316,7 +310,6 @@ const AssessmentManagement = () => {
         </div>
       )}
 
-      {/* Assignments Tab */}
       {activeTab === 'assignments' && (
         <div className="card shadow-none border">
           <div className="card-header d-flex justify-content-between align-items-center">
@@ -375,7 +368,6 @@ const AssessmentManagement = () => {
         </div>
       )}
 
-      {/* Create Assessment Modal */}
       {showCreateModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-dialog-centered">

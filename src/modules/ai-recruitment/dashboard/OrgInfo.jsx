@@ -95,9 +95,7 @@ const OrgInfo = () => {
   };
 
   const handleReset = () => {
-    // Confirm before resetting
     if (window.confirm('Are you sure you want to reset all changes? This will restore the form to its original values.')) {
-      // Reset form data to original values
       setFormData({
         companyName: 'Veritech Software Web Development Services',
         website: 'https://veritechsoft.com',
@@ -107,23 +105,15 @@ const OrgInfo = () => {
         about: 'We specialize in modern web solutions using React, Node, and Python to deliver scalable applications.'
       });
      
-      // Reset logo to original state
       setLogo({
         file: null,
         preview: 'https://via.placeholder.com/200x200/3b82f6/ffffff?text=Veritech',
         name: 'veritech_logo.png'
       });
      
-      // Clear all errors
       setErrors({});
-     
-      // Hide success message
       setShowSuccess(false);
-     
-      // Reset drag state
       setIsDragging(false);
-     
-      // Reset any file input
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) {
         fileInput.value = '';
@@ -146,7 +136,6 @@ const OrgInfo = () => {
     <div className="container-fluid">
         <div className="row">
           <div className="col-12">
-            {/* Header */}
             <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
               <h6 className="fw-semibold mb-0">Company Settings</h6>
               <ul className="d-flex align-items-center gap-2">
@@ -163,7 +152,6 @@ const OrgInfo = () => {
               </ul>
             </div>
 
-            {/* Success Message */}
             {showSuccess && (
               <div className="alert alert-success d-flex align-items-center mb-4" role="alert">
                 <Icon icon="heroicons:check-circle" className="me-2" />
@@ -171,7 +159,6 @@ const OrgInfo = () => {
               </div>
             )}
 
-            {/* Main Form Card */}
             <div
               className="card shadow-lg border-0"
               draggable
@@ -184,7 +171,6 @@ const OrgInfo = () => {
             >
               <div className="card-body p-4">
                 <div className="row">
-                  {/* Left Column - Form Fields */}
                   <div className="col-lg-8">
                     <div className="mb-4">
                       <label className="form-label fw-semibold text-dark fs-5">
@@ -305,14 +291,12 @@ const OrgInfo = () => {
                     </div>
                   </div>
 
-                  {/* Right Column - Logo Upload */}
                   <div className="col-lg-4">
                     <div className="mb-4">
                       <label className="form-label text-dark">
                        <h6>Company Logo</h6>
                       </label>
                      
-                      {/* Logo Preview */}
                       <div className="mb-3 text-center">
                         <img
                           src={logo.preview}
@@ -322,7 +306,6 @@ const OrgInfo = () => {
                         />
                       </div>
 
-                      {/* Upload Button */}
                       <label className="w-100">
                         <input
                           type="file"
@@ -344,14 +327,12 @@ const OrgInfo = () => {
                         </div>
                       )}
 
-                      {/* Current Logo Info */}
                       <div className="mt-3 small text-muted bg-light p-3 rounded">
                         <p className="fw-semibold mb-1">Current Logo:</p>
                         <p className="text-truncate mb-0">{logo.name}</p>
                       </div>
                     </div>
 
-                    {/* Preview Note */}
                     <div className="bg-primary bg-opacity-10 border border-primary border-opacity-20 rounded p-3">
                       <p className="small fw-medium text-primary mb-1">
                         <Icon icon="heroicons:light-bulb" className="me-1" />
@@ -365,7 +346,6 @@ const OrgInfo = () => {
                 </div>
               </div>
 
-              {/* Footer Actions */}
               <div className="card-footer bg-light d-flex justify-content-between align-items-center">
                 <div className="small text-muted">
                   Last updated by <span className="fw-medium text-dark">{lastUpdated}</span>
@@ -389,7 +369,6 @@ const OrgInfo = () => {
               </div>
             </div>
 
-            {/* Info Cards */}
             <div className="row mt-4">
               <div className="col-md-6 mb-3">
                 <div className="card border-0 shadow-sm h-100">

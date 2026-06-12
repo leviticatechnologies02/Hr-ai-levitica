@@ -364,17 +364,6 @@ function Companies() {
 
   const uniqueLocations = [...new Set(Crmcompanies.map(c => c.location?.trim() || c.country?.trim()).filter(Boolean))];
 
-  const getRatingStars = (rating) => {
-    const numRating = parseFloat(rating) || 0;
-    return (
-      <div className="flex items-center gap-0.5">
-        {[...Array(5)].map((_, i) => (
-          <FiStar key={i} className={`h-3 w-3 ${i < Math.floor(numRating) ? 'text-amber-500 fill-amber-500' : 'text-gray-300'}`} />
-        ))}
-        <span className="text-xs text-gray-500 ml-1">({numRating.toFixed(1)})</span>
-      </div>
-    );
-  };
 
   return (
     <div className="">
@@ -449,61 +438,64 @@ function Companies() {
             <p className="text-gray-500 text-sm">Loading companies...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
             {displayedCompanies.map((company, index) => (
-              <div key={company.id || index} className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow hover:shadow-property transition-all">
-                <div className="p-4">
-                  {/* Logo */}
-                  <div className="flex justify-start mb-3">
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+              <div key={company.id || index} className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-primary shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col h-full">
+                <div className="p-4 flex-1 flex flex-col">
+                  {/* Header: Logo, Name */}
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center overflow-hidden border border-indigo-100 flex-shrink-0 mt-1">
                       {company.logoPath ? (
                         <img src={company.logoPath} alt={company.name} className="w-full h-full object-cover" />
                       ) : (
-                        <FaBuilding className="h-8 w-8 text-gray-400" />
+                        <FaBuilding className="h-5 w-5" />
                       )}
                     </div>
-                  </div>
-
-                  {/* Company Name */}
-                  <h3 className="font-semibold text-midnight_text mb-2">{company.name}</h3>
-
-                  {/* Details */}
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center gap-2">
-                      <FiMail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-600 truncate">{company.email || "N/A"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FiPhone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-600">{company.phone || "N/A"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FiMapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-600 truncate">{company.location || "N/A"}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FiStar className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-gray-600">Rating:</span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-800 text-base break-words leading-tight">{company.name}</h3>
+                      <div className="flex items-center mt-1 gap-1">
+                        <FiStar className="w-3 h-3 text-amber-400 fill-amber-400" />
+                        <span className="text-xs font-medium text-gray-500">{company.rating || "N/A"}</span>
                       </div>
-                      {getRatingStars(company.rating)}
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+                  {/* Contact Details */}
+                  <div className="space-y-3 mb-5 mt-auto">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                        <FiMail className="h-4 w-4" />
+                      </div>
+                      <span className="text-gray-700 truncate">{company.email || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <FiPhone className="h-4 w-4" />
+                      </div>
+                      <span className="text-gray-700 truncate">{company.phone || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+                        <FiMapPin className="h-4 w-4" />
+                      </div>
+                      <span className="text-gray-700 truncate">{company.location || "N/A"}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions (Bottom) */}
+                  <div className="pt-2 flex gap-2">
                     <button
                       onClick={() => handleEditCompany(company)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-primary/50 text-gray-600 hover:text-primary rounded-lg text-xs font-medium transition-all"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-primary/10 text-gray-600 hover:text-primary rounded-lg text-xs font-medium transition-colors"
                     >
-                      <FiEdit2 className="h-3.5 w-3.5" />
+                      <FiEdit2 className="w-3.5 h-3.5" />
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteCompany(company)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-rose-500/50 text-gray-600 hover:text-rose-600 rounded-lg text-xs font-medium transition-all"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 rounded-lg text-xs font-medium transition-colors"
                     >
-                      <FiTrash2 className="h-3.5 w-3.5" />
+                      <FiTrash2 className="w-3.5 h-3.5" />
                       Delete
                     </button>
                   </div>

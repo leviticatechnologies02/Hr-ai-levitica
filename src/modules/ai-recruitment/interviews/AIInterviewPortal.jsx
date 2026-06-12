@@ -15,7 +15,6 @@ import {
 import { BASE_URL } from "../../../shared/constants/api.config";
 import { aiInterviewAPI } from "../../../shared/utils/api";
 
-// Add pulse animation style
 const pulseStyle = `
   @keyframes pulse {
     0% {
@@ -37,14 +36,12 @@ const AIInterviewPortal = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  // Extract URL parameters
   const candidateId = searchParams.get('candidate_id');
   const candidateName = searchParams.get('name');
   const candidateEmail = searchParams.get('email');
   const templateId = searchParams.get('template_id');
   
-  // State management
-  const [step, setStep] = useState('otp'); // otp, instructions, interview, completed
+  const [step, setStep] = useState('otp');
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [questions, setQuestions] = useState([]);
@@ -59,14 +56,12 @@ const AIInterviewPortal = () => {
   const [verifiedCandidateId, setVerifiedCandidateId] = useState(candidateId);
   const [otpSending, setOtpSending] = useState(false);
 
-  // Send OTP when component mounts
   useEffect(() => {
     if (candidateEmail && candidateName && step === 'otp') {
       sendOTP();
     }
   }, [candidateEmail, candidateName]);
 
-  // Timer countdown
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0 && step === 'interview') {
       const timer = setTimeout(() => {
@@ -78,19 +73,16 @@ const AIInterviewPortal = () => {
     }
   }, [timeRemaining, step]);
 
-  // Send OTP to candidate's email via backend
   const sendOTP = async () => {
     setOtpSending(true);
     try {
       const data = await aiInterviewAPI.sendOTP(candidateEmail, candidateName);
       
       if (data.success) {
-        // Store candidate_id for later use
         if (data.candidate_id) {
           setVerifiedCandidateId(data.candidate_id);
         }
         
-        // For demo: show OTP if email sending failed
         if (data.otp) {
           alert(`OTP sent to your email!\n\nFor demo purposes, your OTP is: ${data.otp}\n\n(In production, check your email)`);
         } else {
@@ -108,7 +100,6 @@ const AIInterviewPortal = () => {
     }
   };
 
-  // Verify OTP via backend
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
       setOtpError('Please enter a 6-digit OTP');
@@ -122,7 +113,6 @@ const AIInterviewPortal = () => {
       const data = await aiInterviewAPI.verifyOTP(candidateEmail, otp);
 
       if (data.success) {
-        // Store verified candidate ID
         setVerifiedCandidateId(data.candidate_id);
         setOtpError('');
         setStep('instructions');
@@ -139,11 +129,9 @@ const AIInterviewPortal = () => {
     }
   };
 
-  // Fetch interview questions
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      // Use template_id from URL params if available
       const templateIdParam = templateId ? parseInt(templateId) : null;
       const data = await aiInterviewAPI.getQuestions(templateIdParam);
       
@@ -155,7 +143,6 @@ const AIInterviewPortal = () => {
       }
       
         setQuestions(data);
-        // Initialize answers object
         const initialAnswers = {};
         data.forEach(q => {
           initialAnswers[q.id] = { text: '', video: null };
@@ -170,18 +157,15 @@ const AIInterviewPortal = () => {
     }
   };
 
-  // Start interview
   const handleStartInterview = () => {
     if (!questions || questions.length === 0) {
       alert('No interview questions available. Please contact support.');
       return;
     }
     setStep('interview');
-    // Set timer if needed (e.g., 45 minutes = 2700 seconds)
     setTimeRemaining(2700);
   };
 
-  // Handle text answer change
   const handleAnswerChange = (questionId, value) => {
     setAnswers(prev => ({
       ...prev,
@@ -189,10 +173,8 @@ const AIInterviewPortal = () => {
     }));
   };
 
-  // Start video and audio recording
   const startRecording = async (questionId) => {
     try {
-      // Request both video and audio permissions
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           width: { ideal: 1280 },
@@ -207,26 +189,22 @@ const AIInterviewPortal = () => {
         }
       });
       
-      // Store stream for preview and cleanup
       setVideoStream(stream);
       
-      // Set up video preview
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
         videoPreviewRef.current.play();
       }
       
-      // Create MediaRecorder with both video and audio
       const options = { mimeType: 'video/webm;codecs=vp9,opus' };
       let recorder;
       
-      // Try to use preferred codec, fallback to default
       if (MediaRecorder.isTypeSupported(options.mimeType)) {
         recorder = new MediaRecorder(stream, options);
       } else if (MediaRecorder.isTypeSupported('video/webm')) {
         recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
       } else {
-        recorder = new MediaRecorder(stream); // Use default
+        recorder = new MediaRecorder(stream);
       }
       
       const chunks = [];
@@ -238,7 +216,6 @@ const AIInterviewPortal = () => {
       };
       
       recorder.onstop = () => {
-        // Create video blob (contains both video and audio)
         const mimeType = recorder.mimeType || 'video/webm';
         const blob = new Blob(chunks, { type: mimeType });
         
@@ -253,7 +230,6 @@ const AIInterviewPortal = () => {
         if (blob.size === 0) {
           console.error('❌ Warning: Video blob is empty!');
           alert('Recording failed. The video file is empty. Please try recording again.');
-          // Clean up even if blob is empty
           if (stream) {
             stream.getTracks().forEach(track => track.stop());
           }
@@ -265,13 +241,11 @@ const AIInterviewPortal = () => {
           return;
         }
         
-        // Save blob to state
         setAnswers(prev => ({
           ...prev,
           [questionId]: { ...prev[questionId], video: blob }
         }));
         
-        // Stop all tracks and clear preview after blob is saved
         if (stream) {
           stream.getTracks().forEach(track => track.stop());
         }
@@ -290,8 +264,7 @@ const AIInterviewPortal = () => {
         stopRecording();
       };
 
-      // Start recording
-      recorder.start(1000); // Collect data every second
+      recorder.start(1000); 
       setMediaRecorder(recorder);
       setIsRecording(true);
       
@@ -308,26 +281,20 @@ const AIInterviewPortal = () => {
     }
   };
 
-  // Stop video and audio recording
   const stopRecording = () => {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       console.log('🛑 Stopping recording, state:', mediaRecorder.state);
       
-      // Request final data before stopping
       if (mediaRecorder.state === 'recording') {
         mediaRecorder.requestData();
       }
       
       mediaRecorder.stop();
       setIsRecording(false);
-      // Don't set mediaRecorder to null yet - wait for onstop to complete
     }
     
-    // Stop video stream and clear preview (but keep stream reference until blob is created)
-    // We'll stop tracks in the onstop handler after blob is created
   };
   
-  // Cleanup on unmount or question change
   useEffect(() => {
     return () => {
       if (videoStream) {
@@ -339,23 +306,18 @@ const AIInterviewPortal = () => {
     };
   }, [currentQuestionIndex]);
 
-  // Submit current answer
   const handleSubmitAnswer = async (questionId) => {
-    // Stop recording if still recording
     if (isRecording) {
       stopRecording();
-      // Wait a bit for recording to stop and blob to be created
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     
-    // Validate that answer exists - require video for all questions
     const answer = answers[questionId];
     if (!answer || !answer.video) {
       alert('Please record a video response before submitting.');
       return;
     }
     
-    // Validate candidate_id
     if (!verifiedCandidateId && !candidateId) {
       alert('Candidate ID not found. Please verify OTP again.');
       return;
@@ -368,10 +330,9 @@ const AIInterviewPortal = () => {
         throw new Error('Question not found');
       }
       
-      // Create FormData as required by backend
       const formData = new FormData();
       formData.append('candidate_id', verifiedCandidateId || candidateId);
-      formData.append('question_id', questionId.toString()); // Backend expects int, but FormData sends as string
+      formData.append('question_id', questionId.toString()); 
       formData.append('question_text', currentQuestion.text || '');
       
       if (answer.text) {
@@ -379,13 +340,11 @@ const AIInterviewPortal = () => {
       }
       
       if (answer.video) {
-        // Video file contains both video and audio
         const videoBlob = answer.video;
         const mimeType = videoBlob.type || 'video/webm';
         const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
         const filename = `video_${questionId}_${Date.now()}.${extension}`;
         
-        // Ensure we have a valid blob
         if (videoBlob instanceof Blob && videoBlob.size > 0) {
           formData.append('video', videoBlob, filename);
           console.log('📹 Sending video file:', {
@@ -409,7 +368,6 @@ const AIInterviewPortal = () => {
         return;
       }
       
-      // Debug: Log FormData contents
       console.log('📤 FormData contents:');
       for (let [key, value] of formData.entries()) {
         if (value instanceof File || value instanceof Blob) {
@@ -419,15 +377,12 @@ const AIInterviewPortal = () => {
         }
       }
 
-      // Use API utility for submit answer
       const data = await aiInterviewAPI.submitAnswer(formData);
       
       console.log('✅ Answer submitted successfully. AI Score:', data.score);
       
-      // Move to next question or complete
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
-        // Reset recording state for next question
         setIsRecording(false);
         setMediaRecorder(null);
       } else {
@@ -442,13 +397,11 @@ const AIInterviewPortal = () => {
     }
   };
 
-  // Auto-submit when time runs out
   const handleAutoSubmit = () => {
     alert('Time is up! Submitting your interview.');
     setStep('completed');
   };
 
-  // Format time
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -457,7 +410,6 @@ const AIInterviewPortal = () => {
 
   const currentQuestion = questions[currentQuestionIndex];
 
-  // OTP Verification Screen
   if (step === 'otp') {
     return (
       <>
@@ -530,7 +482,6 @@ const AIInterviewPortal = () => {
     );
   }
 
-  // Instructions Screen
   if (step === 'instructions') {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
@@ -607,14 +558,12 @@ const AIInterviewPortal = () => {
     );
   }
 
-  // Interview Screen
   if (step === 'interview' && currentQuestion) {
     return (
       <>
         <style>{pulseStyle}</style>
         <div className="min-vh-100 bg-light py-4">
         <div className="container">
-          {/* Header */}
           <div className="card shadow-sm mb-3">
             <div className="card-body py-3">
               <div className="d-flex justify-content-between align-items-center">
@@ -634,7 +583,6 @@ const AIInterviewPortal = () => {
             </div>
           </div>
 
-          {/* Progress Bar */}
           <div className="progress mb-4" style={{ height: '8px' }}>
             <div
               className="progress-bar bg-primary"
@@ -642,7 +590,6 @@ const AIInterviewPortal = () => {
             />
           </div>
 
-          {/* Question Card */}
           <div className="card shadow-lg">
             <div className="card-body p-5">
               <div className="mb-4">
@@ -652,12 +599,10 @@ const AIInterviewPortal = () => {
                 <h4 className="mb-0">{currentQuestion.text}</h4>
               </div>
 
-              {/* Video Answer (with Audio) - Always show video recording for all questions */}
               {(currentQuestion.type === 'video' || currentQuestion.type === 'text') && (
                 <div className="mb-4">
                   <label className="form-label">Video Response (with Audio):</label>
                   <div className="bg-dark rounded p-3">
-                    {/* Video Preview */}
                     <div className="position-relative mb-3" style={{ minHeight: '300px', backgroundColor: '#000' }}>
                       <video
                         ref={videoPreviewRef}
@@ -697,7 +642,6 @@ const AIInterviewPortal = () => {
                       )}
                     </div>
                     
-                    {/* Recording Controls */}
                     <div className="text-center">
                       {!isRecording && !answers[currentQuestion.id]?.video && (
                         <button
@@ -731,7 +675,6 @@ const AIInterviewPortal = () => {
                           <CheckCircle size={32} className="text-success mb-2" />
                           <p className="text-white mb-3">Video and audio recorded successfully!</p>
                           
-                          {/* Video Preview */}
                           <video
                             src={URL.createObjectURL(answers[currentQuestion.id].video)}
                             controls
@@ -761,11 +704,9 @@ const AIInterviewPortal = () => {
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="d-flex justify-content-between">
                 <button
                   onClick={() => {
-                    // Stop recording if active before going back
                     if (isRecording) {
                       stopRecording();
                     }

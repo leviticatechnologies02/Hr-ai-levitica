@@ -9,7 +9,7 @@ const AptitudeTest = () => {
   const location = useLocation();
   const isRecruiterMode = searchParams.get('mode') === 'recruiter' || location.state?.mode === 'recruiter';
   
-  const [step, setStep] = useState('otp'); // otp, instructions, exam, result
+  const [step, setStep] = useState('otp'); 
   const [candidateData, setCandidateData] = useState({
     name: searchParams.get('name') || '',
     email: searchParams.get('email') || '',
@@ -28,17 +28,14 @@ const AptitudeTest = () => {
     sendEmail: true
   });
   
-  // Exam state
   const [instructions, setInstructions] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
-  const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes
+  const [timeRemaining, setTimeRemaining] = useState(1800); 
   const [examStarted, setExamStarted] = useState(false);
   
-  // Result state
   const [result, setResult] = useState(null);
 
-  // Timer effect
   useEffect(() => {
     if (examStarted && timeRemaining > 0 && step === 'exam') {
       const timer = setTimeout(() => {
@@ -50,14 +47,12 @@ const AptitudeTest = () => {
     }
   }, [examStarted, timeRemaining, step]);
 
-  // Format time remaining
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Send OTP
   const handleSendOTP = async () => {
     if (!candidateData.name || !candidateData.email) {
       setError('Please provide name and email');
@@ -77,7 +72,6 @@ const AptitudeTest = () => {
     }
   };
 
-  // Verify OTP
   const handleVerifyOTP = async () => {
     if (!otp) {
       setError('Please enter OTP');
@@ -90,7 +84,6 @@ const AptitudeTest = () => {
     try {
       const response = await assessmentAPI.aptitude.verifyOTP(candidateData.email, otp);
       if (response.message === 'OTP verified successfully') {
-        // Fetch instructions with email to get correct question count
         const instructionsData = await assessmentAPI.aptitude.getInstructions(candidateData.email);
         setInstructions(instructionsData);
         setStep('instructions');
@@ -102,19 +95,16 @@ const AptitudeTest = () => {
     }
   };
 
-  // Start Exam
   const handleStartExam = async () => {
     setLoading(true);
     setError('');
     
     try {
-      // For simplicity, using email hash as student ID
       const studentId = Math.abs(candidateData.email.split('').reduce((a,b) => ((a << 5) - a) + b.charCodeAt(0), 0));
       setCandidateData(prev => ({ ...prev, studentId }));
       
       const response = await assessmentAPI.aptitude.startExam(studentId, candidateData.email);
       
-      // Use the candidate_id returned from backend if available
       if (response.candidate_id) {
         setCandidateData(prev => ({ ...prev, studentId: response.candidate_id }));
       }
@@ -130,7 +120,6 @@ const AptitudeTest = () => {
     }
   };
 
-  // Submit Exam
   const handleSubmitExam = async () => {
     if (Object.keys(answers).length === 0) {
       if (!window.confirm('You haven\'t answered any questions. Submit anyway?')) {
@@ -153,7 +142,6 @@ const AptitudeTest = () => {
     }
   };
 
-  // Handle answer selection
   const handleAnswerChange = (questionNo, option) => {
     setAnswers(prev => ({
       ...prev,
@@ -318,7 +306,6 @@ const AptitudeTest = () => {
     );
   }
 
-  // OTP Step
   if (step === 'otp') {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
@@ -415,7 +402,6 @@ const AptitudeTest = () => {
     );
   }
 
-  // Instructions Step
   if (step === 'instructions') {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
@@ -484,12 +470,10 @@ const AptitudeTest = () => {
     );
   }
 
-  // Exam Step
   if (step === 'exam') {
     return (
       <div className="min-vh-100 bg-light py-4">
         <div className="container">
-          {/* Timer Header */}
           <div className="card shadow-sm mb-4">
             <div className="card-body d-flex justify-content-between align-items-center">
               <div>
@@ -507,7 +491,6 @@ const AptitudeTest = () => {
             </div>
           </div>
 
-          {/* Questions */}
           <div className="row">
             {questions.map((q, index) => (
               <div key={q.no || index} className="col-12 mb-4">
@@ -543,7 +526,6 @@ const AptitudeTest = () => {
             ))}
           </div>
 
-          {/* Submit Button */}
           <div className="card shadow-sm mt-4 sticky-bottom">
             <div className="card-body">
               {error && (
@@ -576,7 +558,6 @@ const AptitudeTest = () => {
     );
   }
 
-  // Result Step
   if (step === 'result' && result) {
     const passed = result.status === 'Qualified';
     

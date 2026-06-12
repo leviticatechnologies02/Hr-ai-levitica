@@ -64,7 +64,6 @@ const CollaborationTools = () => {
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      // In a real app, this would send to backend
       console.log('Adding comment:', newComment);
       setNewComment('');
     }
@@ -102,7 +101,6 @@ const CollaborationTools = () => {
         [addModalStage]: [...(prev[addModalStage] || []), newCandidate]
       }));
       
-      // Reset form and close modal
       setNewCandidateForm({
         name: '',
         position: '',
@@ -125,7 +123,6 @@ const CollaborationTools = () => {
     setCandidates(prev => {
       const newCandidates = { ...prev };
       
-      // Find and update the candidate in the appropriate stage
       Object.keys(newCandidates).forEach(stage => {
         newCandidates[stage] = newCandidates[stage].map(candidate => 
           candidate.id === candidateId 
@@ -137,7 +134,6 @@ const CollaborationTools = () => {
       return newCandidates;
     });
     
-    // Update the selected candidate as well
     setSelectedCandidate(prev => ({
       ...prev,
       assignedTo: newAssignee

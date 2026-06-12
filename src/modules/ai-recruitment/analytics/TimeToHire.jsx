@@ -3,7 +3,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Calendar, Clock, TrendingUp, AlertCircle, Download, Filter, Users } from 'lucide-react';
 
 const TimeToHire = () => {
-  // Sample data for time-to-hire analytics
   const sampleData = [
     {
       id: 1,
@@ -121,18 +120,15 @@ const TimeToHire = () => {
     }
   ];
 
-  // Filter states
   const [selectedDateRange, setSelectedDateRange] = useState('Last 30 days');
   const [selectedJobRole, setSelectedJobRole] = useState('All Roles');
   const [selectedRecruiter, setSelectedRecruiter] = useState('All Recruiters');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
 
-  // Get unique values for filters
   const jobRoles = ['All Roles', ...new Set(sampleData.map(item => item.jobRole))];
   const recruiters = ['All Recruiters', ...new Set(sampleData.map(item => item.recruiter))];
   const departments = ['All Departments', ...new Set(sampleData.map(item => item.department))];
 
-  // Filter data based on selections
   const filteredData = useMemo(() => {
     return sampleData.filter(item => {
       return (selectedJobRole === 'All Roles' || item.jobRole === selectedJobRole) &&
@@ -141,7 +137,6 @@ const TimeToHire = () => {
     });
   }, [selectedJobRole, selectedRecruiter, selectedDepartment]);
 
-  // Calculate KPIs
   const kpis = useMemo(() => {
     if (filteredData.length === 0) return { avgTime: 0, fastest: null, slowest: null, delayStage: 'N/A' };
 
@@ -149,7 +144,6 @@ const TimeToHire = () => {
     const fastest = filteredData.reduce((min, item) => item.totalDays < min.totalDays ? item : min);
     const slowest = filteredData.reduce((max, item) => item.totalDays > max.totalDays ? item : max);
     
-    // Find stage causing most delay
     const stageDelays = {
       'Applied → Screen': filteredData.reduce((sum, item) => sum + item.stageBreakdown.appliedToScreen, 0) / filteredData.length,
       'Screen → Interview': filteredData.reduce((sum, item) => sum + item.stageBreakdown.screenToInterview, 0) / filteredData.length,
@@ -162,7 +156,6 @@ const TimeToHire = () => {
     return { avgTime, fastest, slowest, delayStage };
   }, [filteredData]);
 
-  // Prepare chart data
   const trendData = [
     { month: 'Jul', avgTime: 25 },
     { month: 'Aug', avgTime: 18 },

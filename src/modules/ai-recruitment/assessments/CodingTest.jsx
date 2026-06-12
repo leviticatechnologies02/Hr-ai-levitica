@@ -9,7 +9,7 @@ const CodingTest = () => {
   const location = useLocation();
   const isRecruiterMode = searchParams.get('mode') === 'recruiter' || location.state?.mode === 'recruiter';
   
-  const [step, setStep] = useState('otp'); // otp, coding, finalize
+  const [step, setStep] = useState('otp'); 
   const [candidateData, setCandidateData] = useState({
     name: searchParams.get('name') || '',
     email: searchParams.get('email') || ''
@@ -27,7 +27,6 @@ const CodingTest = () => {
     sendEmail: true
   });
   
-  // Coding state
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [code, setCode] = useState('');
@@ -35,10 +34,8 @@ const CodingTest = () => {
   const [output, setOutput] = useState('');
   const [submittedQuestions, setSubmittedQuestions] = useState([]);
   
-  // Finalize state
   const [finalResult, setFinalResult] = useState(null);
 
-  // Send OTP
   const handleSendOTP = async () => {
     if (!candidateData.name || !candidateData.email) {
       setError('Please provide name and email');
@@ -58,7 +55,6 @@ const CodingTest = () => {
     }
   };
 
-  // Verify OTP and fetch questions
   const handleVerifyOTP = async () => {
     if (!otp) {
       setError('Please enter OTP');
@@ -71,11 +67,9 @@ const CodingTest = () => {
     try {
       const response = await assessmentAPI.coding.verifyOTP(candidateData.email, otp);
       if (response.verified) {
-        // Fetch coding questions
         const questionsData = await assessmentAPI.coding.getQuestions();
         setQuestions(questionsData.questions || []);
         setStep('coding');
-        // Set initial code template
         setCode(getCodeTemplate(language));
       } else {
         setError('Invalid OTP');
@@ -87,7 +81,6 @@ const CodingTest = () => {
     }
   };
 
-  // Get code template for language
   const getCodeTemplate = (lang) => {
     const currentQuestion = questions[currentQuestionIndex];
     switch (lang) {
@@ -102,14 +95,12 @@ const CodingTest = () => {
     }
   };
 
-  // Change language
   const handleLanguageChange = (newLang) => {
     setLanguage(newLang);
     setCode(getCodeTemplate(newLang));
     setOutput('');
   };
 
-  // Run code
   const handleRunCode = async () => {
     if (!code.trim()) {
       setError('Please write some code first');
@@ -142,7 +133,6 @@ const CodingTest = () => {
     }
   };
 
-  // Submit code for current question
   const handleSubmitCode = async () => {
     if (!code.trim()) {
       setError('Please write some code first');
@@ -166,7 +156,6 @@ const CodingTest = () => {
       alert(`✅ Solution submitted for "${currentQuestion.title}"!`);
       setOutput(response.output || '');
       
-      // Move to next question if available
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setCode(getCodeTemplate(language));
@@ -179,7 +168,6 @@ const CodingTest = () => {
     }
   };
 
-  // Finalize exam
   const handleFinalizeExam = async () => {
     if (submittedQuestions.length === 0) {
       if (!window.confirm('You haven\'t submitted any solutions. Finalize anyway?')) {
@@ -205,7 +193,6 @@ const CodingTest = () => {
     }
   };
 
-  // Change question
   const handleQuestionChange = (index) => {
     setCurrentQuestionIndex(index);
     setCode(getCodeTemplate(language));
@@ -370,7 +357,6 @@ const CodingTest = () => {
     );
   }
 
-  // OTP Step
   if (step === 'otp') {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
@@ -467,13 +453,11 @@ const CodingTest = () => {
     );
   }
 
-  // Coding Step
   if (step === 'coding' && questions.length > 0) {
     const currentQuestion = questions[currentQuestionIndex];
     
     return (
       <div className="min-vh-100 bg-light">
-        {/* Header */}
         <div className="bg-white border-bottom shadow-sm">
           <div className="container-fluid py-3">
             <div className="d-flex justify-content-between align-items-center">
@@ -497,7 +481,6 @@ const CodingTest = () => {
 
         <div className="container-fluid py-4">
           <div className="row">
-            {/* Questions Sidebar */}
             <div className="col-md-3">
               <div className="card shadow-sm sticky-top" style={{ top: '20px' }}>
                 <div className="card-header">
@@ -524,9 +507,7 @@ const CodingTest = () => {
               </div>
             </div>
 
-            {/* Code Editor */}
             <div className="col-md-9">
-              {/* Question Description */}
               <div className="card shadow-sm mb-3">
                 <div className="card-body">
                   <h5 className="mb-3">{currentQuestion.title}</h5>
@@ -547,7 +528,6 @@ const CodingTest = () => {
                 </div>
               </div>
 
-              {/* Editor Controls */}
               <div className="card shadow-sm mb-3">
                 <div className="card-body d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-3">
@@ -590,7 +570,6 @@ const CodingTest = () => {
                 </div>
               )}
 
-              {/* Code Editor */}
               <div className="card shadow-sm mb-3">
                 <div className="card-header d-flex align-items-center">
                   <Terminal size={16} className="me-2" />
@@ -612,7 +591,6 @@ const CodingTest = () => {
                 </div>
               </div>
 
-              {/* Output Console */}
               {output && (
                 <div className="card shadow-sm">
                   <div className="card-header d-flex align-items-center">
@@ -633,7 +611,6 @@ const CodingTest = () => {
     );
   }
 
-  // Finalize Step
   if (step === 'finalize' && finalResult) {
     const passed = finalResult.status === 'manager_round';
     

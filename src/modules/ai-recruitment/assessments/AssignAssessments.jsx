@@ -285,7 +285,6 @@ Recruitment Team
   return (
     <div className="">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -312,7 +311,6 @@ Recruitment Team
           </div>
         </div>
 
-        {/* Preselected Alert */}
         {loadedPreselectedCount > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4">
             <span className="text-sm text-amber-700">
@@ -325,7 +323,6 @@ Recruitment Team
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Section - Candidate Selection */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow">
               <div className="p-4 border-b border-gray-100">
@@ -350,7 +347,6 @@ Recruitment Team
                   </div>
                 </div>
                 
-                {/* Search and Filter */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="relative">
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -378,7 +374,6 @@ Recruitment Team
                 </div>
               </div>
 
-              {/* Candidate List */}
               <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
                 {filteredCandidates.length === 0 ? (
                   <div className="text-center py-12">
@@ -424,9 +419,7 @@ Recruitment Team
             </div>
           </div>
 
-          {/* Right Section - Assessment & Details */}
           <div className="space-y-4">
-            {/* Assessment Selection */}
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
               <h5 className="font-semibold text-midnight_text mb-4 flex items-center gap-2">
                 <FiClipboard className="h-5 w-5 text-primary" />
@@ -505,7 +498,6 @@ Recruitment Team
               </label>
             </div>
 
-            {/* Summary Card */}
             <div className="bg-primary/5 rounded-lg border border-primary/20 p-4">
               <h6 className="font-semibold text-midnight_text mb-3">Assignment Summary</h6>
               <div className="space-y-2 text-sm">
@@ -528,7 +520,6 @@ Recruitment Team
               </div>
             </div>
 
-            {/* Assign Button */}
             <button
               onClick={handleAssign}
               disabled={selectedCandidates.length === 0 || !selectedAssessment || !dueDate || loading}
@@ -547,7 +538,6 @@ Recruitment Team
               )}
             </button>
 
-            {/* Validation Messages */}
             {selectedCandidates.length === 0 && (
               <p className="text-xs text-amber-600 text-center">Please select at least one candidate</p>
             )}
@@ -561,7 +551,6 @@ Recruitment Team
         </div>
       </div>
 
-      {/* Success Modal */}
       <Modal
         isOpen={showSuccessModal}
         onClose={() => {

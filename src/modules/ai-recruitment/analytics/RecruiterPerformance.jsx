@@ -47,7 +47,6 @@ export default function RecruiterPerformance() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  // Fetch all data from backend
   const fetchData = async () => {
     const token = localStorage.getItem('token');
     
@@ -266,7 +265,6 @@ export default function RecruiterPerformance() {
     return data;
   }, [recruiterPerformanceData, selectedRecruiter, sortBy, sortOrder]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -445,7 +443,6 @@ export default function RecruiterPerformance() {
   return (
     <div className="">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -464,7 +461,6 @@ export default function RecruiterPerformance() {
           </button>
         </div>
 
-        {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <StatCard 
             title="Active Jobs"
@@ -496,7 +492,6 @@ export default function RecruiterPerformance() {
           />
         </div>
 
-        {/* Filters */}
         <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
@@ -560,7 +555,6 @@ export default function RecruiterPerformance() {
           </div>
         ) : (
           <>
-            {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
                 <h6 className="font-semibold text-midnight_text mb-3">Candidates Processed by Recruiter</h6>
@@ -640,7 +634,6 @@ export default function RecruiterPerformance() {
               </div>
             </div>
 
-            {/* Recruiter Comparison Table */}
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/30">
                 <h6 className="font-semibold text-midnight_text">Recruiter Comparison</h6>
@@ -715,7 +708,6 @@ export default function RecruiterPerformance() {
                 </table>
               </div>
 
-              {/* Pagination */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-gray-100 bg-gray-50/30">
                 <div className="text-xs text-gray-500">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} recruiters
@@ -770,7 +762,6 @@ export default function RecruiterPerformance() {
         )}
       </div>
 
-      {/* Recruiter Details Modal */}
       <Modal
         isOpen={!!selectedRecruiterDetails}
         onClose={() => setSelectedRecruiterDetails(null)}

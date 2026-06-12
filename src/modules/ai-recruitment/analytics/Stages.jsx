@@ -50,11 +50,9 @@ const Stages = () => {
     const draggedIndex = newStages.findIndex(s => s.id === draggedStage.id);
     const targetIndex = newStages.findIndex(s => s.id === targetStage.id);
 
-    // Remove dragged stage and insert at new position
     const [removed] = newStages.splice(draggedIndex, 1);
     newStages.splice(targetIndex, 0, removed);
 
-    // Update order values
     const updatedStages = newStages.map((stage, index) => ({
       ...stage,
       order: index + 1
@@ -132,9 +130,7 @@ const Stages = () => {
   };
 
   const handleSaveWorkflow = () => {
-    // Simulate saving to backend
     setHasChanges(false);
-    // Show success message
     const successMsg = document.createElement('div');
     successMsg.className = 'position-fixed top-0 end-0 bg-success text-white px-16 py-8 rounded shadow-lg z-3 m-16';
     successMsg.textContent = 'Pipeline workflow saved successfully!';
@@ -144,7 +140,6 @@ const Stages = () => {
 
   return (
     <div className='container-fluid py-4'>
-      {/* Header */}
       <div className='mb-12'>
         <h4 className='mb-2'>Pipeline Stages</h4>
         <p className='text-secondary-light mb-0'>Customize your hiring workflow by adding, editing, and reordering stages.</p>
@@ -174,9 +169,7 @@ const Stages = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       {stages.length === 0 ? (
-        // Empty State
         <div className='card border border-dashed border-secondary-light'>
           <div className='card-body p-48 text-center'>
             <div className='w-64-px h-64-px bg-primary-50 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-16'>
@@ -193,7 +186,6 @@ const Stages = () => {
           </div>
         </div>
       ) : (
-        // Stages List
         <div className='card border shadow-none'>
           <div className='card-header bg-base border-bottom'>
             <h5 className='card-title mb-0'>Current Pipeline Stages</h5>
@@ -211,17 +203,14 @@ const Stages = () => {
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, stage)}
               >
-                {/* Drag Handle */}
                 <div className='cursor-grab active:cursor-grabbing text-secondary-light hover-text-primary'>
                   <GripVertical size={20} />
                 </div>
 
-                {/* Order Number */}
                 <div className='w-32-px h-32-px bg-primary-50 rounded-circle d-flex align-items-center justify-content-center text-sm fw-medium text-primary-600'>
                   {stage.order}
                 </div>
 
-                {/* Stage Name */}
                 <div className='flex-grow-1'>
                   {editingStage === stage.id ? (
                     <div className='d-flex align-items-center gap-2'>
@@ -250,7 +239,6 @@ const Stages = () => {
                   )}
                 </div>
 
-                {/* Stage Type */}
                 <div style={{ minWidth: '140px' }}>
                   <select
                     value={stage.type}
@@ -268,7 +256,6 @@ const Stages = () => {
                   </select>
                 </div>
 
-                {/* Actions */}
                 <div className='d-flex align-items-center gap-2'>
                   <button
                     onClick={() => handleEditStart(stage)}
@@ -289,7 +276,6 @@ const Stages = () => {
         </div>
       )}
 
-      {/* Add Stage Modal */}
       {showAddModal && (
         <>
           <div className='modal d-block' tabIndex='-1' role='dialog'>
@@ -356,7 +342,6 @@ const Stages = () => {
         </>
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && stageToDelete && (
         <>
           <div className='modal d-block' tabIndex='-1' role='dialog'>

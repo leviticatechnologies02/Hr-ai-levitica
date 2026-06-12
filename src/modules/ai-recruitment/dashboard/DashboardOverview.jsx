@@ -200,7 +200,6 @@ const DashboardOverview = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-midnight_text">Dashboard</h1>
@@ -216,7 +215,6 @@ const DashboardOverview = () => {
         </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Jobs"
@@ -248,11 +246,8 @@ const DashboardOverview = () => {
         />
       </div>
 
-      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Pipeline & Quick Actions */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Pipeline */}
           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-deatail_shadow">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-midnight_text">Pipeline Overview</h2>
@@ -282,7 +277,6 @@ const DashboardOverview = () => {
             </div>
           </div>
 
-          {/* Quick Actions */}
           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-deatail_shadow">
             <h2 className="text-base font-semibold text-midnight_text mb-3">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-2">
@@ -305,7 +299,6 @@ const DashboardOverview = () => {
           </div>
         </div>
 
-        {/* Sourcing Metrics */}
         <div className="space-y-4">
           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-deatail_shadow">
             <div className="flex items-center justify-between mb-3">
@@ -342,7 +335,6 @@ const DashboardOverview = () => {
         </div>
       </div>
 
-      {/* Recent Applications */}
       <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <div>
@@ -395,7 +387,6 @@ const DashboardOverview = () => {
         </div>
       </div>
 
-      {/* Modal */}
       <Modal
         isOpen={showCandidateModal}
         onClose={handleCloseCandidateModal}

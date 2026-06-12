@@ -36,7 +36,7 @@ const StatCard = ({ title, value, subtitle, icon, color = 'blue' }) => {
   const theme = colorThemes[color] || colorThemes.blue;
 
   return (
-    <div className={`rounded-xl p-4 border  flex flex-col ${theme.bg} ${theme.border}`}>
+    <div className={`rounded-xl p-4 border shadow-md flex flex-col ${theme.bg} ${theme.border}`}>
       <h3 className={`text-sm font-semibold ${theme.textTitle} mb-2`}>
         {title}
       </h3>

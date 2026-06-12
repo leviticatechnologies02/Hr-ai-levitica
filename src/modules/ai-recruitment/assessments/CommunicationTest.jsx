@@ -9,7 +9,7 @@ const CommunicationTest = () => {
   const location = useLocation();
   const isRecruiterMode = searchParams.get('mode') === 'recruiter' || location.state?.mode === 'recruiter';
   
-  const [step, setStep] = useState('otp'); // otp, exam, result
+  const [step, setStep] = useState('otp');
   const [candidateData, setCandidateData] = useState({
     name: searchParams.get('name') || '',
     email: searchParams.get('email') || ''
@@ -27,7 +27,6 @@ const CommunicationTest = () => {
     sendEmail: true
   });
   
-  // Exam state
   const [examData, setExamData] = useState(null);
   const [answers, setAnswers] = useState({
     writingAnswer: '',
@@ -35,10 +34,8 @@ const CommunicationTest = () => {
     mcqAnswers: {}
   });
   
-  // Result state
   const [result, setResult] = useState(null);
 
-  // Send OTP
   const handleSendOTP = async () => {
     if (!candidateData.name || !candidateData.email) {
       setError('Please provide name and email');
@@ -58,7 +55,6 @@ const CommunicationTest = () => {
     }
   };
 
-  // Verify OTP and load exam
   const handleVerifyOTP = async () => {
     if (!otp) {
       setError('Please enter OTP');
@@ -71,7 +67,6 @@ const CommunicationTest = () => {
     try {
       const response = await assessmentAPI.communication.verifyOTP(candidateData.email, otp);
       if (response.verified) {
-        // Fetch exam
         const examResponse = await assessmentAPI.communication.getExam(
           candidateData.name,
           candidateData.email
@@ -88,9 +83,7 @@ const CommunicationTest = () => {
     }
   };
 
-  // Submit exam
   const handleSubmitExam = async () => {
-    // Validate answers
     if (!answers.writingAnswer.trim()) {
       setError('Please answer the writing section');
       return;
@@ -100,7 +93,6 @@ const CommunicationTest = () => {
       return;
     }
     
-    // Check if all MCQs are answered
     const mcqCount = examData?.reading_mcqs?.length || 0;
     const answeredMCQs = Object.keys(answers.mcqAnswers).length;
     if (answeredMCQs < mcqCount) {
@@ -130,7 +122,6 @@ const CommunicationTest = () => {
     }
   };
 
-  // Handle MCQ answer
   const handleMCQAnswer = (questionIndex, answer) => {
     setAnswers(prev => ({
       ...prev,
@@ -298,7 +289,6 @@ const CommunicationTest = () => {
     );
   }
 
-  // OTP Step
   if (step === 'otp') {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
@@ -395,7 +385,6 @@ const CommunicationTest = () => {
     );
   }
 
-  // Exam Step
   if (step === 'exam' && examData) {
     return (
       <div className="min-vh-100 bg-light py-4">
@@ -414,7 +403,6 @@ const CommunicationTest = () => {
             </div>
           )}
 
-          {/* Reading Comprehension Section */}
           <div className="card shadow-sm mb-4">
             <div className="card-header bg-primary-subtle">
               <h5 className="mb-0 d-flex align-items-center">
@@ -454,7 +442,6 @@ const CommunicationTest = () => {
             </div>
           </div>
 
-          {/* Writing Section */}
           <div className="card shadow-sm mb-4">
             <div className="card-header bg-success-subtle">
               <h5 className="mb-0 d-flex align-items-center">
@@ -482,7 +469,6 @@ const CommunicationTest = () => {
             </div>
           </div>
 
-          {/* Listening Section */}
           <div className="card shadow-sm mb-4">
             <div className="card-header bg-warning-subtle">
               <h5 className="mb-0 d-flex align-items-center">
@@ -513,7 +499,6 @@ const CommunicationTest = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="card shadow-sm">
             <div className="card-body">
               <button
@@ -540,7 +525,6 @@ const CommunicationTest = () => {
     );
   }
 
-  // Result Step
   if (step === 'result' && result) {
     const passed = result.passed;
     

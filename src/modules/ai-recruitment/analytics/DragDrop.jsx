@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, User, Calendar, MapPin, Phone, Mail, FileText, MoreVertical } from 'lucide-react';
 
 const PipelineDragDrop = () => {
-  // Mock data for stages
   const stages = [
     { id: 'applied', name: 'Applied' },
     { id: 'phone-screen', name: 'Phone Screen' },
@@ -23,9 +22,7 @@ const PipelineDragDrop = () => {
     return 'badge bg-neutral-200 text-black';
   };
 
-  // Mock candidates data
   const [candidates, setCandidates] = useState([
-    // Applied Stage
     {
       id: '1',
       name: 'Priya Singh',
@@ -66,7 +63,6 @@ const PipelineDragDrop = () => {
       ]
     },
     
-    // Phone Screen Stage
     {
       id: '4',
       name: 'Aisha Sharma',
@@ -82,7 +78,6 @@ const PipelineDragDrop = () => {
       ]
     },
     
-    // Onsite Interview Stage
     {
       id: '5',
       name: 'Meera Patel',
@@ -99,7 +94,6 @@ const PipelineDragDrop = () => {
       ]
     },
     
-    // Offer Extended Stage
     {
       id: '6',
       name: 'Arjun Nair',
@@ -133,7 +127,6 @@ const PipelineDragDrop = () => {
       ]
     },
     
-    // Hired Stage
     {
       id: '8',
       name: 'Rahul Verma',
@@ -169,7 +162,6 @@ const PipelineDragDrop = () => {
       ]
     },
     
-    // Rejected Stage
     {
       id: '10',
       name: 'Ravi Kumar',
@@ -195,7 +187,6 @@ const PipelineDragDrop = () => {
 
   const jobs = ['All Jobs', 'Frontend Engineer', 'Backend Developer', 'Full Stack Developer'];
 
-  // Filter candidates based on search and job selection
   const filteredCandidates = candidates.filter(candidate => {
     const matchesSearch = candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          candidate.role.toLowerCase().includes(searchTerm.toLowerCase());
@@ -203,7 +194,6 @@ const PipelineDragDrop = () => {
     return matchesSearch && matchesJob;
   });
 
-  // Group candidates by stage
   const candidatesByStage = stages.reduce((acc, stage) => {
     acc[stage.id] = filteredCandidates.filter(candidate => candidate.stage === stage.id);
     return acc;
@@ -223,7 +213,6 @@ const PipelineDragDrop = () => {
     e.preventDefault();
     
     if (draggedCandidate && draggedCandidate.stage !== targetStage) {
-      // Update candidate stage
       setCandidates(prev => prev.map(candidate => 
         candidate.id === draggedCandidate.id 
           ? { 
@@ -238,7 +227,6 @@ const PipelineDragDrop = () => {
           : candidate
       ));
       
-      // Show toast notification
       const stageName = stages.find(s => s.id === targetStage)?.name || targetStage;
       setToast(`${draggedCandidate.name} moved to ${stageName}`);
       setTimeout(() => setToast(''), 3000);
@@ -249,7 +237,7 @@ const PipelineDragDrop = () => {
 
   const CandidateCard = ({ candidate }) => {
     const handleViewClick = (e) => {
-      e.stopPropagation(); // Prevent card drag when clicking view button
+      e.stopPropagation(); 
       setSelectedCandidate(candidate);
     };
 

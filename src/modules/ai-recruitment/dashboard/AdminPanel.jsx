@@ -61,7 +61,6 @@ const RecruiterDashboardHome = () => {
         <p className='text-secondary-light'>Track your hiring progress and manage jobs efficiently.</p>
       </div>
 
-      {/* Stats */}
       <div className='row row-cols-xxxl-5 row-cols-lg-3 row-cols-sm-2 row-cols-1 gy-4 mb-24'>
         <div className='col'>
           <div className='card shadow-none border bg-gradient-start-1 h-100'>
@@ -128,7 +127,6 @@ const RecruiterDashboardHome = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className='card border shadow-none mb-24'>
         <div className='card-body'>
           <div className='d-flex align-items-center justify-content-between flex-wrap gap-2 mb-12'>
@@ -152,7 +150,6 @@ const RecruiterDashboardHome = () => {
         </div>
       </div>
 
-      {/* Job list and recent applicants */}
       <div className='card border shadow-none mb-24'>
         <div className='card-body p-0'>
           <JobList />
@@ -200,7 +197,6 @@ const RecruiterDashboardHome = () => {
         </div>
       </div>
 
-      {/* Modals (candidates, profile, import, post) remain unchanged below */}
       {showCandidates && (
         <div className='position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center z-3'>
           <div className='card w-100' style={{maxWidth: '960px'}}>

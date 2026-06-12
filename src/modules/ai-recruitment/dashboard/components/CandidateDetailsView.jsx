@@ -2,10 +2,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 
 const CandidateDetailsView = ({ candidate, onClose }) => {
-  // Direct mapping from backend Candidate model fields
   const fullData = candidate.fullData || candidate;
-  
-  // Only these fields exist in backend
   const name = fullData.name || 'Unknown Candidate';
   const email = fullData.email || 'Not provided';
   const role = fullData.role || 'Not specified';
@@ -15,7 +12,6 @@ const CandidateDetailsView = ({ candidate, onClose }) => {
   const notes = fullData.notes || '';
   const recruiterComments = fullData.recruiter_comments || '';
   
-  // Parse skills if it's a string
   const skillsList = skills ? (Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim())) : [];
   
   const avatar = name.charAt(0).toUpperCase() || '?';
@@ -51,7 +47,6 @@ const CandidateDetailsView = ({ candidate, onClose }) => {
 
   return (
     <div className="space-y-4">
-      {/* Header with Avatar and Basic Info */}
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white text-base font-bold uppercase">
           {avatar}
@@ -67,13 +62,11 @@ const CandidateDetailsView = ({ candidate, onClose }) => {
         </div>
       </div>
 
-      {/* Role */}
       <div className="bg-gray-50 px-3 py-2 rounded-lg">
         <p className="text-xs text-gray-500 mb-0.5">Applied for</p>
         <p className="text-sm font-medium text-midnight_text">{role}</p>
       </div>
 
-      {/* Skills */}
       {skillsList.length > 0 && skillsList[0] !== '' && (
         <div>
           <p className="text-xs text-gray-500 mb-2">Skills</p>
@@ -87,7 +80,6 @@ const CandidateDetailsView = ({ candidate, onClose }) => {
         </div>
       )}
 
-      {/* Notes */}
       {notes && (
         <div className="bg-amber-50/30 px-3 py-2 rounded-lg border border-amber-100">
           <p className="text-xs text-amber-700 font-medium mb-1 flex items-center gap-1">
@@ -98,7 +90,6 @@ const CandidateDetailsView = ({ candidate, onClose }) => {
         </div>
       )}
 
-      {/* Recruiter Comments */}
       {recruiterComments && (
         <div className="bg-blue-50/30 px-3 py-2 rounded-lg border border-blue-100">
           <p className="text-xs text-blue-700 font-medium mb-1 flex items-center gap-1">
@@ -109,7 +100,6 @@ const CandidateDetailsView = ({ candidate, onClose }) => {
         </div>
       )}
 
-      {/* Footer Actions */}
       <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
         <button
           onClick={onClose}

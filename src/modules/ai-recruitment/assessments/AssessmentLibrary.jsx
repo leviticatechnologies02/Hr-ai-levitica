@@ -305,7 +305,6 @@ const AssessmentLibrary = () => {
   return (
     <div className="">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -335,7 +334,6 @@ const AssessmentLibrary = () => {
           </div>
         </div>
 
-        {/* KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           <StatCard 
             title="Total Templates"
@@ -367,7 +365,6 @@ const AssessmentLibrary = () => {
           />
         </div>
 
-        {/* Filters */}
         <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="relative">
@@ -411,7 +408,6 @@ const AssessmentLibrary = () => {
           </div>
         </div>
 
-        {/* Bulk Actions */}
         {selectedAssessments.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-primary/5 border border-primary/20 rounded-lg p-4">
             <div className="flex items-center gap-3">
@@ -435,7 +431,6 @@ const AssessmentLibrary = () => {
           </div>
         )}
 
-        {/* Assessments Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4" />
@@ -456,7 +451,6 @@ const AssessmentLibrary = () => {
             {filteredAssessments.map((assessment) => (
               <div key={assessment.id} className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow hover:shadow-property transition-all">
                 <div className="p-4">
-                  {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <input
@@ -487,12 +481,10 @@ const AssessmentLibrary = () => {
                     </div>
                   </div>
 
-                  {/* Title */}
                   <h3 className="font-semibold text-midnight_text mb-3 line-clamp-1" title={assessment.name}>
                     {assessment.name}
                   </h3>
 
-                  {/* Details */}
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-500">Type:</span>
@@ -528,7 +520,6 @@ const AssessmentLibrary = () => {
                     )}
                   </div>
 
-                  {/* Footer */}
                   <div className="border-t border-gray-100 mt-3 pt-3">
                     <p className="text-xs text-gray-400">
                       Updated: {new Date(assessment.last_updated).toLocaleDateString()}
@@ -541,7 +532,6 @@ const AssessmentLibrary = () => {
         )}
       </div>
 
-      {/* Create/Edit Modal */}
       <Modal
         isOpen={showModal}
         onClose={closeModal}

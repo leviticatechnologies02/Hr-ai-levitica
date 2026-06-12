@@ -14,13 +14,12 @@ import { BASE_URL } from "../../../shared/constants/api.config";
 
 const CandidateProfilePage = ({ candidate, onClose }) => {
   const fullData = candidate.fullData || candidate;
-  const backendBaseUrl = BASE_URL; // Use BASE_URL from config
+  const backendBaseUrl = BASE_URL;
 
   const [activeTab, setActiveTab] = useState('overview');
   const [currentStage, setCurrentStage] = useState(fullData.stage || 'Applied');
   const [actionMessage, setActionMessage] = useState(null);
 
-  // Only backend fields from Candidate model
   const name = fullData.name || 'Unknown Candidate';
   const email = fullData.email || 'Not provided';
   const role = fullData.role || 'Not specified';
@@ -29,7 +28,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
   const notes = fullData.notes || '';
   const recruiterComments = fullData.recruiter_comments || '';
 
-  // Parse skills if it's a string
   const skillsList = skills ? (Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim())) : [];
   
   const avatar = name.charAt(0).toUpperCase() || '?';
@@ -101,7 +99,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
   return (
     <Modal isOpen={true} onClose={onClose} title="Candidate Profile" size="3xl">
       <div className=" space-y-6">
-        {/* Action Message */}
         {actionMessage && (
           <div className={`flex items-center gap-2 p-3 rounded-lg ${
             actionMessage.type === 'danger' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -111,7 +108,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
           </div>
         )}
 
-        {/* Profile Header */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="w-16 h-16 rounded-xl bg-primary flex items-center justify-center text-white text-xl font-bold uppercase flex-shrink-0">
             {avatar}
@@ -133,7 +129,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
           </div>
         </div>
 
-        {/* Stage Selector */}
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
           <label className="text-xs text-gray-500 font-semibold uppercase mb-2 block">Update Stage</label>
           <div className="flex flex-wrap gap-2">
@@ -153,7 +148,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="border-b border-gray-100">
           <div className="flex gap-4">
             <button
@@ -189,9 +183,7 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
           </div>
         </div>
 
-        {/* Tab Content */}
         <div className="min-h-[200px]">
-          {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
@@ -213,7 +205,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
             </div>
           )}
 
-          {/* Skills Tab */}
           {activeTab === 'skills' && (
             <div>
               <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -237,7 +228,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
             </div>
           )}
 
-          {/* Notes Tab */}
           {activeTab === 'notes' && (
             <div className="space-y-4">
               {notes && notes.trim() !== '' ? (
@@ -279,7 +269,6 @@ const CandidateProfilePage = ({ candidate, onClose }) => {
           )}
         </div>
 
-        {/* Footer Actions */}
         <div className="flex flex-wrap justify-end items-center gap-3 pt-4 border-t border-gray-100">
           <div className="flex gap-2">
             <button

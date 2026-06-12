@@ -8,7 +8,6 @@ const CandidateSourcing = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
   const [selectedRecruiter, setSelectedRecruiter] = useState('All Recruiters');
 
-  // Sample data
   const kpiData = {
     totalCandidates: 500,
     uniqueChannels: 6,
@@ -179,7 +178,6 @@ const CandidateSourcing = () => {
           </div>
         </div>
 
-        {/* KPI Cards */}
         <div className="row g-3 mb-24 align-items-stretch p-24" >
           <div className="col-12 col-sm-6 col-lg-3 d-flex">
             <div className="card border shadow-none w-100">
@@ -238,7 +236,6 @@ const CandidateSourcing = () => {
           </div>
         </div>
 
-        {/* Charts Row 1 */}
         <div className="row g-3 mb-24 p-24">
           <div className="col-12 col-lg-6">
             <div className="card border shadow-none h-100">
@@ -290,7 +287,6 @@ const CandidateSourcing = () => {
           </div>
         </div>
 
-        {/* Charts Row 2 */}
         <div className="row g-3 mb-24 p-24">
           <div className="col-12 col-lg-6">
             <div className="card border shadow-none h-100">
@@ -338,7 +334,6 @@ const CandidateSourcing = () => {
           </div>
         </div>
 
-        {/* Performance Table */}
         <div className="card  body shadow-none mb-24 p-24">
           <div className="card-body p-24">
             <h6 className="mb-3">Sourcing Performance Table</h6>
@@ -377,7 +372,6 @@ const CandidateSourcing = () => {
           </div>
         </div>
 
-        {/* Insights Section */}
         <div className="row g-3 p-24">
           <div className="col-12 col-lg-4">
             <div className="card border shadow-none h-100">

@@ -133,7 +133,6 @@ const Integrations = () => {
     <div className="container-fluid">
       <div className="row">
         <div className="col-12">
-          {/* Header */}
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
             <h6 className="fw-semibold mb-0">Integrations</h6>
             <ul className="d-flex align-items-center gap-2">
@@ -150,7 +149,6 @@ const Integrations = () => {
             </ul>
           </div>
 
-          {/* Notification Banner */}
           {notification && (
             <div className={`alert alert-dismissible fade show mb-4 ${
               notification.type === 'success' ? 'alert-success' : 'alert-info'
@@ -164,7 +162,6 @@ const Integrations = () => {
             </div>
           )}
 
-          {/* Integrations Grid */}
           <div className="row g-4">
             {integrations.map((integration) => (
               <div key={integration.id} className="col-md-6">
@@ -179,7 +176,6 @@ const Integrations = () => {
                   }}
                 >
                   <div className="card-body">
-                    {/* Integration Header */}
                     <div className="d-flex align-items-start justify-content-between mb-3">
                       <div className="d-flex align-items-center gap-3">
                         <div className="bg-primary bg-gradient rounded-2 d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
@@ -201,12 +197,10 @@ const Integrations = () => {
                       {getStatusBadge(integration.status)}
                     </div>
 
-                    {/* Description */}
                     <p className="text-muted small mb-3">
                       {integration.description}
                     </p>
 
-                    {/* Last Sync */}
                     {integration.status === 'connected' && integration.lastSync && (
                       <div className="d-flex align-items-center gap-2 text-muted small mb-3">
                         <Icon icon="heroicons:clock" className="fs-5" />
@@ -214,7 +208,6 @@ const Integrations = () => {
                       </div>
                     )}
 
-                    {/* Settings Panel */}
                     {showSettings === integration.id && integration.settings && (
                       <div className="mb-3 p-3 bg-light rounded border">
                         <h5 className="small fw-medium text-dark mb-2">Integration Settings</h5>
@@ -232,7 +225,6 @@ const Integrations = () => {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
                     <div className="d-flex gap-2">
                       {integration.status === 'connected' ? (
                         <>
@@ -266,7 +258,6 @@ const Integrations = () => {
             ))}
           </div>
 
-          {/* Info Card */}
           <div className="mt-4">
             <div className="card bg-primary bg-opacity-10 border border-primary border-opacity-20">
               <div className="card-body">

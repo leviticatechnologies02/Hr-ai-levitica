@@ -24,6 +24,7 @@ import {
 } from 'react-icons/fi';
 import { BASE_URL } from "../../../shared/constants/api.config";
 import Modal from '../../../shared/components/Modal';
+import StatCard from '../../../shared/components/StatCard';
 
 const OfferTracking = () => {
   const [offers, setOffers] = useState([]);
@@ -60,7 +61,7 @@ const OfferTracking = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         showAlert('Authentication required. Please log in again.', 'error');
         setLoading(false);
@@ -70,9 +71,9 @@ const OfferTracking = () => {
       const params = new URLSearchParams();
       if (filters.status) params.append('status', filters.status);
       if (filters.position) params.append('position', filters.position);
-      
+
       const url = `${BASE_URL}/api/offers/offer-tracking?${params.toString()}`;
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -80,7 +81,7 @@ const OfferTracking = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setOffers(data);
@@ -98,7 +99,7 @@ const OfferTracking = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) return;
 
       const response = await fetch(`${BASE_URL}/api/offers/offer-tracking/stats`, {
@@ -108,7 +109,7 @@ const OfferTracking = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -130,7 +131,7 @@ const OfferTracking = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setTemplates(data);
@@ -152,7 +153,7 @@ const OfferTracking = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setCandidates(data);
@@ -176,7 +177,7 @@ const OfferTracking = () => {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     if (field === 'template_id' && value) {
       const template = templates.find(t => t.id === parseInt(value));
       if (template) {
@@ -265,7 +266,7 @@ const OfferTracking = () => {
   const saveOffer = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         showAlert('Authentication required. Please log in again.', 'error');
         return;
@@ -274,9 +275,9 @@ const OfferTracking = () => {
       const url = editingOffer
         ? `${BASE_URL}/api/offers/offer-tracking/${editingOffer.id}`
         : `${BASE_URL}/api/offers/offer-tracking/`;
-      
+
       const method = editingOffer ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -308,12 +309,12 @@ const OfferTracking = () => {
   const updateStatus = async (offerId, status) => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         showAlert('Authentication required. Please log in again.', 'error');
         return;
       }
-      
+
       const response = await fetch(`${BASE_URL}/api/offers/offer-tracking/${offerId}/status`, {
         method: 'PATCH',
         headers: {
@@ -341,12 +342,12 @@ const OfferTracking = () => {
 
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         showAlert('Authentication required. Please log in again.', 'error');
         return;
       }
-      
+
       const response = await fetch(`${BASE_URL}/api/offers/offer-tracking/${id}`, {
         method: 'DELETE',
         headers: {
@@ -393,9 +394,8 @@ const OfferTracking = () => {
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Alert */}
         {alert && (
-          <div className={`flex items-center justify-between gap-3 p-3 rounded-lg ${
-            alert.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'
-          }`}>
+          <div className={`flex items-center justify-between gap-3 p-3 rounded-lg ${alert.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'
+            }`}>
             <div className="flex items-center gap-2">
               {alert.type === 'success' ? <FiCheckCircle className="h-5 w-5" /> : <FiAlertCircle className="h-5 w-5" />}
               <span className="text-sm">{alert.message}</span>
@@ -437,57 +437,34 @@ const OfferTracking = () => {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Total Offers</p>
-                  <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.total}</p>
-                  <p className="text-xs text-gray-400 mt-1">All statuses</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FiBriefcase className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Sent</p>
-                  <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.sent}</p>
-                  <p className="text-xs text-gray-400 mt-1">Offers sent to candidates</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                  <FiSend className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Accepted</p>
-                  <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.accepted}</p>
-                  <p className="text-xs text-gray-400 mt-1">Candidates who accepted</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <FiCheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Acceptance Rate</p>
-                  <p className="text-xl sm:text-2xl font-bold text-midnight_text mt-1">{stats.acceptance_rate}%</p>
-                  <p className="text-xs text-gray-400 mt-1">Accepted / Sent</p>
-                </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                  <FiTrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-                </div>
-              </div>
-            </div>
+            <StatCard
+              title="Total Offers"
+              value={stats.total}
+              subtitle="All status"
+              icon="lucide:briefcase"
+              color="blue"
+            />
+            <StatCard
+              title="Sent"
+              value={stats.sent}
+              subtitle="Offers sent to candidates"
+              icon="lucide:send"
+              color="purple"
+            />
+            <StatCard
+              title="Accepted"
+              value={stats.accepted}
+              subtitle="Candidates who accepted"
+              icon="lucide:check-circle"
+              color="green"
+            />
+            <StatCard
+              title="Acceptance Rate"
+              value={`${stats.acceptance_rate}%`}
+              subtitle="Accepted / Sent"
+              icon="lucide:trending-up"
+              color="yellow"
+            />
           </div>
         )}
 

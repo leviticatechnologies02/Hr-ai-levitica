@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { HiOutlineRocketLaunch } from 'react-icons/hi2';
@@ -72,7 +71,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
   const notificationRef = useRef(null);
   const profileRef = useRef(null);
 
-  // Load company logo from localStorage, fallback to default
   const [companyLogo, setCompanyLogo] = useState(() => {
     const savedLogo = localStorage.getItem('companyLogo');
     if (savedLogo) {
@@ -86,7 +84,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
     return 'assets/images/asset/NewLogo.png';
   });
 
-  // Listen for logo updates from CompanySettings
   useEffect(() => {
     const handleLogoUpdate = () => {
       const savedLogo = localStorage.getItem('companyLogo');
@@ -115,7 +112,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
     };
   }, []);
 
-  // Handle click outside for dropdowns
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (notificationRef.current && !notificationRef.current.contains(e.target)) {
@@ -139,7 +135,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
     }
   };
 
-  // Sidebar items configuration
   const sidebarItems = [
     
     {
@@ -378,7 +373,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
 
   const topbarRightContent = (
     <div className="flex items-center gap-3.5">
-      {/* Notifications Dropdown */}
       <div className="relative" ref={notificationRef}>
         <button
           onClick={() => setNotificationsOpen(!notificationsOpen)}
@@ -425,7 +419,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
         )}
       </div>
 
-      {/* Recruiter Profile Dropdown */}
       <div className="relative" ref={profileRef}>
         <button
           onClick={() => setProfileOpen(!profileOpen)}
@@ -447,7 +440,7 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
             </div>
             <div className="py-1">
               <Link
-                className="px-4 py-2 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-2.5 transition-colors"
+                className="px-4 py-2 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-2.5 transition-colors no-underline"
                 to="/view-profile"
                 onClick={() => setProfileOpen(false)}
               >

@@ -65,7 +65,6 @@ const Billing = () => {
     <div className="container-fluid">
       <div className="row">
         <div className="col-12">
-          {/* Header */}
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
             <h6 className="fw-semibold mb-0">Billing</h6>
             <ul className="d-flex align-items-center gap-2">
@@ -82,9 +81,7 @@ const Billing = () => {
             </ul>
           </div>
 
-          {/* Plan Info Card & Actions */}
           <div className="row g-4 mb-4">
-            {/* Current Plan Card */}
             <div className="col-lg-8">
               <div 
                 className="card shadow-sm border-0 h-100"
@@ -153,7 +150,6 @@ const Billing = () => {
                 </div>
               </div>
             </div>
-            {/* Action Buttons */}
             <div className="col-lg-2" style={{marginTop: "100px", marginLeft: "95px"}}>
               <div className="d-grid gap-3">
                 <button
@@ -178,7 +174,6 @@ const Billing = () => {
             </div>
           </div>
 
-          {/* Plan Comparison Modal */}
           {showPlanModal && (
             <div className="card shadow-sm border-0 mb-4">
               <div className="card-body">
@@ -218,7 +213,6 @@ const Billing = () => {
             </div>
           )}
 
-          {/* Invoices Table */}
           <div className="card shadow-sm border-0 mb-4">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-4">
@@ -275,7 +269,6 @@ const Billing = () => {
             </div>
           </div>
 
-          {/* Payment Method */}
           <div className="card shadow-sm border-0">
             <div className="card-body">
               <h2 className="h5 fw-semibold text-dark mb-4">Payment Method</h2>

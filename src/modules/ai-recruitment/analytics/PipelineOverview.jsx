@@ -312,7 +312,6 @@ const PipelineOverview = () => {
   return (
     <div>
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -330,7 +329,6 @@ const PipelineOverview = () => {
           </button>
         </div>
 
-        {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <StatCard 
             title="Total Candidates"
@@ -362,7 +360,6 @@ const PipelineOverview = () => {
           />
         </div>
 
-        {/* Search and Filter */}
         <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
@@ -391,14 +388,12 @@ const PipelineOverview = () => {
           </div>
         </div>
 
-        {/* Pipeline Stages Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {['Applied', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'].map((stage) => (
             <StageCard key={stage} stage={stage} candidates={stages[stage]} />
           ))}
         </div>
 
-        {/* Pipeline Flow */}
         <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4 sm:p-6">
           <h5 className="font-semibold text-midnight_text mb-4">Pipeline Flow</h5>
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -425,7 +420,6 @@ const PipelineOverview = () => {
           </div>
         </div>
 
-        {/* Candidate List for Selected Stage */}
         {selectedStage !== 'all' && (
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4 sm:p-6">
             <h5 className="font-semibold text-midnight_text mb-4">

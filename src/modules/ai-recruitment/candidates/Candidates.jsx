@@ -39,14 +39,12 @@ const CandidatesPage = () => {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
 
-  // Backend integration
   const [candidates, setCandidates] = useState([]);
   const [jobsData, setJobsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch jobs from backend
   const fetchJobs = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -78,7 +76,6 @@ const CandidatesPage = () => {
     }
   };
 
-  // AI Screening state
   const [aiScreening, setAiScreening] = useState({
     isProcessing: false,
     currentIndex: 0,
@@ -465,7 +462,6 @@ const CandidatesPage = () => {
   return (
     <div className="">
       <div className="max-w-7xl mx-auto space-y-4">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -518,7 +514,6 @@ const CandidatesPage = () => {
           </div>
         </div>
 
-        {/* Error Alert */}
         {error && (
           <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg p-4 text-rose-700">
             <FiAlertCircle className="h-5 w-5 text-rose-500 flex-shrink-0" />
@@ -526,7 +521,6 @@ const CandidatesPage = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && candidates.length === 0 && !error && (
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-8 md:p-12 text-center">
             <FiUsers className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -542,10 +536,8 @@ const CandidatesPage = () => {
           </div>
         )}
 
-        {/* Main Content */}
         {!loading && candidates.length > 0 && (
           <>
-            {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <StatCard 
                 title="Total Candidates"
@@ -577,7 +569,6 @@ const CandidatesPage = () => {
               />
             </div>
 
-            {/* Filters */}
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                 <div className="relative">
@@ -646,7 +637,6 @@ const CandidatesPage = () => {
               </div>
             </div>
 
-            {/* Bulk Actions */}
             {selectedCandidates.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <div className="flex items-center gap-3">
@@ -676,7 +666,6 @@ const CandidatesPage = () => {
               </div>
             )}
 
-            {/* Mobile View (Card Layout) */}
             <div className="block md:hidden space-y-3">
               {currentCandidates.map(candidate => (
                 <div key={candidate.id} className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
@@ -769,7 +758,6 @@ const CandidatesPage = () => {
               ))}
             </div>
 
-            {/* Desktop View (Table Layout) */}
             <div className="hidden md:block bg-white rounded-lg border border-gray-100 shadow-deatail_shadow overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -871,7 +859,6 @@ const CandidatesPage = () => {
               </div>
             </div>
 
-            {/* Pagination - Responsive */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-gray-50/30 rounded-lg">
               <div className="text-xs text-gray-500 text-center sm:text-left">
                 Showing {startIndex + 1} to {Math.min(endIndex, filteredCandidates.length)} of {filteredCandidates.length} candidates
@@ -934,7 +921,6 @@ const CandidatesPage = () => {
           </>
         )}
 
-        {/* AI Screening Modal */}
         {aiScreening.showModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={closeAIScreeningModal}>
             <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-deatail_shadow" onClick={e => e.stopPropagation()}>
@@ -1056,7 +1042,6 @@ const CandidatesPage = () => {
           </div>
         )}
 
-        {/* Candidate Profile Modal */}
         {showCandidateModal && selectedCandidate && (
           <CandidateProfilePage
             candidate={selectedCandidate}

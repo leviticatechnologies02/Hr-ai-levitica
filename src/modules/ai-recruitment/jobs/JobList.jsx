@@ -265,8 +265,8 @@ const JobsListPage = () => {
   }
 
   return (
-    <div>
-      <div className="max-w-7xl mx-auto space-y-4">
+    <div className="min-h-screen w-full">
+      <div className="w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -316,7 +316,7 @@ const JobsListPage = () => {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <StatCard
-                title="Totat Jobs"
+                title="Total Jobs"
                 value={kpis.totalJobs}
                 subtitle="All created jobs"
                 icon="lucide:briefcase"
@@ -397,170 +397,88 @@ const JobsListPage = () => {
               </div>
             )}
 
-            {/* Mobile View (Card Layout) */}
-            <div className="block md:hidden space-y-3">
-              {currentJobs.map(job => (
-                <div key={job.id} className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3 flex-1">
+            {/* Unified Responsive Job List */}
+            <div className="w-full bg-white rounded-lg border border-gray-100 shadow-deatail_shadow overflow-hidden">
+              {/* Desktop Header */}
+              <div className="hidden lg:grid lg:grid-cols-12 bg-gray-50 border-b border-gray-100 px-6 py-3">
+                <div className="col-span-4 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedJobs.length === currentJobs.length && currentJobs.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Job Title</span>
+                </div>
+                <div className="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Recruiter</div>
+                <div className="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Posted On</div>
+                <div className="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</div>
+                <div className="col-span-1 text-xs font-semibold text-gray-500 uppercase tracking-wider lg:text-center">Applicants</div>
+                <div className="col-span-1 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</div>
+              </div>
+
+              {/* Job List */}
+              <div className="divide-y divide-gray-100 bg-white">
+                {currentJobs.map(job => (
+                  <div key={job.id} className="flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-0 px-4 py-4 lg:px-6 hover:bg-gray-50 transition-colors items-start lg:items-center">
+
+                    {/* Checkbox & Job Title */}
+                    <div className="col-span-4 flex items-start gap-3 w-full">
                       <input
                         type="checkbox"
                         checked={selectedJobs.includes(job.id)}
                         onChange={() => handleSelectJob(job.id)}
-                        className="rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                        className="rounded border-gray-300 text-primary focus:ring-primary mt-1 lg:mt-0"
                       />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-midnight_text">{job.title}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">{job.department}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-midnight_text truncate">{job.title}</div>
+                        <div className="text-xs text-gray-500 truncate">{job.department}</div>
                       </div>
                     </div>
-                    <div className="relative">
-                      <button
-                        onClick={() => setMobileMenuOpen(mobileMenuOpen === job.id ? null : job.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600"
-                      >
-                        <FiMoreVertical className="h-5 w-5" />
-                      </button>
-                      {mobileMenuOpen === job.id && (
-                        <div className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg border border-gray-100 z-10">
-                          <button
-                            onClick={() => {
-                              handleView(job.id);
-                              setMobileMenuOpen(null);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                          >
-                            <FiEye className="h-4 w-4" /> View
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleEdit(job.id);
-                              setMobileMenuOpen(null);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                          >
-                            <FiEdit2 className="h-4 w-4" /> Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleDelete(job.id);
-                              setMobileMenuOpen(null);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-                          >
-                            <FiTrash2 className="h-4 w-4" /> Delete
-                          </button>
-                        </div>
-                      )}
+
+                    {/* Recruiter */}
+                    <div className="col-span-2 flex lg:block justify-between items-center w-full lg:w-auto mt-2 lg:mt-0">
+                      <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Recruiter</span>
+                      <div className="text-sm text-gray-600 truncate">{job.recruiter}</div>
                     </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Recruiter:</span>
-                      <span className="text-gray-700">{job.recruiter}</span>
+
+                    {/* Posted On */}
+                    <div className="col-span-2 flex lg:block justify-between items-center w-full lg:w-auto">
+                      <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Posted</span>
+                      <div className="text-sm text-gray-600 truncate">{job.postedOn}</div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Posted:</span>
-                      <span className="text-gray-700">{job.postedOn}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Status:</span>
+
+                    {/* Status */}
+                    <div className="col-span-2 flex lg:block justify-between items-center w-full lg:w-auto">
+                      <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Status</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(job.status)}`}>
                         {job.status}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Applicants:</span>
-                      <span className="text-primary font-medium">{job.applicants}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            {/* Desktop View (Table Layout) */}
-            <div className="hidden md:block bg-white rounded-lg border border-gray-100 shadow-deatail_shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                      <th className="w-10 px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedJobs.length === currentJobs.length && currentJobs.length > 0}
-                          onChange={handleSelectAll}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                      </th>
-                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Job Title</th>
-                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Department</th>
-                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Recruiter</th>
-                      <th className="text-left text-sm font-semibold text-gray-600 px-4 py-3">Posted On</th>
-                      <th className="text-center text-sm font-semibold text-gray-600 px-4 py-3">Status</th>
-                      <th className="text-center text-sm font-semibold text-gray-600 px-4 py-3">Applicants</th>
-                      <th className="text-center text-sm font-semibold text-gray-600 px-4 py-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {currentJobs.map(job => (
-                      <tr key={job.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedJobs.includes(job.id)}
-                            onChange={() => handleSelectJob(job.id)}
-                            className="rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm font-medium text-midnight_text">{job.title}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-gray-600">{job.department}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-gray-600">{job.recruiter}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-gray-600">{job.postedOn}</span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(job.status)}`}>
-                            {job.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-sm font-medium text-primary">{job.applicants}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => handleView(job.id)}
-                              className="p-1.5 text-gray-500 hover:text-primary rounded-lg hover:bg-primary/10 transition-all"
-                              title="View"
-                            >
-                              <FiEye className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleEdit(job.id)}
-                              className="p-1.5 text-gray-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-all"
-                              title="Edit"
-                            >
-                              <FiEdit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(job.id)}
-                              className="p-1.5 text-gray-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all"
-                              title="Delete"
-                            >
-                              <FiTrash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    {/* Applicants */}
+                    <div className="col-span-1 flex lg:block justify-between items-center w-full lg:w-auto">
+                      <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Applicants</span>
+                      <div className="text-sm font-medium text-primary lg:text-center">{job.applicants}</div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="col-span-1 flex lg:justify-end w-full lg:w-auto mt-3 lg:mt-0 pt-3 lg:pt-0 border-t border-gray-100 lg:border-t-0">
+                      <div className="flex items-center justify-end w-full gap-1.5">
+                        <button onClick={() => handleView(job.id)} className="p-1.5 text-gray-500 hover:text-primary rounded-lg hover:bg-primary/10 transition-all" title="View">
+                          <FiEye className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleEdit(job.id)} className="p-1.5 text-gray-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-all" title="Edit">
+                          <FiEdit2 className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDelete(job.id)} className="p-1.5 text-gray-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all" title="Delete">
+                          <FiTrash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -577,7 +495,7 @@ const JobsListPage = () => {
                 >
                   <FiChevronLeft className="h-4 w-4" />
                 </button>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap justify-center">
                   {Array.from({ length: Math.min(3, totalPages) }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}

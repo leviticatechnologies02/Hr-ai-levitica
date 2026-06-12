@@ -18,7 +18,6 @@ const PipelineView = () => {
   const [editStageName, setEditStageName] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
 
-  // Stage configurations
   const defaultStages = [
     { id: 'applied', name: 'Applied', color: 'bg-primary text-white', bgColor: 'bg-primary-subtle' },
     { id: 'screening', name: 'Screening', color: 'bg-info text-white', bgColor: 'bg-info-subtle' },
@@ -27,7 +26,6 @@ const PipelineView = () => {
     { id: 'hired', name: 'Hired', color: 'bg-danger text-white', bgColor: 'bg-danger-subtle' }
   ];
 
-  // Fetch data from backend
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -50,7 +48,6 @@ const PipelineView = () => {
       console.log('📥 Fetched applications data:', applicationsData);
       console.log('📥 Total applications:', applicationsData?.length || 0);
       
-      // Log all candidate stages for debugging
       if (Array.isArray(applicationsData)) {
         const stagesFound = applicationsData.map(app => ({
           name: app.candidate_name,
@@ -60,7 +57,6 @@ const PipelineView = () => {
         }));
         console.log('📊 All candidate stages in fetched data:', stagesFound);
         
-        // Specifically log "Offered" candidates
         const offeredCandidates = applicationsData.filter(app => {
           const stage = (app.candidate_stage || '').toLowerCase().trim();
           return stage === 'offered' || stage === 'offer';
@@ -71,7 +67,6 @@ const PipelineView = () => {
       setApplications(Array.isArray(applicationsData) ? applicationsData : []);
       setJobs(Array.isArray(jobsData) ? jobsData : []);
       
-      // Organize applications by stage
       organizeDataByStage(applicationsData || []);
     } catch (error) {
       console.error('Error fetching pipeline data:', error);
@@ -83,7 +78,6 @@ const PipelineView = () => {
     }
   };
 
-  // Organize applications into stages
   const organizeDataByStage = (applicationsData) => {
     console.log('📊 Organizing applications by stage. Total applications:', applicationsData.length);
     
@@ -93,12 +87,10 @@ const PipelineView = () => {
           const status = (app.status?.toLowerCase() || '').trim();
           const candidateStage = (app.candidate_stage?.toLowerCase() || '').trim();
           
-          // Map status/stage to our stage IDs (case-insensitive matching)
           if (stage.id === 'applied') return status === 'applied' || candidateStage === 'applied';
           if (stage.id === 'screening') return candidateStage === 'screening';
           if (stage.id === 'interview') return candidateStage === 'interview' || candidateStage === 'interview stage';
           if (stage.id === 'offer') {
-            // Match "offer" or "offered" (case-insensitive, with trimming)
             const isOffer = candidateStage === 'offer' || candidateStage === 'offered';
             if (isOffer) {
               console.log(`✅ Found candidate in Offer stage:`, {
@@ -137,14 +129,12 @@ const PipelineView = () => {
 
     setStages(stagesWithCandidates);
     
-    // Log summary
     console.log('📊 Pipeline stages organized:');
     stagesWithCandidates.forEach(stage => {
       console.log(`   ${stage.name}: ${stage.candidates.length} candidates`);
     });
   };
 
-  // Get initials from name
   const getInitials = (name) => {
     if (!name) return 'UN';
     return name
@@ -155,7 +145,6 @@ const PipelineView = () => {
       .substring(0, 2);
   };
 
-  // Get job title by ID
   const getJobTitle = (jobId) => {
     const job = jobs.find(j => j.id === jobId);
     return job?.title || 'Unknown Position';
@@ -183,7 +172,6 @@ const PipelineView = () => {
 
   const handleRejectCandidate = () => {
     if (selectedCandidate && window.confirm(`Are you sure you want to reject ${selectedCandidate.name}?`)) {
-      // Move candidate to rejected stage or remove from pipeline
       setStages(prevStages => {
         return prevStages.map(stage => ({
           ...stage,
@@ -255,7 +243,6 @@ const PipelineView = () => {
 
     const candidate = draggedCard.candidate;
     
-    // Optimistically update UI
     setStages(prevStages => {
       const newStages = prevStages.map(stage => {
         if (stage.id === draggedCard.sourceStageId) {
@@ -275,7 +262,6 @@ const PipelineView = () => {
       return newStages;
     });
 
-    // Update backend
     try {
       const updateData = {
         status: targetStageId === 'hired' ? 'hired' : (targetStageId === 'applied' ? 'applied' : 'pipeline')
@@ -290,12 +276,10 @@ const PipelineView = () => {
         body: JSON.stringify(updateData)
       });
 
-      // Refresh data to ensure consistency
       fetchData();
     } catch (error) {
       console.error('Error updating candidate stage:', error);
       alert('Failed to update candidate stage. Please try again.');
-      // Revert optimistic update
       fetchData();
     }
 
@@ -348,7 +332,6 @@ const PipelineView = () => {
         </div>
       ) : (
         <>
-      {/* Header */}
       <div className="mb-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
@@ -367,7 +350,6 @@ const PipelineView = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4">
           <StatCard 
             title="Total Candidates"
@@ -399,7 +381,6 @@ const PipelineView = () => {
           />
         </div>
 
-        {/* Search and Filter Bar */}
         <div className="d-flex gap-3 mb-4">
           <div className="flex-grow-1">
             <div className="input-group">
@@ -429,7 +410,6 @@ const PipelineView = () => {
         </div>
       </div>
 
-      {/* Kanban Board */}
       <div className="d-flex gap-3 overflow-auto pb-3">
         {filteredStages.map(stage => (
           <div
@@ -439,7 +419,6 @@ const PipelineView = () => {
             className={`flex-shrink-0 border rounded p-3 ${stage.bgColor}`}
             style={{width: '320px'}}
           >
-            {/* Stage Header */}
             <div className="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-white bg-opacity-75">
               <div className="d-flex align-items-center gap-2">
                 <span className={`badge ${stage.color} fs-6 px-3 py-2 fw-bold`}>
@@ -482,7 +461,6 @@ const PipelineView = () => {
               </div>
             </div>
 
-            {/* Candidate Cards */}
             <div className="d-flex flex-column gap-2" style={{minHeight: '200px'}}>
               {stage.candidates.map(candidate => (
                 <div
@@ -523,7 +501,6 @@ const PipelineView = () => {
           </div>
         ))}
 
-        {/* Add Stage Column */}
         <div className="flex-shrink-0" style={{width: '320px'}}>
           <button
             onClick={() => setShowAddStage(true)}
@@ -536,12 +513,10 @@ const PipelineView = () => {
         </div>
       </div>
 
-      {/* Candidate Profile Modal */}
       {selectedCandidate && (
         <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050}} tabIndex="-1">
           <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content">
-              {/* Modal Header */}
               <div className="modal-header">
                 <div className="d-flex align-items-center gap-3">
                   <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px', fontSize: '24px', fontWeight: 'bold'}}>
@@ -559,9 +534,7 @@ const PipelineView = () => {
                 ></button>
               </div>
 
-              {/* Modal Content */}
               <div className="modal-body">
-                {/* Contact Information */}
                 <div className="mb-4">
                   <h6 className="fw-semibold mb-3">Contact Information</h6>
                   <div className="card bg-light">
@@ -578,7 +551,6 @@ const PipelineView = () => {
                   </div>
                 </div>
 
-                {/* Application Details */}
                 <div className="mb-4">
                   <h6 className="fw-semibold mb-3">Application Details</h6>
                   <div className="card bg-light">
@@ -595,7 +567,6 @@ const PipelineView = () => {
                   </div>
                 </div>
 
-                {/* Skills */}
                 {selectedCandidate.skills && (
                   <div className="mb-4">
                     <h6 className="fw-semibold mb-3">Skills</h6>
@@ -609,7 +580,6 @@ const PipelineView = () => {
                   </div>
                 )}
 
-                {/* Resume */}
                 {selectedCandidate.resumeUrl && (
                   <div className="mb-4">
                     <h6 className="fw-semibold mb-3">Resume</h6>
@@ -627,7 +597,6 @@ const PipelineView = () => {
                   </div>
                 )}
 
-                {/* Notes */}
                 <div className="mb-4">
                   <h6 className="fw-semibold mb-3">Interview Notes</h6>
                   <textarea
@@ -638,7 +607,6 @@ const PipelineView = () => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="modal-footer">
                 <button 
                   className="btn btn-success"
@@ -664,7 +632,6 @@ const PipelineView = () => {
         </div>
       )}
 
-      {/* Edit Stage Modal */}
       {editingStageId && (
         <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050}} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered">
@@ -710,7 +677,6 @@ const PipelineView = () => {
         </div>
       )}
 
-      {/* Add Stage Modal */}
       {showAddStage && (
         <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050}} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered">
