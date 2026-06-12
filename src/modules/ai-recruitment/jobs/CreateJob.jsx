@@ -592,7 +592,6 @@ const CreateJob = () => {
         </form>
       </div>
 
-      {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowPreview(false)}>
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-deatail_shadow" onClick={e => e.stopPropagation()}>

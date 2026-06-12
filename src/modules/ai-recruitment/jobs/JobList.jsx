@@ -48,13 +48,12 @@ const JobsListPage = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
 
-  // Backend integration state
   const [jobsData, setJobsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch jobs from backend
+
   const fetchJobs = async () => {
     const token = localStorage.getItem('token');
 
@@ -117,7 +116,6 @@ const JobsListPage = () => {
     fetchJobs();
   }, []);
 
-  // KPI data
   const kpis = {
     totalJobs: jobsData.length,
     openJobs: jobsData.filter(j => j.status === 'Open' || j.status === 'Active').length,
@@ -132,7 +130,6 @@ const JobsListPage = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Pagination
   const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
   const indexOfLastJob = currentPage * itemsPerPage;
   const indexOfFirstJob = indexOfLastJob - itemsPerPage;
@@ -267,7 +264,6 @@ const JobsListPage = () => {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-midnight_text flex items-center gap-2">
@@ -286,7 +282,6 @@ const JobsListPage = () => {
           </button>
         </div>
 
-        {/* Error Alert */}
         {error && (
           <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg p-4 text-rose-700">
             <FiAlertCircle className="h-5 w-5 text-rose-500 flex-shrink-0" />
@@ -294,7 +289,6 @@ const JobsListPage = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && jobsData.length === 0 && !error && (
           <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-8 md:p-12 text-center">
             <FiBriefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -310,10 +304,8 @@ const JobsListPage = () => {
           </div>
         )}
 
-        {/* Main Content */}
         {!loading && jobsData.length > 0 && (
           <>
-            {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <StatCard
                 title="Total Jobs"
@@ -345,7 +337,6 @@ const JobsListPage = () => {
               />
             </div>
 
-            {/* Filters */}
             <div className="bg-white rounded-lg border border-gray-100 shadow-deatail_shadow p-4">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
@@ -380,7 +371,6 @@ const JobsListPage = () => {
               </div>
             </div>
 
-            {/* Bulk Actions */}
             {selectedJobs.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <div className="flex items-center gap-3">
@@ -397,9 +387,7 @@ const JobsListPage = () => {
               </div>
             )}
 
-            {/* Unified Responsive Job List */}
             <div className="w-full bg-white rounded-lg border border-gray-100 shadow-deatail_shadow overflow-hidden">
-              {/* Desktop Header */}
               <div className="hidden lg:grid lg:grid-cols-12 bg-gray-50 border-b border-gray-100 px-6 py-3">
                 <div className="col-span-4 flex items-center gap-3">
                   <input
@@ -417,12 +405,10 @@ const JobsListPage = () => {
                 <div className="col-span-1 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</div>
               </div>
 
-              {/* Job List */}
               <div className="divide-y divide-gray-100 bg-white">
                 {currentJobs.map(job => (
                   <div key={job.id} className="flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-0 px-4 py-4 lg:px-6 hover:bg-gray-50 transition-colors items-start lg:items-center">
 
-                    {/* Checkbox & Job Title */}
                     <div className="col-span-4 flex items-start gap-3 w-full">
                       <input
                         type="checkbox"
@@ -436,33 +422,24 @@ const JobsListPage = () => {
                       </div>
                     </div>
 
-                    {/* Recruiter */}
                     <div className="col-span-2 flex lg:block justify-between items-center w-full lg:w-auto mt-2 lg:mt-0">
                       <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Recruiter</span>
                       <div className="text-sm text-gray-600 truncate">{job.recruiter}</div>
                     </div>
-
-                    {/* Posted On */}
                     <div className="col-span-2 flex lg:block justify-between items-center w-full lg:w-auto">
                       <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Posted</span>
                       <div className="text-sm text-gray-600 truncate">{job.postedOn}</div>
                     </div>
-
-                    {/* Status */}
                     <div className="col-span-2 flex lg:block justify-between items-center w-full lg:w-auto">
                       <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Status</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(job.status)}`}>
                         {job.status}
                       </span>
                     </div>
-
-                    {/* Applicants */}
                     <div className="col-span-1 flex lg:block justify-between items-center w-full lg:w-auto">
                       <span className="lg:hidden text-xs font-medium text-gray-500 uppercase">Applicants</span>
                       <div className="text-sm font-medium text-primary lg:text-center">{job.applicants}</div>
                     </div>
-
-                    {/* Actions */}
                     <div className="col-span-1 flex lg:justify-end w-full lg:w-auto mt-3 lg:mt-0 pt-3 lg:pt-0 border-t border-gray-100 lg:border-t-0">
                       <div className="flex items-center justify-end w-full gap-1.5">
                         <button onClick={() => handleView(job.id)} className="p-1.5 text-gray-500 hover:text-primary rounded-lg hover:bg-primary/10 transition-all" title="View">
@@ -476,13 +453,10 @@ const JobsListPage = () => {
                         </button>
                       </div>
                     </div>
-
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-gray-50/30 rounded-lg">
               <div className="text-xs text-gray-500 text-center sm:text-left">
                 Showing {indexOfFirstJob + 1} to {Math.min(indexOfLastJob, filteredJobs.length)} of {filteredJobs.length} jobs
@@ -545,7 +519,6 @@ const JobsListPage = () => {
           </>
         )}
 
-        {/* Delete Confirmation Modal - Using predefined Modal component */}
         <Modal
           isOpen={showDeleteModal}
           onClose={cancelDelete}
@@ -577,7 +550,6 @@ const JobsListPage = () => {
           </div>
         </Modal>
 
-        {/* Job Details Modal - Using predefined Modal component */}
         <Modal
           isOpen={showJobDetailModal}
           onClose={() => setShowJobDetailModal(false)}
@@ -586,7 +558,6 @@ const JobsListPage = () => {
         >
           {selectedJob && (
             <div className="space-y-4">
-              {/* Status Badges */}
               <div className="flex flex-wrap gap-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(selectedJob.status)}`}>
                   {selectedJob.status || 'Status not set'}
@@ -601,7 +572,6 @@ const JobsListPage = () => {
                 )}
               </div>
 
-              {/* Meta Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <FiMapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -619,7 +589,6 @@ const JobsListPage = () => {
                 )}
               </div>
 
-              {/* Job Description */}
               <div>
                 <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Job Summary</h4>
                 <p className="text-sm text-gray-600 leading-relaxed break-words">
@@ -627,7 +596,6 @@ const JobsListPage = () => {
                 </p>
               </div>
 
-              {/* Skills */}
               {selectedJob.fullData?.skills && selectedJob.fullData.skills.length > 0 && (
                 <div>
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Skills</h4>

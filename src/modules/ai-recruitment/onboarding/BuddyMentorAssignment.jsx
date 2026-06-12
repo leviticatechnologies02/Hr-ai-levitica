@@ -1,4 +1,3 @@
-// src/components/HRMS/Onboarding%26Joining/BuddyMentorAssignment.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from '@iconify/react/dist/iconify.js';
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -7,7 +6,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const BuddyMentorAssignment = () => {
-  // ==================== CONSTANTS ====================
   const menuItems = [
     { title: "Dashboard", link: "/recruiter/dashboard", active: false },
     { title: "Job Openings", link: "/recruiter/jobs", active: false },
@@ -60,7 +58,6 @@ const BuddyMentorAssignment = () => {
     "other",
   ];
 
-  // ==================== INITIAL DATA ====================
   const initialBuddyPrograms = [
     {
       id: 1,
@@ -481,13 +478,11 @@ const BuddyMentorAssignment = () => {
     },
   ];
 
-  // ==================== STATE MANAGEMENT ====================
   const [buddyPrograms, setBuddyPrograms] = useState(initialBuddyPrograms);
   const [buddies, setBuddies] = useState([]);
   const [newJoiners, setNewJoiners] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal states
   const [showCreateProgram, setShowCreateProgram] = useState(false);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [showBuddyProfile, setShowBuddyProfile] = useState(false);
@@ -500,14 +495,13 @@ const BuddyMentorAssignment = () => {
   const [showEditProgramModal, setShowEditProgramModal] = useState(false);
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
 
-  // Selected items
+
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [selectedBuddy, setSelectedBuddy] = useState(null);
   const [selectedNewJoiner, setSelectedNewJoiner] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedFeedback, setSelectedFeedback] = useState(null);
 
-  // Form states
   const [programForm, setProgramForm] = useState({
     name: "",
     description: "",
@@ -574,7 +568,6 @@ const BuddyMentorAssignment = () => {
     assignments: [],
   });
 
-  // Filters and search
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [filterDepartment, setFilterDepartment] = useState("all");
@@ -582,10 +575,8 @@ const BuddyMentorAssignment = () => {
   const [viewMode, setViewMode] = useState("programs");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-  // ==================== INITIALIZE DATA ====================
   useEffect(() => {
     const initializeData = () => {
-      // Extract buddies and new joiners from programs
       const allBuddies = [];
       const allNewJoiners = [];
 
@@ -600,7 +591,6 @@ const BuddyMentorAssignment = () => {
         });
       });
 
-      // Add more sample buddies
       const additionalBuddies = [
         {
           id: 103,
@@ -655,7 +645,6 @@ const BuddyMentorAssignment = () => {
         },
       ];
 
-      // Add unassigned new joiners
       const unassignedNewJoiners = [
         {
           id: 203,
@@ -704,7 +693,6 @@ const BuddyMentorAssignment = () => {
       setBuddies([...allBuddies, ...additionalBuddies]);
       setNewJoiners([...allNewJoiners, ...unassignedNewJoiners]);
 
-      // Set default selected program
       if (buddyPrograms.length > 0 && !selectedProgram) {
         setSelectedProgram(buddyPrograms[0]);
       }
@@ -715,7 +703,6 @@ const BuddyMentorAssignment = () => {
     initializeData();
   }, []);
 
-  // ==================== HELPER FUNCTIONS ====================
   const getStatusBadge = (status) => {
     const badges = {
       active: <span className="badge bg-success">Active</span>,
@@ -778,26 +765,26 @@ const BuddyMentorAssignment = () => {
       let ruleMatched = false;
 
       switch (rule.id) {
-        case 1: // Minimum tenure
+        case 1:
           const tenureYears = parseInt(buddy.tenure);
           ruleMatched = tenureYears >= 1;
           break;
-        case 2: // Same department
+        case 2:
           ruleMatched = buddy.department === newJoiner.department;
           break;
-        case 3: // Weekly check-ins
-          ruleMatched = true; // Assume buddy will follow
+        case 3:
+          ruleMatched = true;
           break;
-        case 4: // Feedback submission
-          ruleMatched = true; // Assume buddy will follow
+        case 4:
+          ruleMatched = true;
           break;
-        case 5: // Max assignments
+        case 5:
           ruleMatched = buddy.currentAssignments < buddy.maxAssignments;
           break;
-        case 6: // Same location
+        case 6:
           ruleMatched = buddy.officeLocation === newJoiner.location;
           break;
-        case 7: // Skill matching
+        case 7:
           const commonSkills =
             buddy.skills?.filter((skill) => newJoiner.skills?.includes(skill))
               .length || 0;
@@ -812,7 +799,6 @@ const BuddyMentorAssignment = () => {
       }
     });
 
-    // Calculate normalized score (0-100)
     const normalizedScore =
       maxPossibleScore > 0 ? Math.round((score / maxPossibleScore) * 100) : 0;
 
@@ -822,12 +808,10 @@ const BuddyMentorAssignment = () => {
   const filterPrograms = () => {
     let filtered = buddyPrograms;
 
-    // Filter by tab
     if (activeTab !== "all") {
       filtered = filtered.filter((program) => program.status === activeTab);
     }
 
-    // Filter by department
     if (filterDepartment !== "all") {
       filtered = filtered.filter(
         (program) =>
@@ -836,7 +820,6 @@ const BuddyMentorAssignment = () => {
       );
     }
 
-    // Filter by location
     if (filterLocation !== "all") {
       filtered = filtered.filter(
         (program) =>
@@ -844,7 +827,6 @@ const BuddyMentorAssignment = () => {
       );
     }
 
-    // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -858,8 +840,6 @@ const BuddyMentorAssignment = () => {
     return filtered;
   };
 
-  // ==================== HANDLERS ====================
-  // 1. Create Buddy Program
   const handleCreateProgram = () => {
     if (!programForm.name || !programForm.startDate) {
       alert("Please fill in all required fields");
@@ -923,7 +903,6 @@ const BuddyMentorAssignment = () => {
     alert("Buddy program created successfully!");
   };
 
-  // 2. Assign Buddy to New Joiner
   const handleAssignBuddy = () => {
     const {
       programId,
@@ -958,10 +937,8 @@ const BuddyMentorAssignment = () => {
       return;
     }
 
-    // Calculate match score
     const matchScore = calculateMatchScore(buddy, newJoiner, program);
 
-    // Create new assignment
     const newAssignment = {
       id: Date.now(),
       buddy: {
@@ -991,7 +968,6 @@ const BuddyMentorAssignment = () => {
       notes,
     };
 
-    // Update program
     setBuddyPrograms((prev) =>
       prev.map((p) => {
         if (p.id === programId) {
@@ -1033,20 +1009,18 @@ const BuddyMentorAssignment = () => {
       }),
     );
 
-    // Update buddy assignments count
     setBuddies((prev) =>
       prev.map((b) =>
         b.id === buddyId
           ? {
-              ...b,
-              currentAssignments: b.currentAssignments + 1,
-              totalMentees: b.totalMentees + 1,
-            }
+            ...b,
+            currentAssignments: b.currentAssignments + 1,
+            totalMentees: b.totalMentees + 1,
+          }
           : b,
       ),
     );
 
-    // Update new joiner status
     setNewJoiners((prev) =>
       prev.map((n) =>
         n.id === newJoinerId ? { ...n, assignedBuddy: true } : n,
@@ -1065,155 +1039,152 @@ const BuddyMentorAssignment = () => {
     alert("Buddy assigned successfully!");
   };
 
-  // 3. Submit Feedback
-const handleSubmitFeedback = (formData) => {
-  const {
-    assignmentId,
-    submittedBy,
-    role,
-    overallRating,
-    categories,
-    overallComment,
-    improvementSuggestions,
-    wouldRecommend,
-    anonymous,
-  } = formData;
+  const handleSubmitFeedback = (formData) => {
+    const {
+      assignmentId,
+      submittedBy,
+      role,
+      overallRating,
+      categories,
+      overallComment,
+      improvementSuggestions,
+      wouldRecommend,
+      anonymous,
+    } = formData;
 
-  if (!assignmentId || !submittedBy || !overallRating) {
-    alert("Please fill all required fields");
-    return;
-  }
+    if (!assignmentId || !submittedBy || !overallRating) {
+      alert("Please fill all required fields");
+      return;
+    }
 
-  const newFeedback = {
-    id: Date.now(),
-    assignmentId,
-    submittedBy,
-    role,
-    date: new Date().toISOString().split("T")[0],
-    overallRating: parseFloat(overallRating),
-    categories: categories.map((cat) => ({
-      ...cat,
-      rating: parseFloat(cat.rating),
-    })),
-    overallComment,
-    improvementSuggestions,
-    wouldRecommend,
-    anonymous,
-  };
+    const newFeedback = {
+      id: Date.now(),
+      assignmentId,
+      submittedBy,
+      role,
+      date: new Date().toISOString().split("T")[0],
+      overallRating: parseFloat(overallRating),
+      categories: categories.map((cat) => ({
+        ...cat,
+        rating: parseFloat(cat.rating),
+      })),
+      overallComment,
+      improvementSuggestions,
+      wouldRecommend,
+      anonymous,
+    };
 
-  let programId = null;
+    let programId = null;
 
-  const updatedPrograms = buddyPrograms.map((program) => {
-    const assignment = program.assignments.find(
-      (a) => a.id === Number(assignmentId)
-    );
-
-    if (assignment) {
-      programId = program.id;
-
-      const updatedAssignments = program.assignments.map((a) =>
-        a.id === Number(assignmentId)
-          ? { ...a, feedbackScore: parseFloat(overallRating) }
-          : a
+    const updatedPrograms = buddyPrograms.map((program) => {
+      const assignment = program.assignments.find(
+        (a) => a.id === Number(assignmentId)
       );
 
-      const allFeedback = [...program.feedback, newFeedback];
+      if (assignment) {
+        programId = program.id;
 
-      const averageRating =
-        allFeedback.reduce((sum, fb) => sum + fb.overallRating, 0) /
-        allFeedback.length;
+        const updatedAssignments = program.assignments.map((a) =>
+          a.id === Number(assignmentId)
+            ? { ...a, feedbackScore: parseFloat(overallRating) }
+            : a
+        );
 
-      return {
-        ...program,
-        assignments: updatedAssignments,
-        feedback: allFeedback,
-        overallRating: parseFloat(averageRating.toFixed(1)),
-        analytics: {
-          ...program.analytics,
-          averageRating: parseFloat(averageRating.toFixed(1)),
-          feedbackCount: allFeedback.length,
-        },
-      };
-    }
+        const allFeedback = [...program.feedback, newFeedback];
 
-    return program;
-  });
+        const averageRating =
+          allFeedback.reduce((sum, fb) => sum + fb.overallRating, 0) /
+          allFeedback.length;
 
-  setBuddyPrograms(updatedPrograms);
-  setShowFeedbackModal(false);
+        return {
+          ...program,
+          assignments: updatedAssignments,
+          feedback: allFeedback,
+          overallRating: parseFloat(averageRating.toFixed(1)),
+          analytics: {
+            ...program.analytics,
+            averageRating: parseFloat(averageRating.toFixed(1)),
+            feedbackCount: allFeedback.length,
+          },
+        };
+      }
 
-  alert("Feedback submitted successfully!");
-};
+      return program;
+    });
 
-// 4. Record Communication
-const handleRecordCommunication = (formData) => {
-  const {
-    assignmentId,
-    type,
-    date,
-    duration = "",
-    topics = "",
-    followUp = "",
-    notes = "",
-  } = formData;
+    setBuddyPrograms(updatedPrograms);
+    setShowFeedbackModal(false);
 
-  if (!assignmentId || !date) {
-    alert("Please fill required fields");
-    return;
-  }
-
-  const newCommunication = {
-    id: Date.now(),
-    type,
-    date,
-    duration: duration || "N/A",
-    topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
-    followUp: followUp.split(",").map((f) => f.trim()).filter(Boolean),
-    notes,
+    alert("Feedback submitted successfully!");
   };
 
-  const updatedPrograms = buddyPrograms.map((program) => {
-    const assignmentIndex = program.assignments.findIndex(
-      (a) => a.id === Number(assignmentId)
-    );
+  const handleRecordCommunication = (formData) => {
+    const {
+      assignmentId,
+      type,
+      date,
+      duration = "",
+      topics = "",
+      followUp = "",
+      notes = "",
+    } = formData;
 
-    if (assignmentIndex !== -1) {
-      const updatedAssignments = [...program.assignments];
-      const assignment = updatedAssignments[assignmentIndex];
-
-      const nextCheckIn = new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000
-      )
-        .toISOString()
-        .split("T")[0];
-
-      updatedAssignments[assignmentIndex] = {
-        ...assignment,
-        communicationRecords: [
-          ...(assignment.communicationRecords || []),
-          newCommunication,
-        ],
-        lastCheckIn: date,
-        nextCheckIn,
-        completionPercentage: Math.min(
-          (assignment.completionPercentage || 0) + 5,
-          100
-        ),
-      };
-
-      return { ...program, assignments: updatedAssignments };
+    if (!assignmentId || !date) {
+      alert("Please fill required fields");
+      return;
     }
 
-    return program;
-  });
+    const newCommunication = {
+      id: Date.now(),
+      type,
+      date,
+      duration: duration || "N/A",
+      topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
+      followUp: followUp.split(",").map((f) => f.trim()).filter(Boolean),
+      notes,
+    };
 
-  setBuddyPrograms(updatedPrograms);
-  setShowCommunicationModal(false);
+    const updatedPrograms = buddyPrograms.map((program) => {
+      const assignmentIndex = program.assignments.findIndex(
+        (a) => a.id === Number(assignmentId)
+      );
 
-  alert("Communication recorded successfully!");
-};
+      if (assignmentIndex !== -1) {
+        const updatedAssignments = [...program.assignments];
+        const assignment = updatedAssignments[assignmentIndex];
 
-  // 5. Update Task Status
+        const nextCheckIn = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        )
+          .toISOString()
+          .split("T")[0];
+
+        updatedAssignments[assignmentIndex] = {
+          ...assignment,
+          communicationRecords: [
+            ...(assignment.communicationRecords || []),
+            newCommunication,
+          ],
+          lastCheckIn: date,
+          nextCheckIn,
+          completionPercentage: Math.min(
+            (assignment.completionPercentage || 0) + 5,
+            100
+          ),
+        };
+
+        return { ...program, assignments: updatedAssignments };
+      }
+
+      return program;
+    });
+
+    setBuddyPrograms(updatedPrograms);
+    setShowCommunicationModal(false);
+
+    alert("Communication recorded successfully!");
+  };
+
   const handleUpdateTaskStatus = (programId, taskId, newStatus) => {
     setBuddyPrograms((prev) =>
       prev.map((program) => {
@@ -1237,7 +1208,6 @@ const handleRecordCommunication = (formData) => {
     );
   };
 
-  // 6. Auto-match Buddies
   const handleAutoMatch = (programId) => {
     const program = buddyPrograms.find((p) => p.id === programId);
     if (!program) return;
@@ -1275,14 +1245,12 @@ const handleRecordCommunication = (formData) => {
       });
 
       if (bestMatch && bestScore >= 60) {
-        // Minimum threshold
         matches.push({
           newJoinerId: newJoiner.id,
           buddyId: bestMatch.id,
           score: bestScore,
         });
 
-        // Update buddy's current assignments count
         bestMatch.currentAssignments += 1;
       }
     });
@@ -1292,7 +1260,6 @@ const handleRecordCommunication = (formData) => {
       return;
     }
 
-    // Process matches
     matches.forEach((match) => {
       const buddy = availableBuddies.find((b) => b.id === match.buddyId);
       const newJoiner = unassignedNewJoiners.find(
@@ -1327,7 +1294,6 @@ const handleRecordCommunication = (formData) => {
           ],
         };
 
-        // Update program
         setBuddyPrograms((prev) =>
           prev.map((p) => {
             if (p.id === programId) {
@@ -1364,20 +1330,18 @@ const handleRecordCommunication = (formData) => {
           }),
         );
 
-        // Update buddy
         setBuddies((prev) =>
           prev.map((b) =>
             b.id === buddy.id
               ? {
-                  ...b,
-                  currentAssignments: b.currentAssignments + 1,
-                  totalMentees: b.totalMentees + 1,
-                }
+                ...b,
+                currentAssignments: b.currentAssignments + 1,
+                totalMentees: b.totalMentees + 1,
+              }
               : b,
           ),
         );
 
-        // Update new joiner
         setNewJoiners((prev) =>
           prev.map((n) =>
             n.id === newJoiner.id ? { ...n, assignedBuddy: true } : n,
@@ -1389,7 +1353,6 @@ const handleRecordCommunication = (formData) => {
     alert(`${matches.length} new joiners auto-matched with buddies!`);
   };
 
-  // 7. Handle Sorting
   const handleSort = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
@@ -1398,7 +1361,6 @@ const handleRecordCommunication = (formData) => {
     setSortConfig({ key, direction });
   };
 
-  // 8. Export Data
   const handleExportData = (type) => {
     let data, filename, contentType;
 
@@ -1428,7 +1390,6 @@ const handleRecordCommunication = (formData) => {
         doc.setFontSize(12);
         doc.text(`Program: ${selectedProgram.name}`, 14, 30);
 
-        // Key Metrics Table
         autoTable(doc, {
           startY: 40,
           head: [["Metric", "Value"]],
@@ -1445,14 +1406,12 @@ const handleRecordCommunication = (formData) => {
           ],
         });
 
-        // Department Distribution
         autoTable(doc, {
           startY: doc.lastAutoTable.finalY + 10,
           head: [["Department", "Pairs"]],
           body: Object.entries(analytics.departmentDistribution),
         });
 
-        // Location Distribution
         autoTable(doc, {
           startY: doc.lastAutoTable.finalY + 10,
           head: [["Location", "Pairs"]],
@@ -1460,13 +1419,12 @@ const handleRecordCommunication = (formData) => {
         });
 
         doc.save(`${selectedProgram.name}_Analytics_Report.pdf`);
-        return; // IMPORTANT (stop JSON logic)
+        return;
 
       default:
         return;
     }
 
-    // JSON download (for programs & assignments only)
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: contentType,
     });
@@ -1481,8 +1439,6 @@ const handleRecordCommunication = (formData) => {
     URL.revokeObjectURL(url);
   };
 
-  // ==================== MODAL COMPONENTS ====================
-  // 1. Create Program Modal
   const CreateProgramModal = () => {
     const [localProgramForm, setLocalProgramForm] = useState(programForm);
     useEffect(() => {
@@ -1518,10 +1474,10 @@ const handleRecordCommunication = (formData) => {
     return (
       <div className="hrms-modal-overlay">
         <div className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column">
-              {/* HEADER */}
-              <div className="hrms-modal-header">
-                <h5 className="hrms-modal-title d-flex align-items-center gap-2">
-               <i className="bi bi-person-plus-fill"></i> Create Buddy Program </h5>
+
+          <div className="hrms-modal-header">
+            <h5 className="hrms-modal-title d-flex align-items-center gap-2">
+              <i className="bi bi-person-plus-fill"></i> Create Buddy Program </h5>
             <button
               className="btn-close"
               onClick={() => {
@@ -1531,8 +1487,8 @@ const handleRecordCommunication = (formData) => {
             ></button>
           </div>
 
-           {/* BODY */}
-            <div className="hrms-modal-body hrms-modal-body-scroll">
+
+          <div className="hrms-modal-body hrms-modal-body-scroll">
             <div className="row g-2">
               <div className="col-md-6">
                 <label className="form-label">
@@ -1656,7 +1612,7 @@ const handleRecordCommunication = (formData) => {
               </div>
             </div>
 
-            {/* Assignment Rules */}
+
             <div className="mt-4">
               <label className="form-label fw-bold">Assignment Rules</label>
               <div className="border rounded p-3 bg-light">
@@ -1676,26 +1632,26 @@ const handleRecordCommunication = (formData) => {
                         placeholder="Rule description"
                       />
                     </div>
-<label
-  className={`custom-checkbox ${rule.mandatory ? "checked" : ""}`}
->
-  <div className="checkbox-box">
-    {rule.mandatory && <span className="checkmark">✓</span>}
-  </div>
+                    <label
+                      className={`custom-checkbox ${rule.mandatory ? "checked" : ""}`}
+                    >
+                      <div className="checkbox-box">
+                        {rule.mandatory && <span className="checkmark">✓</span>}
+                      </div>
 
-  <span className="checkbox-label small">
-    Mandatory
-  </span>
+                      <span className="checkbox-label small">
+                        Mandatory
+                      </span>
 
-  <input
-    type="checkbox"
-    checked={rule.mandatory}
-    onChange={(e) =>
-      handleRuleChange(index, "mandatory", e.target.checked)
-    }
-    style={{ display: "none" }}
-  />
-</label>
+                      <input
+                        type="checkbox"
+                        checked={rule.mandatory}
+                        onChange={(e) =>
+                          handleRuleChange(index, "mandatory", e.target.checked)
+                        }
+                        style={{ display: "none" }}
+                      />
+                    </label>
 
                     <input
                       type="number"
@@ -1704,7 +1660,6 @@ const handleRecordCommunication = (formData) => {
                       value={rule.weight}
                       onChange={(e) => {
                         const newValue = e.target.value;
-                        // Allow empty string or valid numbers
                         if (newValue === "" || /^\d*$/.test(newValue)) {
                           handleRuleChange(
                             index,
@@ -1714,12 +1669,10 @@ const handleRecordCommunication = (formData) => {
                         }
                       }}
                       onBlur={(e) => {
-                        // Ensure we have a number when focus leaves
                         const currentValue = rule.weight;
                         if (currentValue === "" || isNaN(currentValue)) {
                           handleRuleChange(index, "weight", 0);
                         } else {
-                          // Clamp value between 0 and 100
                           const clampedValue = Math.min(
                             100,
                             Math.max(0, parseInt(currentValue, 10) || 0),
@@ -1798,7 +1751,6 @@ const handleRecordCommunication = (formData) => {
     );
   };
 
-  // 2. Assignment Modal
   const AssignmentModal = () => {
     const buddy = assignmentForm.buddyId
       ? buddies.find((b) => b.id === assignmentForm.buddyId)
@@ -1811,7 +1763,6 @@ const handleRecordCommunication = (formData) => {
       : null;
     const [matchScore, setMatchScore] = useState(0);
 
-    // Local state for form fields to handle typing smoothly
     const [localAssignmentDate, setLocalAssignmentDate] = useState(
       assignmentForm.assignmentDate,
     );
@@ -1820,7 +1771,6 @@ const handleRecordCommunication = (formData) => {
     );
     const [localNotes, setLocalNotes] = useState(assignmentForm.notes);
 
-    // Update local state when parent form changes
     useEffect(() => {
       setLocalAssignmentDate(assignmentForm.assignmentDate);
       setLocalPairingReason(assignmentForm.pairingReason);
@@ -1836,7 +1786,6 @@ const handleRecordCommunication = (formData) => {
         const score = calculateMatchScore(buddy, newJoiner, program);
         setMatchScore(score);
 
-        // Auto-generate pairing reason based on match (only if empty)
         if (!assignmentForm.pairingReason && !localPairingReason) {
           const reasons = [];
           if (buddy.department === newJoiner.department) {
@@ -1861,7 +1810,6 @@ const handleRecordCommunication = (formData) => {
       }
     }, [buddy, newJoiner, program]);
 
-    // Handle blur events to update parent state
     const handleAssignmentDateBlur = () => {
       setAssignmentForm({
         ...assignmentForm,
@@ -1884,16 +1832,15 @@ const handleRecordCommunication = (formData) => {
     };
 
     return (
-      <div 
-      className="hrms-modal-overlay"
+      <div
+        className="hrms-modal-overlay"
       >
         <div
-        className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
+          className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
         >
-          {/* Header with border radius */}
-              {/* HEADER */}
-              <div className="hrms-modal-header">
-                <h5 className="hrms-modal-title d-flex align-items-center gap-2">
+
+          <div className="hrms-modal-header">
+            <h5 className="hrms-modal-title d-flex align-items-center gap-2">
               <i className="bi bi-people-fill"></i> Buddy-New Joiner Pairing
             </h5>
             <button
@@ -1902,10 +1849,8 @@ const handleRecordCommunication = (formData) => {
             ></button>
           </div>
 
-              <div className="hrms-modal-body hrms-modal-body-scroll">
-            {/* Three Cards Row */}
+          <div className="hrms-modal-body hrms-modal-body-scroll">
             <div className="row g-3 mb-4">
-              {/* Select Program Card */}
               <div className="col-md-4">
                 <div
                   className="card h-100 shadow-sm"
@@ -1922,7 +1867,6 @@ const handleRecordCommunication = (formData) => {
                     }}
                   >
                     <h6 className="mb-0 fw-semibold">
-                      {/* <i className="bi bi-diagram-3 me-1"></i> */}
                       Select Program <span className="text-danger">*</span>
                     </h6>
                   </div>
@@ -1964,7 +1908,6 @@ const handleRecordCommunication = (formData) => {
                 </div>
               </div>
 
-              {/* Select Buddy Card */}
               <div className="col-md-4">
                 <div
                   className="card h-100 shadow-sm"
@@ -1981,7 +1924,6 @@ const handleRecordCommunication = (formData) => {
                     }}
                   >
                     <h6 className="mb-0 fw-semibold">
-                      {/* <i className="bi bi-person-badge me-1"></i> */}
                       Select Buddy <span className="text-danger">*</span>
                     </h6>
                   </div>
@@ -2045,7 +1987,6 @@ const handleRecordCommunication = (formData) => {
                 </div>
               </div>
 
-              {/* Select New Joiner Card */}
               <div className="col-md-4">
                 <div
                   className="card h-100 shadow-sm"
@@ -2062,7 +2003,6 @@ const handleRecordCommunication = (formData) => {
                     }}
                   >
                     <h6 className="mb-0 fw-semibold">
-                      {/* <i className="bi bi-person-plus me-1"></i> */}
                       Select New Joiner <span className="text-danger">*</span>
                     </h6>
                   </div>
@@ -2085,8 +2025,7 @@ const handleRecordCommunication = (formData) => {
                         )
                         .map((newJoiner) => (
                           <option key={newJoiner.id} value={newJoiner.id}>
-                            {newJoiner.name} ({newJoiner.department})  {/*- Joined:{" "}
-                             {new Date(newJoiner.joinDate).toLocaleDateString()} */}
+                            {newJoiner.name} ({newJoiner.department})
                           </option>
                         ))}
                     </select>
@@ -2133,7 +2072,6 @@ const handleRecordCommunication = (formData) => {
               </div>
             </div>
 
-            {/* Match Analysis + Assignment Details */}
             {assignmentForm.buddyId &&
               assignmentForm.newJoinerId &&
               buddy &&
@@ -2160,13 +2098,12 @@ const handleRecordCommunication = (formData) => {
                       <div className="card-body p-3">
                         <div className="text-center mb-3">
                           <div
-                            className={`display-6 fw-bold ${
-                              matchScore >= 80
-                                ? "text-success"
-                                : matchScore >= 60
-                                  ? "text-warning"
-                                  : "text-danger"
-                            }`}
+                            className={`display-6 fw-bold ${matchScore >= 80
+                              ? "text-success"
+                              : matchScore >= 60
+                                ? "text-warning"
+                                : "text-danger"
+                              }`}
                           >
                             {matchScore}/100
                           </div>
@@ -2180,13 +2117,12 @@ const handleRecordCommunication = (formData) => {
                           style={{ height: "10px" }}
                         >
                           <div
-                            className={`progress-bar ${
-                              matchScore >= 80
-                                ? "bg-success"
-                                : matchScore >= 60
-                                  ? "bg-warning"
-                                  : "bg-danger"
-                            }`}
+                            className={`progress-bar ${matchScore >= 80
+                              ? "bg-success"
+                              : matchScore >= 60
+                                ? "bg-warning"
+                                : "bg-danger"
+                              }`}
                             style={{ width: `${matchScore}%` }}
                           />
                         </div>
@@ -2228,11 +2164,10 @@ const handleRecordCommunication = (formData) => {
                             {buddy.skills?.map((skill) => (
                               <span
                                 key={skill}
-                                className={`badge ${
-                                  newJoiner.skills?.includes(skill)
-                                    ? "bg-success"
-                                    : "bg-light text-dark"
-                                }`}
+                                className={`badge ${newJoiner.skills?.includes(skill)
+                                  ? "bg-success"
+                                  : "bg-light text-dark"
+                                  }`}
                               >
                                 {skill}
                               </span>
@@ -2243,7 +2178,6 @@ const handleRecordCommunication = (formData) => {
                     </div>
                   </div>
 
-                  {/* Assignment Details */}
                   <div className="col-md-6">
                     <div
                       className="card border"
@@ -2322,19 +2256,18 @@ const handleRecordCommunication = (formData) => {
                 </div>
               )}
 
-            {/* No selection message */}
             {(!assignmentForm.buddyId ||
               !assignmentForm.newJoinerId ||
               !assignmentForm.programId) && (
-              <div
-                className="alert alert-info text-center mt-3"
-                style={{ borderRadius: "8px" }}
-              >
-                <i className="bi bi-info-circle me-2"></i>
-                Please select a program, buddy, and new joiner to view match
-                analysis
-              </div>
-            )}
+                <div
+                  className="alert alert-info text-center mt-3"
+                  style={{ borderRadius: "8px" }}
+                >
+                  <i className="bi bi-info-circle me-2"></i>
+                  Please select a program, buddy, and new joiner to view match
+                  analysis
+                </div>
+              )}
           </div>
 
           <div className="modal-footer bg-white border-top d-flex">
@@ -2362,210 +2295,197 @@ const handleRecordCommunication = (formData) => {
     );
   };
 
-  // 3. Feedback Modal
-const FeedbackModal = () => {
-  const [localForm, setLocalForm] = useState({
-    assignmentId: null,
-    submittedBy: "",
-    role: "newJoiner",
-    overallRating: 0,
-    categories: [
-      { category: "Responsiveness", rating: 0, comment: "" },
-      { category: "Knowledge Sharing", rating: 0, comment: "" },
-      { category: "Support", rating: 0, comment: "" },
-      { category: "Communication", rating: 0, comment: "" },
-    ],
-    overallComment: "",
-    improvementSuggestions: "",
-    wouldRecommend: true,
-    anonymous: false,
-  });
+  const FeedbackModal = () => {
+    const [localForm, setLocalForm] = useState({
+      assignmentId: null,
+      submittedBy: "",
+      role: "newJoiner",
+      overallRating: 0,
+      categories: [
+        { category: "Responsiveness", rating: 0, comment: "" },
+        { category: "Knowledge Sharing", rating: 0, comment: "" },
+        { category: "Support", rating: 0, comment: "" },
+        { category: "Communication", rating: 0, comment: "" },
+      ],
+      overallComment: "",
+      improvementSuggestions: "",
+      wouldRecommend: true,
+      anonymous: false,
+    });
 
-  const assignment = localForm.assignmentId
-    ? buddyPrograms
+    const assignment = localForm.assignmentId
+      ? buddyPrograms
         .flatMap((p) => p.assignments)
         .find((a) => a.id === Number(localForm.assignmentId))
-    : null;
+      : null;
 
-  const handleChange = (field, value) => {
-    setLocalForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+    const handleChange = (field, value) => {
+      setLocalForm((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    };
 
-  const handleCategoryChange = (index, field, value) => {
-    const updatedCategories = [...localForm.categories];
-    updatedCategories[index][field] = value;
+    const handleCategoryChange = (index, field, value) => {
+      const updatedCategories = [...localForm.categories];
+      updatedCategories[index][field] = value;
 
-    setLocalForm((prev) => ({
-      ...prev,
-      categories: updatedCategories,
-    }));
-  };
+      setLocalForm((prev) => ({
+        ...prev,
+        categories: updatedCategories,
+      }));
+    };
 
-  const handleSubmit = () => {
-    handleSubmitFeedback(localForm);
-  };
+    const handleSubmit = () => {
+      handleSubmitFeedback(localForm);
+    };
 
-  return (
-    <div className="hrms-modal-overlay" >
-      <div className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column">
-              {/* HEADER */}
-              <div className="hrms-modal-header">
-                <h5 className="hrms-modal-title d-flex align-items-center">
-                  <i className="bi bi-clipboard-check"></i> Submit Feedback</h5>
-          <button
-            className="btn-close"
-            onClick={() => setShowFeedbackModal(false)}
-          />
-        </div>
-                {/* BODY */}
-         <div className="hrms-modal-body hrms-modal-body-scroll">
-          {/* Assignment */}
-          <div className="mb-3">
-            <label className="form-label">
-              Select Assignment *
-            </label>
-            <select
-              className="form-select"
-              value={localForm.assignmentId || ""}
-              onChange={(e) =>
-                handleChange(
-                  "assignmentId",
-                  parseInt(e.target.value) || null
-                )
-              }
-            >
-              <option value="">Choose assignment...</option>
-              {buddyPrograms.flatMap((program) =>
-                program.assignments.map((assignment) => (
-                  <option key={assignment.id} value={assignment.id}>
-                    {assignment.buddy.name} - {assignment.newJoiner.name} (
-                    {program.name})
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          {/* Submitted By */}
-          <div className="mb-3">
-            <label className="form-label">
-              Submitted By *
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              value={localForm.submittedBy}
-              onChange={(e) =>
-                handleChange("submittedBy", e.target.value)
-              }
-              placeholder="Enter your name"
+    return (
+      <div className="hrms-modal-overlay" >
+        <div className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column">
+          <div className="hrms-modal-header">
+            <h5 className="hrms-modal-title d-flex align-items-center">
+              <i className="bi bi-clipboard-check"></i> Submit Feedback</h5>
+            <button
+              className="btn-close"
+              onClick={() => setShowFeedbackModal(false)}
             />
           </div>
+          <div className="hrms-modal-body hrms-modal-body-scroll">
+            <div className="mb-3">
+              <label className="form-label">
+                Select Assignment *
+              </label>
+              <select
+                className="form-select"
+                value={localForm.assignmentId || ""}
+                onChange={(e) =>
+                  handleChange(
+                    "assignmentId",
+                    parseInt(e.target.value) || null
+                  )
+                }
+              >
+                <option value="">Choose assignment...</option>
+                {buddyPrograms.flatMap((program) =>
+                  program.assignments.map((assignment) => (
+                    <option key={assignment.id} value={assignment.id}>
+                      {assignment.buddy.name} - {assignment.newJoiner.name} (
+                      {program.name})
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
 
-          {/* Overall Rating */}
-          <div className="mb-4">
-            <label className="form-label">Overall Rating *</label>
-            <div>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  className={`btn btn-link ${
-                    star <= localForm.overallRating
+            <div className="mb-3">
+              <label className="form-label">
+                Submitted By *
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                value={localForm.submittedBy}
+                onChange={(e) =>
+                  handleChange("submittedBy", e.target.value)
+                }
+                placeholder="Enter your name"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label">Overall Rating *</label>
+              <div>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    className={`btn btn-link ${star <= localForm.overallRating
                       ? "text-warning"
                       : "text-muted"
-                  }`}
-                  onClick={() =>
-                    handleChange("overallRating", star)
-                  }
-                >
-                  <i className="bi bi-star-fill fs-4"></i>
-                </button>
-              ))}
+                      }`}
+                    onClick={() =>
+                      handleChange("overallRating", star)
+                    }
+                  >
+                    <i className="bi bi-star-fill fs-4"></i>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {localForm.categories.map((cat, index) => (
+              <div key={index} className="card border mb-3">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <strong className="mb-0">{cat.category}</strong>
+                    <div>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          className={`btn btn-link p-0 ms-1 ${star <= cat.rating ? "text-warning" : "text-muted"
+                            }`}
+                          onClick={() =>
+                            handleCategoryChange(index, "rating", star)
+                          }
+                          style={{ fontSize: "18px" }}
+                        >
+                          <i className="bi bi-star-fill"></i>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    className="form-control"
+                    rows="2"
+                    value={cat.comment}
+                    onChange={(e) =>
+                      handleCategoryChange(index, "comment", e.target.value)
+                    }
+                    placeholder="Enter comments"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <div className="mb-3">
+              <label className="form-label">Overall Comments</label>
+              <textarea
+                className="form-control"
+                rows="3"
+                value={localForm.overallComment}
+                onChange={(e) =>
+                  handleChange("overallComment", e.target.value)
+                }
+              />
             </div>
           </div>
 
-{/* Categories */}
-{localForm.categories.map((cat, index) => (
-  <div key={index} className="card border mb-3">
-    <div className="card-body">
-      {/* Label + Stars Same Line */}
-      <div className="d-flex justify-content-between align-items-center mb-2">
-        <strong className="mb-0">{cat.category}</strong>
-        <div>
-          {[1, 2, 3, 4, 5].map((star) => (
+          <div className="modal-footer bg-white border-top d-flex">
             <button
-              key={star}
-              type="button"
-              className={`btn btn-link p-0 ms-1 ${
-                star <= cat.rating ? "text-warning" : "text-muted"
-              }`}
-              onClick={() =>
-                handleCategoryChange(index, "rating", star)
-              }
-              style={{ fontSize: "18px" }}
+              className="cancel-btn"
+              onClick={() => setShowFeedbackModal(false)}
             >
-              <i className="bi bi-star-fill"></i>
+              Cancel
             </button>
-          ))}
-        </div>
-      </div>
-      {/* Comment Box */}
-      <textarea
-        className="form-control"
-        rows="2"
-        value={cat.comment}
-        onChange={(e) =>
-          handleCategoryChange(index, "comment", e.target.value)
-        }
-        placeholder="Enter comments"
-      />
-    </div>
-  </div>
-))}
-
-          {/* Overall Comment */}
-          <div className="mb-3">
-            <label className="form-label">Overall Comments</label>
-            <textarea
-              className="form-control"
-              rows="3"
-              value={localForm.overallComment}
-              onChange={(e) =>
-                handleChange("overallComment", e.target.value)
+            <button
+              className="add-employee"
+              onClick={handleSubmit}
+              disabled={
+                !localForm.assignmentId ||
+                !localForm.submittedBy ||
+                !localForm.overallRating
               }
-            />
+            >
+              Submit Feedback
+            </button>
           </div>
         </div>
-
-        <div className="modal-footer bg-white border-top d-flex">
-          <button
-            className="cancel-btn"
-            onClick={() => setShowFeedbackModal(false)}
-          >
-            Cancel
-          </button>
-          <button
-            className="add-employee"
-            onClick={handleSubmit}
-            disabled={
-              !localForm.assignmentId ||
-              !localForm.submittedBy ||
-              !localForm.overallRating
-            }
-          >
-            Submit Feedback
-          </button>
-        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-  // 4. Analytics Modal - Fixed Size
   const AnalyticsModal = () => {
     const analytics = selectedProgram ? selectedProgram.analytics : null;
 
@@ -2573,11 +2493,10 @@ const FeedbackModal = () => {
 
     return (
       <div className="hrms-modal-overlay">
-        <div  className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column">
- 
-              {/* HEADER */}
-         <div className="hrms-modal-header">
-          <h5 className="hrms-modal-title d-flex align-items-center">
+        <div className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column">
+
+          <div className="hrms-modal-header">
+            <h5 className="hrms-modal-title d-flex align-items-center">
               Program Analytics - {selectedProgram?.name}
             </h5>
             <button
@@ -2586,10 +2505,7 @@ const FeedbackModal = () => {
             ></button>
           </div>
 
- 
-              {/* BODY */}
-           <div className="hrms-modal-body hrms-modal-body-scroll">
-            {/* Key Metrics */}
+          <div className="hrms-modal-body hrms-modal-body-scroll">
             <div className="row mb-3">
               <div className="col-6 col-md-3 mb-3">
                 <div className="card border h-100">
@@ -2646,7 +2562,6 @@ const FeedbackModal = () => {
               </div>
             </div>
 
-            {/* Detailed Metrics */}
             <div className="row mb-4">
               <div className="col-md-6">
                 <div className="card border h-100">
@@ -2717,7 +2632,6 @@ const FeedbackModal = () => {
               </div>
             </div>
 
-            {/* Satisfaction Metrics */}
             <div className="row">
               <div className="col-md-6">
                 <div className="card border h-100">
@@ -2805,229 +2719,215 @@ const FeedbackModal = () => {
     );
   };
 
-  // 5. Communication Modal
-const CommunicationModal = () => {
-  const [localForm, setLocalForm] = useState({
-    assignmentId: null,
-    type: "weekly_checkin",
-    date: new Date().toISOString().split("T")[0],
-    duration: "",
-    topics: "",
-    followUp: "",
-    notes: "",
-  });
+  const CommunicationModal = () => {
+    const [localForm, setLocalForm] = useState({
+      assignmentId: null,
+      type: "weekly_checkin",
+      date: new Date().toISOString().split("T")[0],
+      duration: "",
+      topics: "",
+      followUp: "",
+      notes: "",
+    });
 
-  const assignment = localForm.assignmentId
-    ? buddyPrograms
+    const assignment = localForm.assignmentId
+      ? buddyPrograms
         .flatMap((p) => p.assignments)
         .find((a) => a.id === Number(localForm.assignmentId))
-    : null;
+      : null;
 
-  const handleChange = (field, value) => {
-    setLocalForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+    const handleChange = (field, value) => {
+      setLocalForm((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    };
 
-  const handleSubmit = () => {
-    handleRecordCommunication(localForm);
-  };
+    const handleSubmit = () => {
+      handleRecordCommunication(localForm);
+    };
 
-  return (
-    <div
-    className="hrms-modal-overlay"
-    >
+    return (
       <div
-      className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
+        className="hrms-modal-overlay"
       >
-              {/* HEADER */}
-              <div className="hrms-modal-header">
-                <h5 className="hrms-modal-title d-flex align-items-center">
-            <i className="bi bi-mic-fill me-2"></i>
-            Record Communication
-          </h5>
-          <button
-            className="btn-close"
-            onClick={() => setShowCommunicationModal(false)}
-          ></button>
-        </div>
-
-              {/* BODY */}
-              <div className="hrms-modal-body hrms-modal-body-scroll">
-
-          {/* Assignment */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">
-              Assignment <span className="text-danger">*</span>
-            </label>
-            <select
-              className="form-select"
-              value={localForm.assignmentId || ""}
-              onChange={(e) =>
-                handleChange(
-                  "assignmentId",
-                  parseInt(e.target.value) || null
-                )
-              }
-            >
-              <option value="">Select assignment...</option>
-              {buddyPrograms.flatMap((program) =>
-                program.assignments.map((assignment) => (
-                  <option key={assignment.id} value={assignment.id}>
-                    {assignment.buddy.name} → {assignment.newJoiner.name} (
-                    {program.name})
-                  </option>
-                ))
-              )}
-            </select>
+        <div
+          className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
+        >
+          <div className="hrms-modal-header">
+            <h5 className="hrms-modal-title d-flex align-items-center">
+              <i className="bi bi-mic-fill me-2"></i>
+              Record Communication
+            </h5>
+            <button
+              className="btn-close"
+              onClick={() => setShowCommunicationModal(false)}
+            ></button>
           </div>
 
-          {/* Info Card */}
-          {assignment && (
-            <div className="alert alert-info mb-3">
-              <strong>Buddy:</strong> {assignment.buddy.name} <br />
-              <strong>New Joiner:</strong> {assignment.newJoiner.name} <br />
-              <strong>Last Check-in:</strong>{" "}
-              {assignment.lastCheckIn || "N/A"} <br />
-              <strong>Next Check-in:</strong>{" "}
-              {assignment.nextCheckIn || "N/A"}
-            </div>
-          )}
+          <div className="hrms-modal-body hrms-modal-body-scroll">
 
-          <div className="row g-3">
-
-            {/* Type */}
-            <div className="col-md-6">
+            <div className="mb-3">
               <label className="form-label fw-semibold">
-                Communication Type *
+                Assignment <span className="text-danger">*</span>
               </label>
               <select
                 className="form-select"
-                value={localForm.type}
-                onChange={(e) => handleChange("type", e.target.value)}
+                value={localForm.assignmentId || ""}
+                onChange={(e) =>
+                  handleChange(
+                    "assignmentId",
+                    parseInt(e.target.value) || null
+                  )
+                }
               >
-                {communicationTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                  </option>
-                ))}
+                <option value="">Select assignment...</option>
+                {buddyPrograms.flatMap((program) =>
+                  program.assignments.map((assignment) => (
+                    <option key={assignment.id} value={assignment.id}>
+                      {assignment.buddy.name} → {assignment.newJoiner.name} (
+                      {program.name})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
-            {/* Date */}
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">
-                Date *
-              </label>
-              <input
-                type="date"
-                className="form-control"
-                value={localForm.date}
-                onChange={(e) => handleChange("date", e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
-              />
-            </div>
+            {/* Info Card */}
+            {assignment && (
+              <div className="alert alert-info mb-3">
+                <strong>Buddy:</strong> {assignment.buddy.name} <br />
+                <strong>New Joiner:</strong> {assignment.newJoiner.name} <br />
+                <strong>Last Check-in:</strong>{" "}
+                {assignment.lastCheckIn || "N/A"} <br />
+                <strong>Next Check-in:</strong>{" "}
+                {assignment.nextCheckIn || "N/A"}
+              </div>
+            )}
 
-            {/* Duration */}
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">
-                Duration (minutes)
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                value={localForm.duration}
-                onChange={(e) => handleChange("duration", e.target.value)}
-                placeholder="e.g., 30"
-              />
-            </div>
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">
+                  Communication Type *
+                </label>
+                <select
+                  className="form-select"
+                  value={localForm.type}
+                  onChange={(e) => handleChange("type", e.target.value)}
+                >
+                  {communicationTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Next Checkin Auto */}
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">
-                Next Check-in Date
-              </label>
-              <input
-                type="date"
-                className="form-control bg-light"
-                value={
-                  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                    .toISOString()
-                    .split("T")[0]
-                }
-                disabled
-              />
-            </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={localForm.date}
+                  onChange={(e) => handleChange("date", e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                />
+              </div>
 
-            {/* Topics */}
-            <div className="col-12">
-              <label className="form-label fw-semibold">
-                Topics Discussed
-              </label>
-              <textarea
-                className="form-control"
-                rows="3"
-                value={localForm.topics}
-                onChange={(e) => handleChange("topics", e.target.value)}
-                placeholder="Separate with commas"
-              />
-            </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">
+                  Duration (minutes)
+                </label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={localForm.duration}
+                  onChange={(e) => handleChange("duration", e.target.value)}
+                  placeholder="e.g., 30"
+                />
+              </div>
 
-            {/* Follow Up */}
-            <div className="col-12">
-              <label className="form-label fw-semibold">
-                Follow-up Actions
-              </label>
-              <textarea
-                className="form-control"
-                rows="2"
-                value={localForm.followUp}
-                onChange={(e) => handleChange("followUp", e.target.value)}
-                placeholder="Separate with commas"
-              />
-            </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">
+                  Next Check-in Date
+                </label>
+                <input
+                  type="date"
+                  className="form-control bg-light"
+                  value={
+                    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                      .toISOString()
+                      .split("T")[0]
+                  }
+                  disabled
+                />
+              </div>
 
-            {/* Notes */}
-            <div className="col-12">
-              <label className="form-label fw-semibold">
-                Additional Notes
-              </label>
-              <textarea
-                className="form-control"
-                rows="2"
-                value={localForm.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-              />
-            </div>
+              <div className="col-12">
+                <label className="form-label fw-semibold">
+                  Topics Discussed
+                </label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  value={localForm.topics}
+                  onChange={(e) => handleChange("topics", e.target.value)}
+                  placeholder="Separate with commas"
+                />
+              </div>
 
+              <div className="col-12">
+                <label className="form-label fw-semibold">
+                  Follow-up Actions
+                </label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={localForm.followUp}
+                  onChange={(e) => handleChange("followUp", e.target.value)}
+                  placeholder="Separate with commas"
+                />
+              </div>
+
+              <div className="col-12">
+                <label className="form-label fw-semibold">
+                  Additional Notes
+                </label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={localForm.notes}
+                  onChange={(e) => handleChange("notes", e.target.value)}
+                />
+              </div>
+
+            </div>
+          </div>
+
+          <div className="modal-footer bg-white border-top d-flex ">
+            <button
+              className="cancel-btn"
+              onClick={() => setShowCommunicationModal(false)}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="create-job-btn"
+              onClick={handleSubmit}
+              disabled={!localForm.assignmentId || !localForm.date}
+            >
+              <i className="bi bi-check-circle me-2"></i>
+              Record Communication
+            </button>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="modal-footer bg-white border-top d-flex ">
-          <button
-            className="cancel-btn"
-            onClick={() => setShowCommunicationModal(false)}
-          >
-            Cancel
-          </button>
-
-          <button
-            className="create-job-btn"
-            onClick={handleSubmit}
-            disabled={!localForm.assignmentId || !localForm.date}
-          >
-            <i className="bi bi-check-circle me-2"></i>
-            Record Communication
-          </button>
-        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-  // 6. Rules Modal
   const RulesModal = () => {
     const program = selectedProgram;
 
@@ -3035,12 +2935,11 @@ const CommunicationModal = () => {
 
     return (
       <div
-         className="hrms-modal-overlay"
+        className="hrms-modal-overlay"
       >
         <div
           className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
         >
-          {/* Header */}
           <div className="hrms-modal-header">
             <h5 className="hrms-modal-title d-flex align-items-center">
               Assignment Rules - {program.name}
@@ -3050,7 +2949,7 @@ const CommunicationModal = () => {
               onClick={() => setShowRulesModal(false)}
             ></button>
           </div>
-           {/* BODY */}
+
           <div
             className="hrms-modal-body hrms-modal-body-scroll"
           >
@@ -3118,7 +3017,6 @@ const CommunicationModal = () => {
     );
   };
 
-  // 7. Checklist Modal
   const ChecklistModal = () => {
     const program = selectedProgram;
 
@@ -3135,9 +3033,6 @@ const CommunicationModal = () => {
     const completionPercentage =
       totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    /* ===============================
-     EXPORT CHECKLIST (CSV)
-  ================================ */
     const handleExportChecklist = () => {
       if (!program || !program.buddyResponsibilities?.length) return;
 
@@ -3197,13 +3092,11 @@ const CommunicationModal = () => {
         <div
           className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
         >
-          {/* Header */}
           <div className="hrms-modal-header">
             <div>
               <h5 className="hrms-modal-title d-flex align-items-center">
                 Buddy Responsibilities Checklist – {program.name}
               </h5>
-              {/* Progress Section */}
               <div className="d-flex align-items-center gap-3 mt-2">
                 <div>
                   <div className="fw-semibold small">
@@ -3229,11 +3122,10 @@ const CommunicationModal = () => {
               onClick={() => setShowChecklistModal(false)}
             />
           </div>
-          {/* BODY */}
+
           <div className="hrms-modal-body hrms-modal-body-scroll">
             {program.buddyResponsibilities.map((category) => (
               <div key={category.id} className="card border-0 shadow-sm mb-4">
-                {/* Category Header */}
                 <div className="card-header bg-light d-flex justify-content-between align-items-center py-2">
                   <h6 className="mb-0 fw-bold">{category.category}</h6>
                   <span className="badge bg-secondary">
@@ -3244,12 +3136,10 @@ const CommunicationModal = () => {
                     /{category.tasks.length}
                   </span>
                 </div>
-                {/* Task List */}
                 <div className="list-group list-group-flush">
                   {category.tasks.map((task) => (
                     <div key={task.id} className="list-group-item py-3 px-3">
                       <div className="d-flex justify-content-between align-items-start">
-                        {/* Left Content */}
                         <div className="flex-grow-1 me-4">
                           <div className="d-flex align-items-center gap-2 mb-1">
                             <span className="fw-semibold">{task.task}</span>
@@ -3271,16 +3161,15 @@ const CommunicationModal = () => {
                             )}
                           </div>
                         </div>
-                        {/* Right Action Area */}
+
                         <div className="d-flex flex-column align-items-end gap-2">
                           {getTaskStatusBadge(task.status)}
                           <div className="btn-group btn-group-sm">
                             <button
-                              className={`btn ${
-                                task.status === "completed"
-                                  ? "btn-success"
-                                  : "btn-outline-success"
-                              }`}
+                              className={`btn ${task.status === "completed"
+                                ? "btn-success"
+                                : "btn-outline-success"
+                                }`}
                               onClick={() =>
                                 handleUpdateTaskStatus(
                                   program.id,
@@ -3293,11 +3182,10 @@ const CommunicationModal = () => {
                               <i className="bi bi-check-lg"></i>
                             </button>
                             <button
-                              className={`btn ${
-                                task.status === "in-progress"
-                                  ? "btn-warning"
-                                  : "btn-outline-warning"
-                              }`}
+                              className={`btn ${task.status === "in-progress"
+                                ? "btn-warning"
+                                : "btn-outline-warning"
+                                }`}
                               onClick={() =>
                                 handleUpdateTaskStatus(
                                   program.id,
@@ -3310,11 +3198,10 @@ const CommunicationModal = () => {
                               <i className="bi bi-clock"></i>
                             </button>
                             <button
-                              className={`btn ${
-                                task.status === "pending"
-                                  ? "btn-secondary"
-                                  : "btn-outline-secondary"
-                              }`}
+                              className={`btn ${task.status === "pending"
+                                ? "btn-secondary"
+                                : "btn-outline-secondary"
+                                }`}
                               onClick={() =>
                                 handleUpdateTaskStatus(
                                   program.id,
@@ -3335,15 +3222,14 @@ const CommunicationModal = () => {
               </div>
             ))}
           </div>
-          {/* FOOTER */}
+
           <div className="modal-footer bg-white border-top d-flex ">
             <div className="d-flex w-100 align-items-center">
-              {/* Left Info Text */}
+
               <small className="text-muted">
                 <i className="bi bi-info-circle me-1"></i>
                 Use buttons to update task status
               </small>
-              {/* Right Buttons */}
               <div className="ms-auto d-flex gap-2">
                 <button
                   className="cancel-btn"
@@ -3366,7 +3252,6 @@ const CommunicationModal = () => {
     );
   };
 
-  // 8. Buddy Profile Modal (Improved Version)
   const BuddyProfileModal = () => {
     const buddy = selectedBuddy;
     if (!buddy) return null;
@@ -3378,7 +3263,7 @@ const CommunicationModal = () => {
     const avgFeedbackScore =
       buddyAssignments.length > 0
         ? buddyAssignments.reduce((sum, a) => sum + (a.feedbackScore || 0), 0) /
-          buddyAssignments.length
+        buddyAssignments.length
         : 0;
 
     return (
@@ -3388,7 +3273,7 @@ const CommunicationModal = () => {
         <div
           className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
         >
-          {/* HEADER */}
+
           <div className="hrms-modal-header">
             <h5 className="hrms-modal-title d-flex align-items-center">Buddy Profile - {buddy.name}</h5>
             <button
@@ -3397,10 +3282,9 @@ const CommunicationModal = () => {
             />
           </div>
 
-          {/* BODY */}
-          <div  className="hrms-modal-body hrms-modal-body-scroll">
+          <div className="hrms-modal-body hrms-modal-body-scroll">
             <div className="row g-4">
-              {/* LEFT PROFILE SECTION */}
+
               <div className="col-md-4 text-center border-end">
                 <div
                   className="rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto mb-3"
@@ -3428,9 +3312,9 @@ const CommunicationModal = () => {
                 </span>
               </div>
 
-              {/* RIGHT DETAILS SECTION */}
+
               <div className="col-md-8">
-                {/* CONTACT & ASSIGNMENT CARDS */}
+
                 <div className="row g-3 mb-4">
                   <div className="col-md-6">
                     <div className="card h-100 shadow-sm">
@@ -3476,7 +3360,7 @@ const CommunicationModal = () => {
                   </div>
                 </div>
 
-                {/* INFO CARDS */}
+
                 <div className="row g-3 mb-4 text-center">
                   <div className="col-md-4">
                     <div className="card h-100 shadow-sm">
@@ -3513,7 +3397,7 @@ const CommunicationModal = () => {
                   </div>
                 </div>
 
-                {/* SKILLS */}
+
                 {buddy.skills?.length > 0 && (
                   <div className="mb-4">
                     <h6 className="fw-bold mb-3">Skills & Expertise</h6>
@@ -3529,7 +3413,6 @@ const CommunicationModal = () => {
               </div>
             </div>
 
-            {/* ASSIGNMENTS TABLE */}
             <div className="mt-4">
               <h6 className="fw-bold mb-3">
                 Current Assignments ({buddyAssignments.length})
@@ -3572,7 +3455,6 @@ const CommunicationModal = () => {
             </div>
           </div>
 
-          {/* FOOTER */}
           <div className="modal-footer bg-white border-top d-flex">
             <button
               className="close-btn"
@@ -3602,7 +3484,6 @@ const CommunicationModal = () => {
     );
   };
 
-  // 9. New Joiner Profile Modal (Improved & Properly Arranged)
   const NewJoinerProfileModal = () => {
     const newJoiner = selectedNewJoiner;
     if (!newJoiner) return null;
@@ -3616,9 +3497,8 @@ const CommunicationModal = () => {
         <div
           className="hrms-modal hrms-modal-offer-xl animate-scale-in d-flex flex-column"
         >
-          {/* ================= HEADER ================= */}
           <div className="hrms-modal-header">
-                <h5 className="hrms-modal-title d-flex align-items-center">
+            <h5 className="hrms-modal-title d-flex align-items-center">
               New Joiner Profile - {newJoiner.name}
             </h5>
             <button
@@ -3626,10 +3506,10 @@ const CommunicationModal = () => {
               onClick={() => setShowNewJoinerProfile(false)}
             />
           </div>
-          {/* ================= BODY ================= */}
+
           <div className="hrms-modal-body hrms-modal-body-scroll">
             <div className="row g-4">
-              {/* LEFT PROFILE SECTION */}
+
               <div className="col-md-4 text-center border-end">
                 <div
                   className="rounded-circle bg-success d-flex align-items-center justify-content-center mx-auto mb-3"
@@ -3657,9 +3537,9 @@ const CommunicationModal = () => {
                   )}
                 </div>
               </div>
-              {/* RIGHT DETAILS SECTION */}
+
               <div className="col-md-8">
-                {/* CONTACT + ONBOARDING */}
+
                 <div className="row g-3 mb-4">
                   <div className="col-md-6">
                     <div className="card h-100 shadow-sm">
@@ -3690,7 +3570,7 @@ const CommunicationModal = () => {
                     </div>
                   </div>
                 </div>
-                {/* DEPARTMENT + STATUS */}
+
                 <div className="row g-3 mb-4 text-center">
                   <div className="col-md-6">
                     <div className="card h-100 shadow-sm">
@@ -3713,7 +3593,7 @@ const CommunicationModal = () => {
                     </div>
                   </div>
                 </div>
-                {/* BACKGROUND + SKILLS */}
+
                 {(newJoiner.background || newJoiner.skills?.length > 0) && (
                   <div className="row g-3 mb-4">
                     {newJoiner.background && (
@@ -3748,7 +3628,7 @@ const CommunicationModal = () => {
                 )}
               </div>
             </div>
-            {/* ================= ASSIGNMENT DETAILS ================= */}
+
             {assignment && (
               <div className="mt-4">
                 <h6 className="fw-bold mb-3">Buddy Assignment Details</h6>
@@ -3786,7 +3666,7 @@ const CommunicationModal = () => {
                         </p>
                       </div>
                     </div>
-                    {/* Progress Bar */}
+
                     <div className="mb-3">
                       <strong>Progress</strong>
                       {assignment.completionPercentage !== undefined ? (
@@ -3815,7 +3695,6 @@ const CommunicationModal = () => {
                         <small className="text-muted">No progress data</small>
                       )}
                     </div>
-                    {/* Communications */}
                     {assignment.communicationRecords?.length > 0 && (
                       <div className="mt-3">
                         <h6 className="fw-bold mb-2">Recent Communications</h6>
@@ -3853,8 +3732,7 @@ const CommunicationModal = () => {
               </div>
             )}
           </div>
-          {/* ================= FOOTER ================= */}
-          <div  className="modal-footer bg-white border-top d-flex">
+          <div className="modal-footer bg-white border-top d-flex">
             <button
               className="close-btn"
               onClick={() => setShowNewJoinerProfile(false)}
@@ -3882,7 +3760,6 @@ const CommunicationModal = () => {
     );
   };
 
-  // ==================== RENDER ====================
   if (loading) {
     return (
       <div className="container-fluid px-3 px-md-4 py-5">
@@ -3906,11 +3783,11 @@ const CommunicationModal = () => {
 
   return (
     <div className="container-fluid px-2 px-md-3 px-lg-4 py-3">
-      {/* Header */}
+
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
           <h5 className="fw-bold mb-1 d-flex align-items-center gap-2">
-             <Icon icon='heroicons:clock'/>
+            <Icon icon='heroicons:clock' />
             Buddy / Mentor Assignment
           </h5>
           <p className="text-muted mb-0">
@@ -3928,7 +3805,7 @@ const CommunicationModal = () => {
           </button>
 
           <button
-             className="record-communication-btn"
+            className="record-communication-btn"
             onClick={() => setShowCommunicationModal(true)}
           >
             <i className="bi bi-chat-left-text"></i>
@@ -3945,7 +3822,7 @@ const CommunicationModal = () => {
         </div>
       </div>
 
-      {/* View Toggle */}
+
       <div className="card border mb-4">
         <div className="card-body">
           <div className="d-flex flex-wrap gap-2">
@@ -3975,7 +3852,6 @@ const CommunicationModal = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className="row mt-4 g-3">
         <div className="col-12">
           <div className="card border">
@@ -4055,79 +3931,74 @@ const CommunicationModal = () => {
         </div>
       </div>
 
-{/* Statistics Cards */}
 
-<div className="kpi-row">
-  {[
-    {
-      title: "Total Programs",
-      value: buddyPrograms.length,
-      icon: "heroicons:user-group",
-      bg: "kpi-primary",
-      color: "kpi-primary-text",
-      sub: `${buddyPrograms.filter((p) => p.status === "active").length} active`,
-    },
-    {
-      title: "Total Pairs",
-      value: buddyPrograms.reduce((sum, program) => sum + program.totalPairs, 0),
-      icon: "heroicons:users",
-      bg: "kpi-success",
-      color: "kpi-success-text",
-      sub: `${buddyPrograms.reduce((sum, program) => sum + program.activePairs, 0)} active`,
-    },
-    {
-      title: "Available Buddies",
-      value: buddies.filter((b) => b.currentAssignments < b.maxAssignments).length,
-      icon: "heroicons:user-plus",
-      bg: "kpi-warning",
-      color: "kpi-warning-text",
-      sub: `${buddies.length} total buddies`,
-    },
-    {
-      title: "Avg. Rating",
-      value:
-        buddyPrograms.length > 0
-          ? (
-              buddyPrograms.reduce(
-                (sum, program) => sum + program.overallRating,
-                0
-              ) / buddyPrograms.length
-            ).toFixed(1) + "/5"
-          : "0.0/5",
-      icon: "heroicons:star",
-      bg: "kpi-info",
-      color: "kpi-info-text",
-      sub: "Based on feedback",
-    },
-  ].map((item, index) => (
-    <div className="kpi-col" key={index}>
-      <div className="kpi-card">
-        <div className="kpi-card-body">
+      <div className="kpi-row">
+        {[
+          {
+            title: "Total Programs",
+            value: buddyPrograms.length,
+            icon: "heroicons:user-group",
+            bg: "kpi-primary",
+            color: "kpi-primary-text",
+            sub: `${buddyPrograms.filter((p) => p.status === "active").length} active`,
+          },
+          {
+            title: "Total Pairs",
+            value: buddyPrograms.reduce((sum, program) => sum + program.totalPairs, 0),
+            icon: "heroicons:users",
+            bg: "kpi-success",
+            color: "kpi-success-text",
+            sub: `${buddyPrograms.reduce((sum, program) => sum + program.activePairs, 0)} active`,
+          },
+          {
+            title: "Available Buddies",
+            value: buddies.filter((b) => b.currentAssignments < b.maxAssignments).length,
+            icon: "heroicons:user-plus",
+            bg: "kpi-warning",
+            color: "kpi-warning-text",
+            sub: `${buddies.length} total buddies`,
+          },
+          {
+            title: "Avg. Rating",
+            value:
+              buddyPrograms.length > 0
+                ? (
+                  buddyPrograms.reduce(
+                    (sum, program) => sum + program.overallRating,
+                    0
+                  ) / buddyPrograms.length
+                ).toFixed(1) + "/5"
+                : "0.0/5",
+            icon: "heroicons:star",
+            bg: "kpi-info",
+            color: "kpi-info-text",
+            sub: "Based on feedback",
+          },
+        ].map((item, index) => (
+          <div className="kpi-col" key={index}>
+            <div className="kpi-card">
+              <div className="kpi-card-body">
 
-          {/* Icon */}
-          <div className={`kpi-icon ${item.bg}`}>
-            <Icon icon={item.icon} className={`kpi-icon-style ${item.color}`} />
+
+                <div className={`kpi-icon ${item.bg}`}>
+                  <Icon icon={item.icon} className={`kpi-icon-style ${item.color}`} />
+                </div>
+
+                <div className="kpi-content">
+                  <div className="kpi-title">{item.title}</div>
+                  <div className="kpi-value">{item.value}</div>
+
+                  <small className="text-muted">{item.sub}</small>
+                </div>
+
+              </div>
+            </div>
           </div>
-
-          {/* Content */}
-          <div className="kpi-content">
-            <div className="kpi-title">{item.title}</div>
-            <div className="kpi-value">{item.value}</div>
-
-            {/* Sub text */}
-            <small className="text-muted">{item.sub}</small>
-          </div>
-
-        </div>
+        ))}
       </div>
-    </div>
-  ))}
-</div>
 
-      {/* Main Content based on View Mode */}
       {viewMode === "programs" && (
         <>
-          {/* Filters and Search */}
           <div className="row g-3 mb-4">
             <div className="col-12 col-md-8">
               <div className="d-flex flex-wrap gap-2">
@@ -4214,7 +4085,6 @@ const CommunicationModal = () => {
             </div>
           </div>
 
-          {/* Buddy Programs Table */}
           <div className="card border mb-4">
             <div className="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
               <h6 className="mb-2 mb-md-0 fw-bold">Buddy Programs</h6>
@@ -4368,7 +4238,6 @@ const CommunicationModal = () => {
             </div>
           </div>
 
-          {/* Program Details */}
           {selectedProgram && (
             <div className="row mt-4">
               <div className="col-12">
@@ -4523,7 +4392,6 @@ const CommunicationModal = () => {
                   </div>
                 </div>
 
-                {/* Assignments Section */}
                 <div className="card border">
                   <div className="card-header bg-light d-flex justify-content-between align-items-center">
                     <h6 className="mb-0 fw-bold">
@@ -4588,26 +4456,25 @@ const CommunicationModal = () => {
                                 </td>
                                 <td>
                                   <span
-                                    className={`badge ${
-                                      assignment.matchScore >= 80
-                                        ? "bg-success"
-                                        : assignment.matchScore >= 60
-                                          ? "bg-warning"
-                                          : "bg-danger"
-                                    }`}
+                                    className={`badge ${assignment.matchScore >= 80
+                                      ? "bg-success"
+                                      : assignment.matchScore >= 60
+                                        ? "bg-warning"
+                                        : "bg-danger"
+                                      }`}
                                   >
                                     {assignment.matchScore}/100
                                   </span>
                                 </td>
                                 <td>{assignment.assignmentDate}</td>
-<td>
-  {assignment.lastCheckIn
-    ? new Date(assignment.lastCheckIn).toLocaleDateString("en-GB")
-    : "N/A"}
-</td>
+                                <td>
+                                  {assignment.lastCheckIn
+                                    ? new Date(assignment.lastCheckIn).toLocaleDateString("en-GB")
+                                    : "N/A"}
+                                </td>
                                 <td>
                                   {assignment.completionPercentage !==
-                                  undefined ? (
+                                    undefined ? (
                                     <div style={{ minWidth: "60px" }}>
                                       <div
                                         className="progress"
@@ -4702,7 +4569,6 @@ const CommunicationModal = () => {
         </>
       )}
 
-      {/* Buddies View */}
       {viewMode === "buddies" && (
         <div className="row">
           <div className="col-12">
@@ -4802,7 +4668,6 @@ const CommunicationModal = () => {
         </div>
       )}
 
-      {/* New Joiners View */}
       {viewMode === "newJoiners" && (
         <div className="row">
           <div className="col-12">
@@ -4913,7 +4778,6 @@ const CommunicationModal = () => {
         </div>
       )}
 
-      {/* Enhanced Modals */}
       {showCreateProgram && <CreateProgramModal />}
       {showAssignmentModal && <AssignmentModal />}
       {showFeedbackModal && <FeedbackModal />}

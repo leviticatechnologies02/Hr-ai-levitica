@@ -19,7 +19,7 @@ export default function OnboardingFamilydetails() {
           margin: "0 auto"
         }}
       >
-        {/* Header */}
+
         <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
           <img
             src="/assets/img/icons/logo-1.png"
@@ -47,7 +47,7 @@ export default function OnboardingFamilydetails() {
           </div>
         </div>
 
-        {/* Step + Title */}
+
         <div
           style={{
             display: "flex",
@@ -63,7 +63,7 @@ export default function OnboardingFamilydetails() {
           <div style={{ color: "#666" }}>Step 5 of 9</div>
         </div>
 
-        {/* Progress Bar */}
+
         <div style={{ marginTop: "10px" }}>
           <div
             style={{
@@ -87,9 +87,9 @@ export default function OnboardingFamilydetails() {
           </div>
         </div>
 
-        {/* Form */}
+
         <div style={{ marginTop: "25px" }}>
-          {/* Marital Status */}
+
           <label style={{ fontWeight: 600 }}>Marital Status</label>
           <div style={{ marginTop: "5px", marginBottom: "20px" }}>
             <label style={{ marginRight: "20px" }}>
@@ -113,7 +113,7 @@ export default function OnboardingFamilydetails() {
             </label>
           </div>
 
-          {/* Father Name */}
+
           <label style={{ fontWeight: 600 }}>Father Name</label>
           <input
             type="text"
@@ -129,7 +129,7 @@ export default function OnboardingFamilydetails() {
           />
           <small style={{ color: "#6b7280" }}>50 chars left</small>
 
-          {/* Father Phone + DOB */}
+
           <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontWeight: 600 }}>Father Phone</label>
@@ -163,7 +163,7 @@ export default function OnboardingFamilydetails() {
             </div>
           </div>
 
-          {/* Mother Name */}
+
           <div style={{ marginTop: "20px" }}>
             <label style={{ fontWeight: 600 }}>Mother Name</label>
             <input
@@ -181,7 +181,7 @@ export default function OnboardingFamilydetails() {
             <small style={{ color: "#6b7280" }}>50 chars left</small>
           </div>
 
-          {/* Mother Phone + DOB */}
+
           <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontWeight: 600 }}>Mother Phone</label>
@@ -216,7 +216,7 @@ export default function OnboardingFamilydetails() {
           </div>
         </div>
 
-        {/* Buttons */}
+
         <div
           style={{
             marginTop: "30px",
@@ -224,7 +224,7 @@ export default function OnboardingFamilydetails() {
             justifyContent: "space-between",
           }}
         >
-          {/* Back */}
+
           <button
             onClick={() => navigate("/onboardingstatutorydetails")}
             style={{
@@ -238,7 +238,7 @@ export default function OnboardingFamilydetails() {
             ← Back
           </button>
 
-          {/* Continue */}
+
           <button
             onClick={() => navigate("/onboardingPresentaddress")}
             style={{
