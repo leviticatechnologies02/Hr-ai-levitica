@@ -341,6 +341,13 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
       icon: HiOutlineCog6Tooth
     },
     {
+      type: 'link',
+      to: '/productivity/dashboard',
+      tabKey: 'productivity',
+      label: 'Productivity',
+      icon: HiOutlineRocketLaunch
+    },
+    {
       type: 'title',
       label: 'Quick Actions'
     },

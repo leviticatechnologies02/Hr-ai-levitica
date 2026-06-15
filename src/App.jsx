@@ -6,6 +6,7 @@ import Login from './modules/auth/Login';
 import ForgotPassword from './modules/auth/ForgotPassword';
 import PricingPage from './modules/auth/PricingPage';
 import ProtectedRoute from './modules/auth/ProtectedRoute';
+import ProductivityDashboard from "./modules/productivity/dashboard/ProductivityDashboard";
 import SuperAdminPanel from './modules/super-admin/SuperAdminPanel';
 import SuperAdminLayout from './modules/super-admin/SuperAdminLayout';
 import MultiTenantSetup from './modules/super-admin/MultiTenantSetup';
@@ -187,6 +188,7 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+      <Route path='/productivity/dashboard' element={<ProtectedRoute><RecruiterDashboardLayout><ProductivityDashboard /></RecruiterDashboardLayout></ProtectedRoute>} />
 
       <Route
         path='/candidates'

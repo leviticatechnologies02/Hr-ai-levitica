@@ -2,11 +2,11 @@
 // Base URL for all backend API calls
 
 // Development environment
-export const BASE_URL = 'https://ai-hr-backend-7ea1.onrender.com';
+// export const BASE_URL = 'https://ai-hr-backend-7ea1.onrender.com';
 // export const BASE_URL = 'http://localhost:8000';
-
 // For production, you can use environment variable:
 // export const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -98,6 +98,15 @@ export const API_ENDPOINTS = {
     USERS: '/api/admin/users',
     USER: (id) => `/api/admin/users/${id}`,
     SUMMARY: '/api/admin/superadmin/summary',
+  },
+  
+  //Productivity
+  PRODUCTIVITY: {
+    SUMMARY: '/api/productivity/productivity/summary',
+    EMPLOYEE: (employeeId) => `/api/productivity/productivity/employee/${employeeId}`,
+    ORG_OVERVIEW: '/api/productivity/admin/productivity/overview',
+    TEAM_SUMMARY: (teamId) => `/api/productivity/admin/productivity/team/${teamId}`,
+    DEPARTMENT_SUMMARY: (deptId) => `/api/productivity/admin/productivity/department/${deptId}`,
   },
 
   // Offers
