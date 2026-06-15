@@ -142,7 +142,6 @@ import ContactPage from './modules/landing/ContactPage';
 import Human from './modules/landing/Human'
 import HomePage from './modules/landing/HomePage';
 
-
 import ResetPassword from './modules/auth/ResetPassword';
 
 import CandidateLogin from './modules/candidate/CandidateLogin';
