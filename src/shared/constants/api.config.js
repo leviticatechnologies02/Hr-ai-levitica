@@ -99,7 +99,7 @@ export const API_ENDPOINTS = {
     USER: (id) => `/api/admin/users/${id}`,
     SUMMARY: '/api/admin/superadmin/summary',
   },
-  
+
   // Offers
   OFFERS: {
     TEMPLATES: '/api/offers/offer-templates',
