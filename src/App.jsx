@@ -135,20 +135,12 @@ import WorkflowEngine from './modules/hrms/dashboard/WorkflowEngine';
 
 import HRAutomation from './modules/landing/HRAutomation'
 import CrmLanding from './modules/landing/Crmlanding'
-import ProductivityLanding from './modules/landing/Productivity'
 import Navbar from './modules/landing/Navbar'
 import Bookademo from './modules/landing/Bookademo'
 import Footer from './modules/landing/Footer'
 import ContactPage from './modules/landing/ContactPage';
 import Human from './modules/landing/Human'
 import HomePage from './modules/landing/HomePage';
-import ProductivityDashboard from
-"./modules/productivity/dashboard/ProductivityDashboard";
-import ProductivityReports from "./modules/productivity/reports/ProductivityReports";
-import EmployeeInsights from "./modules/productivity/components/EmployeeInsights";
-import TaskTracker from "./modules/productivity/services/TaskTracker";
-import TimeTracking from './modules/productivity/tasks/TimeTracking';
-import Projects from './modules/productivity/projects/Projects';
 
 
 import ResetPassword from './modules/auth/ResetPassword';
@@ -174,7 +166,6 @@ const App = () => {
       <Route path='/pricing' element={<PricingPage />} />
       <Route path='/hrAutomation' element={<HRAutomation />}/>
       <Route path='/crmlanding' element={<CrmLanding />}/>
-      <Route path='/productivity' element={<ProductivityLanding />}/>
       <Route path='/navbar' element={<Navbar/>}/>
       <Route path='/bookademo' element={<Bookademo />}/>
       <Route path='/footer' element={<Footer />}/>
@@ -573,13 +564,6 @@ const App = () => {
         }
       />
 
-      {/* Productivity Routes */}
-      <Route path='/productivity/dashboard' element={<ProtectedRoute><RecruiterDashboardLayout><ProductivityDashboard /></RecruiterDashboardLayout></ProtectedRoute>} />
-      <Route path='/productivity/projects' element={<ProtectedRoute><RecruiterDashboardLayout><Projects /></RecruiterDashboardLayout></ProtectedRoute>} />
-      <Route path='/productivity/tasks' element={<ProtectedRoute><RecruiterDashboardLayout><TaskTracker /></RecruiterDashboardLayout></ProtectedRoute>} />
-      <Route path='/productivity/time-tracking' element={<ProtectedRoute><RecruiterDashboardLayout><TimeTracking /></RecruiterDashboardLayout></ProtectedRoute>} />
-      <Route path='/productivity/employee-insights' element={<ProtectedRoute><RecruiterDashboardLayout><EmployeeInsights /></RecruiterDashboardLayout></ProtectedRoute>} />
-      <Route path='/productivity/reports' element={<ProtectedRoute><RecruiterDashboardLayout><ProductivityReports /></RecruiterDashboardLayout></ProtectedRoute>} />
 
       {/* Legacy sidebar routes for Tenant links (match RecruiterDashboardLayout NavLinks) */}
       <Route
@@ -1454,8 +1438,6 @@ const App = () => {
       />
       
       <Route
-        path="/productivity/dashboard"
-        element={<ProductivityDashboard />}
       />
 
 
