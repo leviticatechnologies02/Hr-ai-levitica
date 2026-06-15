@@ -27,10 +27,6 @@ const DashboardLayoutBase = ({
 
   const [openDropdowns, setOpenDropdowns] = useState({});
 
-  // =========================
-  // ACTIVE ROUTE
-  // =========================
-
   const isRouteActive = (item) => {
     if (activeTab !== null && onTabChange !== null) {
       return activeTab === item.tabKey;
@@ -45,10 +41,6 @@ const DashboardLayoutBase = ({
     return location.pathname === item.to;
   };
 
-  // =========================
-  // DROPDOWN ACTIVE
-  // =========================
-
   const isDropdownActive = (dropdownItem) => {
     if (!dropdownItem.items) return false;
 
@@ -57,20 +49,12 @@ const DashboardLayoutBase = ({
     );
   };
 
-  // =========================
-  // TOGGLE DROPDOWN
-  // =========================
-
   const toggleDropdown = (label) => {
     setOpenDropdowns((prev) => ({
       ...prev,
       [label]: !prev[label],
     }));
   };
-
-  // =========================
-  // AUTO OPEN ACTIVE DROPDOWN
-  // =========================
 
   useEffect(() => {
     const initialOpenStates = {};
@@ -87,19 +71,12 @@ const DashboardLayoutBase = ({
     setOpenDropdowns(initialOpenStates);
   }, [location.pathname, sidebarItems]);
 
-  // =========================
-  // CLOSE MOBILE SIDEBAR
-  // =========================
-
   const closeMobileSidebar = () => {
     setMobileSidebarOpen(false);
   };
 
   return (
-    <div className="flex min-h-screen bg-blue-50">
-      {/* ========================= */}
-      {/* MOBILE OVERLAY */}
-      {/* ========================= */}
+    <div className="flex h-screen bg-blue-50 overflow-x-hidden">
 
       <div
         onClick={closeMobileSidebar}
@@ -112,10 +89,6 @@ const DashboardLayoutBase = ({
           }
         `}
       />
-
-      {/* ========================= */}
-      {/* SIDEBAR */}
-      {/* ========================= */}
 
       <aside
         className={`
@@ -138,9 +111,6 @@ const DashboardLayoutBase = ({
           w-72
         `}
       >
-        {/* ========================= */}
-        {/* SIDEBAR HEADER */}
-        {/* ========================= */}
 
         <div className="flex h-16 items-center justify-between px-4">
           <Link
@@ -179,8 +149,6 @@ const DashboardLayoutBase = ({
             )}
           </Link>
 
-          {/* MOBILE CLOSE */}
-
           <button
             type="button"
             onClick={closeMobileSidebar}
@@ -190,16 +158,9 @@ const DashboardLayoutBase = ({
           </button>
         </div>
 
-        {/* ========================= */}
-        {/* SIDEBAR NAVIGATION */}
-        {/* ========================= */}
-
         <nav className="flex-1 overflow-y-auto scrollbar-hide px-3 py-4">
           <div className="space-y-1">
             {sidebarItems.map((item, index) => {
-              // =========================
-              // TITLE
-              // =========================
 
               if (item.type === "title") {
                 return !desktopSidebarCollapsed ? (
@@ -218,10 +179,6 @@ const DashboardLayoutBase = ({
               }
 
               const IconComponent = item.icon;
-
-              // =========================
-              // DROPDOWN
-              // =========================
 
               if (item.type === "dropdown") {
                 const isOpen =
@@ -432,7 +389,7 @@ const DashboardLayoutBase = ({
 
       <div
         className={`
-          flex min-h-screen flex-1 flex-col transition-all duration-300 ease-in-out
+          flex h-screen min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out
 
           ${desktopSidebarCollapsed
             ? "lg:pl-20"
@@ -440,13 +397,10 @@ const DashboardLayoutBase = ({
           }
         `}
       >
-        {/* ========================= */}
-        {/* TOPBAR */}
-        {/* ========================= */}
+
 
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-blue-100 bg-white/90 px-4 backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            {/* DESKTOP TOGGLE */}
 
             <button
               type="button"
@@ -469,7 +423,6 @@ const DashboardLayoutBase = ({
               />
             </button>
 
-            {/* MOBILE TOGGLE */}
 
             <button
               type="button"
@@ -481,29 +434,19 @@ const DashboardLayoutBase = ({
               <HiBars3 className="h-5 w-5" />
             </button>
 
-            {/* LEFT */}
 
             <div>{topbarLeftContent}</div>
           </div>
-
-          {/* RIGHT */}
 
           <div className="flex items-center gap-4">
             {topbarRightContent}
           </div>
         </header>
 
-        {/* ========================= */}
-        {/* MAIN CONTENT */}
-        {/* ========================= */}
 
-        <main className="flex-1 overflow-y-auto bg-blue-50 p-3 scrollbar-hide">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-blue-50 p-3 scrollbar-hide">
           {children}
         </main>
-
-        {/* ========================= */}
-        {/* FOOTER */}
-        {/* ========================= */}
 
         <footer className="flex h-14 items-center justify-between border-t border-blue-100 bg-white px-6 text-xs text-slate-500">
           <div>
