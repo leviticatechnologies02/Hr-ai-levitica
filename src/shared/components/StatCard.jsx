@@ -30,6 +30,13 @@ const colorThemes = {
     iconBg: 'bg-amber-100',
     iconColor: 'text-amber-600',
   },
+  red: {
+    bg: 'bg-rose-100',
+    border: 'border-rose-100',
+    textTitle: 'text-rose-600',
+    iconBg: 'bg-rose-100',
+    iconColor: 'text-rose-600',
+  },
 };
 
 const StatCard = ({ title, value, subtitle, icon, color = 'blue' }) => {
