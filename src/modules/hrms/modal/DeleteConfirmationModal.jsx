@@ -92,33 +92,7 @@ const DeleteConfirmationModal = (props) => {
                 setDeleting(true);
 
                 try {
-                  /* 1️⃣ Remove document request completely */
-                  const updatedRequests = documentRequests.filter(
-                    (req) => req.employeeId !== employeeToDelete.id,
-                  );
-                  saveDocumentRequests(updatedRequests);
-
-                  /* 2️⃣ Remove employee profile entry from localStorage */
-                  const savedProfiles =
-                    localStorage.getItem("employeeProfiles");
-                  if (savedProfiles) {
-                    const profiles = JSON.parse(savedProfiles);
-                    const updatedProfiles = profiles.filter(
-                      (profile) =>
-                        (profile.employeeId || profile.id) !==
-                        employeeToDelete.id,
-                    );
-                    localStorage.setItem(
-                      "employeeProfiles",
-                      JSON.stringify(updatedProfiles),
-                    );
-                  }
-
-                  /* 3️⃣ Remove employee from employees list */
-                  const updatedEmployees = employees.filter(
-                    (emp) => emp.id !== employeeToDelete.id,
-                  );
-                  setEmployees(updatedEmployees);
+                  await handleDeleteEmployee(employeeToDelete.id);
 
                   // Show success status
                   setEmailStatus({

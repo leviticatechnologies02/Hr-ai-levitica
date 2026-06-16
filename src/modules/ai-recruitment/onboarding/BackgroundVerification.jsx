@@ -7,6 +7,7 @@ import {
   copyEmailToClipboard,
   generateMailtoLink,
 } from "../../../shared/services/emailService";
+import { bgvAPI } from "../../../shared/utils/api";
 
 import NewBGVRequestModal from "../../hrms/modal/NewBGVRequestModal";
 import EditBGVRequestModal from "../../hrms/modal/EditBGVRequestModal";
@@ -168,112 +169,112 @@ const BackgroundVerification = () => {
     loadDocumentRequests();
   }, []);
 
-  const loadEmployees = () => {
-    const savedProfiles = localStorage.getItem("employeeProfiles");
-    if (savedProfiles) {
-      const profiles = JSON.parse(savedProfiles);
-      const filteredProfiles = profiles.filter(
-        (profile) =>
-          !["EMP001", "EMP002", "EMP003", "CAND001", "CAND002", "CAND003"].includes(profile.employeeId || profile.id)
-      );
-      const employeeList = filteredProfiles.map((profile) => ({
-        id: profile.employeeId || profile.id,
-        employeeId: profile.employeeId,
-        name: `${profile.firstName} ${profile.middleName ? profile.middleName + " " : ""}${profile.lastName}`.trim(),
-        email: profile.officialEmail || profile.email,
-        phone: profile.phone,
-        department: profile.department,
-        designation: profile.designation,
-        joiningDate: profile.joiningDate,
-        status: profile.bgvStatus || "Not Started",
-        candidateId: profile.candidateId,
-      }));
-      setEmployees(employeeList);
-    } else {
+  const loadEmployees = async () => {
+    try {
+      const data = await bgvAPI.getEmployees();
+      if (data && Array.isArray(data)) {
+        const employeeList = data.map((profile) => ({
+          id: profile.employeeId || profile.id,
+          employeeId: profile.employeeId,
+          name: `${profile.firstName} ${profile.middleName ? profile.middleName + " " : ""}${profile.lastName}`.trim(),
+          email: profile.officialEmail || profile.email,
+          phone: profile.phone,
+          department: profile.department,
+          designation: profile.designation,
+          joiningDate: profile.joiningDate,
+          status: profile.bgvStatus || "Not Started",
+          candidateId: profile.candidateId,
+        }));
+        setEmployees(employeeList);
+      } else {
+        setEmployees([]);
+      }
+    } catch (error) {
+      console.error("Error loading BGV employees from API:", error);
       setEmployees([]);
     }
   };
 
-  const loadDocumentRequests = () => {
-    const savedRequests = localStorage.getItem("bgvDocumentRequests");
-    if (savedRequests) {
-      const parsedRequests = JSON.parse(savedRequests);
-      const filteredRequests = parsedRequests.filter(
-        (request) =>
-          !["EMP001", "EMP002", "EMP003", "CAND001", "CAND002", "CAND003"].includes(request.employeeId || request.id)
-      );
-
-      const updatedRequests = filteredRequests.map((request) => ({
-        ...request,
-        dateOfBirth: request.dateOfBirth || request.dob || "",
-        gender: request.gender || "",
-        maritalStatus: request.maritalStatus || "",
-
-        personalInfo: request.personalInfo || {
-          dob: request.dateOfBirth || request.dob || "",
+  const loadDocumentRequests = async () => {
+    try {
+      const data = await bgvAPI.getRequests();
+      if (data && Array.isArray(data)) {
+        const updatedRequests = data.map((request) => ({
+          ...request,
+          dateOfBirth: request.dateOfBirth || request.dob || "",
           gender: request.gender || "",
-          maritalStatus: request.maritalStatus || ""
-        },
+          maritalStatus: request.maritalStatus || "",
 
-        parentGuardian: request.parentGuardian ||
-          request.parentGuardianDetails ||
-        {
-          name: request.parentName || request.parentGuardianDetails?.name || "",
-          relationship: request.parentRelationship || request.parentGuardianDetails?.relationship || "",
-          phone: request.parentPhone || request.parentGuardianDetails?.phone || "",
-          employment: request.parentEmployment || request.parentGuardianDetails?.employment || "",
-          organization: request.parentOrganization || request.parentGuardianDetails?.organization || "",
-          designation: request.parentDesignation || request.parentGuardianDetails?.designation || "",
-          isLegalGuardian: request.isGuardian || request.parentGuardianDetails?.isGuardian || false
-        },
+          personalInfo: request.personalInfo || {
+            dob: request.dateOfBirth || request.dob || "",
+            gender: request.gender || "",
+            maritalStatus: request.maritalStatus || ""
+          },
 
-        educationQualifications: Array.isArray(request.educationQualifications)
-          ? request.educationQualifications
-          : request.educationQualifications
-            ? [request.educationQualifications] : request.education
-              ? (Array.isArray(request.education) ? request.education : [request.education])
-              : [],
+          parentGuardian: request.parentGuardian ||
+            request.parentGuardianDetails ||
+          {
+            name: request.parentName || request.parentGuardianDetails?.name || "",
+            relationship: request.parentRelationship || request.parentGuardianDetails?.relationship || "",
+            phone: request.parentPhone || request.parentGuardianDetails?.phone || "",
+            employment: request.parentEmployment || request.parentGuardianDetails?.employment || "",
+            organization: request.parentOrganization || request.parentGuardianDetails?.organization || "",
+            designation: request.parentDesignation || request.parentGuardianDetails?.designation || "",
+            isLegalGuardian: request.isGuardian || request.parentGuardianDetails?.isGuardian || false
+          },
 
-        department: request.department || "",
-        designation: request.designation || "",
-        phone: request.phone || "",
+          educationQualifications: Array.isArray(request.educationQualifications)
+            ? request.educationQualifications
+            : request.educationQualifications
+              ? [request.educationQualifications] : request.education
+                ? (Array.isArray(request.education) ? request.education : [request.education])
+                : [],
 
-        currentAddress: request.currentAddress || {
-          address1: "",
-          address2: "",
-          country: "",
-          state: "",
-          district: "",
-          city: "",
-          pincode: "",
-          nationality: "",
-        },
-        permanentAddress: request.permanentAddress || {
-          address1: "",
-          address2: "",
-          country: "",
-          state: "",
-          district: "",
-          city: "",
-          pincode: "",
-          nationality: "",
-        },
-        sameAsCurrentAddress: request.sameAsCurrentAddress || false,
+          department: request.department || "",
+          designation: request.designation || "",
+          phone: request.phone || "",
 
-        isExperienced: request.isExperienced || false,
-        yearsOfExperience: request.yearsOfExperience || "",
-        experienceData: request.experienceData || request.experience || null,
+          currentAddress: request.currentAddress || {
+            address1: "",
+            address2: "",
+            country: "",
+            state: "",
+            district: "",
+            city: "",
+            pincode: "",
+            nationality: "",
+          },
+          permanentAddress: request.permanentAddress || {
+            address1: "",
+            address2: "",
+            country: "",
+            state: "",
+            district: "",
+            city: "",
+            pincode: "",
+            nationality: "",
+          },
+          sameAsCurrentAddress: request.sameAsCurrentAddress || false,
 
-        completedDate: request.completedDate || null,
-        addressVerified: request.addressVerified || null
-      }));
+          isExperienced: request.isExperienced || false,
+          yearsOfExperience: request.yearsOfExperience || "",
+          experienceData: request.experienceData || request.experience || null,
 
-      setDocumentRequests(updatedRequests);
+          completedDate: request.completedDate || null,
+          addressVerified: request.addressVerified || null
+        }));
+
+        setDocumentRequests(updatedRequests);
+      } else {
+        setDocumentRequests([]);
+      }
+    } catch (error) {
+      console.error("Error loading BGV document requests from API:", error);
+      setDocumentRequests([]);
     }
   };
 
   const saveDocumentRequests = (requests) => {
-    localStorage.setItem("bgvDocumentRequests", JSON.stringify(requests));
     setDocumentRequests(requests);
   };
 
@@ -475,22 +476,7 @@ const BackgroundVerification = () => {
     }
   };
 
-  const loadDocumentsFromLocalStorage = () => {
-    try {
-      const saved = localStorage.getItem("bgvUploadedDocuments");
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error("Error loading documents from localStorage:", error);
-      return [];
-    }
-  };
 
-  useEffect(() => {
-    const savedDocuments = loadDocumentsFromLocalStorage();
-    if (savedDocuments.length > 0) {
-      setUploadedDocuments(savedDocuments);
-    }
-  }, []);
 
   const handleRemoveDocument = (docId) => {
     setUploadedDocuments((prevDocs) => {
@@ -947,6 +933,7 @@ const BackgroundVerification = () => {
 
         const updatedRequests = [...documentRequests, newRequest];
         saveDocumentRequests(updatedRequests);
+        bgvAPI.saveRequest(newRequest).catch(err => console.error("Error saving BGV request:", err));
 
         const existingEmp = employees.find(
           (emp) => emp.email === newRequestEmail,
@@ -1049,28 +1036,7 @@ const BackgroundVerification = () => {
           };
           setEmployees([...employees, newEmployee]);
 
-          const savedProfiles = localStorage.getItem("employeeProfiles");
-          if (savedProfiles) {
-            const profiles = JSON.parse(savedProfiles);
-            const newProfile = {
-              id: employeeId,
-              employeeId: employeeId,
-              firstName: newRequestName.split(" ")[0] || newRequestName,
-              lastName: newRequestName.split(" ").slice(1).join(" ") || "",
-              officialEmail: newRequestEmail,
-              email: newRequestEmail,
-              phone: newRequestPhone || "",
-              department: newRequestDepartment || "External",
-              designation: newRequestDesignation || "Candidate",
-              joiningDate: new Date().toISOString().split("T")[0],
-              bgvStatus: allRequiredUploaded ? "Completed" : "In Progress",
-              candidateId: `CAND-${Date.now()}`,
-            };
-            localStorage.setItem(
-              "employeeProfiles",
-              JSON.stringify([...profiles, newProfile]),
-            );
-          }
+          bgvAPI.updateStatus(employeeId, allRequiredUploaded ? "Completed" : "In Progress").catch(err => console.error("Error updating status:", err));
         } else {
           if (allRequiredUploaded) {
             const updatedEmployees = employees.map((emp) => {
@@ -1081,23 +1047,7 @@ const BackgroundVerification = () => {
             });
             setEmployees(updatedEmployees);
 
-            const savedProfiles = localStorage.getItem("employeeProfiles");
-            if (savedProfiles) {
-              const profiles = JSON.parse(savedProfiles);
-              const updatedProfiles = profiles.map((profile) => {
-                if (
-                  profile.email === newRequestEmail ||
-                  profile.officialEmail === newRequestEmail
-                ) {
-                  return { ...profile, bgvStatus: "Completed" };
-                }
-                return profile;
-              });
-              localStorage.setItem(
-                "employeeProfiles",
-                JSON.stringify(updatedProfiles),
-              );
-            }
+            bgvAPI.updateStatus(existingEmp.id, "Completed").catch(err => console.error("Error updating status:", err));
           }
         }
 
@@ -1407,6 +1357,18 @@ const BackgroundVerification = () => {
 
       const updatedRequests = [...documentRequests, ...newRequests];
       saveDocumentRequests(updatedRequests);
+      newRequests.forEach((newReq) => {
+        bgvAPI.saveRequest(newReq).catch(err => console.error("Error saving BGV request:", err));
+      });
+
+      const updatedEmployees = employees.map((emp) => {
+        if (selectedEmployees.includes(emp.id)) {
+          bgvAPI.updateStatus(emp.id, "In Progress").catch(err => console.error("Error updating status:", err));
+          return { ...emp, status: "In Progress" };
+        }
+        return emp;
+      });
+      setEmployees(updatedEmployees);
 
       handleClearEmailUploads();
 
@@ -1500,40 +1462,26 @@ const BackgroundVerification = () => {
 
     const updatedRequests = documentRequests.map((req) => {
       if (req.employeeId === editingEmployeeId) {
-        return {
+        const updatedReq = {
           ...req,
           employeeName: editEmployeeName,
           email: editEmployeeEmail,
         };
+        bgvAPI.saveRequest(updatedReq).catch(err => console.error("Error saving BGV request:", err));
+        return updatedReq;
       }
       return req;
     });
     saveDocumentRequests(updatedRequests);
 
-    const savedProfiles = localStorage.getItem("employeeProfiles");
-    if (savedProfiles) {
-      const profiles = JSON.parse(savedProfiles);
-      const updatedProfiles = profiles.map((profile) => {
-        if (
-          profile.employeeId === editingEmployeeId ||
-          profile.id === editingEmployeeId
-        ) {
-          const nameParts = editEmployeeName.split(" ");
-          return {
-            ...profile,
-            firstName: nameParts[0] || editEmployeeName,
-            lastName: nameParts.slice(1).join(" ") || "",
-            officialEmail: editEmployeeEmail,
-            email: editEmployeeEmail,
-            phone: editEmployeePhone,
-            department: editEmployeeDepartment,
-            designation: editEmployeeDesignation,
-            employeeId: editEmployeeId || profile.employeeId,
-          };
-        }
-        return profile;
-      });
-      localStorage.setItem("employeeProfiles", JSON.stringify(updatedProfiles));
+    // Update status on API
+    try {
+      const targetEmp = updatedEmployees.find(emp => emp.id === editingEmployeeId);
+      if (targetEmp) {
+        bgvAPI.updateStatus(editingEmployeeId, targetEmp.status).catch(err => console.error(err));
+      }
+    } catch (err) {
+      console.error("Error updating BGV status via API:", err);
     }
 
     setEmailStatus({
@@ -1639,31 +1587,18 @@ const BackgroundVerification = () => {
         } else {
           updatedRequests.push(newReq);
         }
+        bgvAPI.saveRequest(newReq).catch(err => console.error("Error saving BGV request:", err));
       });
       saveDocumentRequests(updatedRequests);
 
       const updatedEmployees = employees.map((emp) => {
         if (selectedEmployees.includes(emp.id)) {
+          bgvAPI.updateStatus(emp.id, "In Progress").catch(err => console.error("Error updating status:", err));
           return { ...emp, status: "In Progress" };
         }
         return emp;
       });
       setEmployees(updatedEmployees);
-
-      const savedProfiles = localStorage.getItem("employeeProfiles");
-      if (savedProfiles) {
-        const profiles = JSON.parse(savedProfiles);
-        const updatedProfiles = profiles.map((profile) => {
-          if (selectedEmployees.includes(profile.employeeId || profile.id)) {
-            return { ...profile, bgvStatus: "In Progress" };
-          }
-          return profile;
-        });
-        localStorage.setItem(
-          "employeeProfiles",
-          JSON.stringify(updatedProfiles),
-        );
-      }
 
       setEmailStatus({
         type: "success",
@@ -1696,7 +1631,92 @@ const BackgroundVerification = () => {
     }
   };
 
-  const modalProps = { employees, setEmployees, selectedEmployees, setSelectedEmployees, activeSection, setActiveSection, searchTerm, setSearchTerm, statusFilter, setStatusFilter, selectedRequest, setSelectedRequest, showRequestDetails, setShowRequestDetails, showEmailModal, setShowEmailModal, emailTemplate, setEmailTemplate, newRequestPhone, setNewRequestPhone, newRequestDepartment, setNewRequestDepartment, newRequestDesignation, setNewRequestDesignation, newRequestEmployeeId, setNewRequestEmployeeId, uploadedDocuments, setUploadedDocuments, emailUploads, setEmailUploads, emailUploadedDocuments, setEmailUploadedDocuments, isExperienced, setIsExperienced, yearsOfExperience, setYearsOfExperience, currentOrganization, setCurrentOrganization, currentRole, setCurrentRole, employmentType, setEmploymentType, currentSalary, setCurrentSalary, noticePeriod, setNoticePeriod, previousExperiences, setPreviousExperiences, globalUploadedDocuments, setGlobalUploadedDocuments, newRequestDob, setNewRequestDob, newRequestGender, setNewRequestGender, newRequestMaritalStatus, setNewRequestMaritalStatus, newRequestParentName, setNewRequestParentName, newRequestParentRelationship, setNewRequestParentRelationship, newRequestParentPhone, setNewRequestParentPhone, newRequestParentEmail, setNewRequestParentEmail, newRequestParentEmployment, setNewRequestParentEmployment, newRequestParentOrganization, setNewRequestParentOrganization, newRequestParentDesignation, setNewRequestParentDesignation, newRequestParentIncome, setNewRequestParentIncome, newRequestParentAddress, setNewRequestParentAddress, newRequestIsGuardian, setNewRequestIsGuardian, educationQualifications, setEducationQualifications, showEducationForm, setShowEducationForm, editingEducation, setEditingEducation, educationLevel, setEducationLevel, schoolCollegeName, setSchoolCollegeName, boardUniversity, setBoardUniversity, passingYear, setPassingYear, joiningYear, setJoiningYear, degree, setDegree, branch, setBranch, percentage, setPercentage, cgpa, setCgpa, gradingSystem, setGradingSystem, experienceOrgName, setExperienceOrgName, experienceRole, setExperienceRole, experienceType, setExperienceType, experienceLocation, setExperienceLocation, experienceSalary, setExperienceSalary, experienceJoiningDate, setExperienceJoiningDate, experienceRelievingDate, setExperienceRelievingDate, experienceHistory, setExperienceHistory, currentAddress, setCurrentAddress, permanentAddress, setPermanentAddress, sameAsCurrent, setSameAsCurrent, showDeleteModal, setShowDeleteModal, employeeToDelete, setEmployeeToDelete, deleting, setDeleting, editingEmployeeId, setEditingEmployeeId, editEmployeeName, setEditEmployeeName, editEmployeePhone, setEditEmployeePhone, editEmployeeEmail, setEditEmployeeEmail, editEmployeeDepartment, setEditEmployeeDepartment, editEmployeeDesignation, setEditEmployeeDesignation, editEmployeeId, setEditEmployeeId, emailSubject, setEmailSubject, documentRequests, setDocumentRequests, sendingEmail, setSendingEmail, emailStatus, setEmailStatus, emailMethod, setEmailMethod, ccEmails, setCcEmails, bccEmails, setBccEmails, showNewRequestModal, setShowNewRequestModal, newRequestEmail, setNewRequestEmail, newRequestName, setNewRequestName, newRequestTemplate, setNewRequestTemplate, newRequestSubject, setNewRequestSubject, handleNewRequest, handleSendEmail, getRequiredDocuments, handleDocumentUpload, handleReplaceDocumentClick, handleRemoveDocument, handleViewDocument, handleReuploadDocument, requiredDocuments, handleUpdateExistingDocument, handleSendNewRequest, handleEmailDocumentUpload, handleSelectEmployee, handleSelectAll, handleClearEmailUploads, handleUpdateEmailDocument, handleConfirmSendEmail, handlePreviewDocument, handleUpdateDocument, handleEditEmployee, handleSaveEmployeeEdit, handleConfirmSendEmailWithEdits };
+  const handleDeleteEmployee = async (employeeId) => {
+    try {
+      await bgvAPI.deleteRequest(employeeId);
+    } catch (error) {
+      console.error("Error deleting request from API:", error);
+    }
+
+    const updatedRequests = documentRequests.filter(
+      (req) => req.employeeId !== employeeId,
+    );
+    setDocumentRequests(updatedRequests);
+
+    const updatedEmployees = employees.filter(
+      (emp) => emp.id !== employeeId,
+    );
+    setEmployees(updatedEmployees);
+  };
+
+  const handleApproveVerification = async (employeeId) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    if (window.confirm(`Approve background verification for ${employee.name}?`)) {
+      const updatedEmployees = employees.map((emp) =>
+        emp.id === employeeId ? { ...emp, status: "Completed" } : emp
+      );
+      setEmployees(updatedEmployees);
+
+      const updatedRequests = documentRequests.map((req) => {
+        if (req.employeeId === employeeId) {
+          const updatedReq = {
+            ...req,
+            status: "Completed",
+            completedDate: new Date().toISOString(),
+          };
+          bgvAPI.saveRequest(updatedReq).catch(err => console.error("Error saving BGV approval request:", err));
+          return updatedReq;
+        }
+        return req;
+      });
+      setDocumentRequests(updatedRequests);
+
+      try {
+        await bgvAPI.updateStatus(employeeId, "Completed");
+      } catch (err) {
+        console.error("Error updating BGV status to Completed:", err);
+      }
+
+      alert(`Background verification approved for ${employee.name}`);
+    }
+  };
+
+  const handleRejectVerification = async (employeeId) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    if (window.confirm(`Reject background verification for ${employee.name}?`)) {
+      const updatedEmployees = employees.map((emp) =>
+        emp.id === employeeId ? { ...emp, status: "Rejected" } : emp
+      );
+      setEmployees(updatedEmployees);
+
+      const updatedRequests = documentRequests.map((req) => {
+        if (req.employeeId === employeeId) {
+          const updatedReq = {
+            ...req,
+            status: "Rejected",
+          };
+          bgvAPI.saveRequest(updatedReq).catch(err => console.error("Error saving BGV rejection request:", err));
+          return updatedReq;
+        }
+        return req;
+      });
+      setDocumentRequests(updatedRequests);
+
+      try {
+        await bgvAPI.updateStatus(employeeId, "Rejected");
+      } catch (err) {
+        console.error("Error updating BGV status to Rejected:", err);
+      }
+
+      alert(`Background verification rejected for ${employee.name}`);
+    }
+  };
+
+  const modalProps = { employees, setEmployees, selectedEmployees, setSelectedEmployees, activeSection, setActiveSection, searchTerm, setSearchTerm, statusFilter, setStatusFilter, selectedRequest, setSelectedRequest, showRequestDetails, setShowRequestDetails, showEmailModal, setShowEmailModal, emailTemplate, setEmailTemplate, newRequestPhone, setNewRequestPhone, newRequestDepartment, setNewRequestDepartment, newRequestDesignation, setNewRequestDesignation, newRequestEmployeeId, setNewRequestEmployeeId, uploadedDocuments, setUploadedDocuments, emailUploads, setEmailUploads, emailUploadedDocuments, setEmailUploadedDocuments, isExperienced, setIsExperienced, yearsOfExperience, setYearsOfExperience, currentOrganization, setCurrentOrganization, currentRole, setCurrentRole, employmentType, setEmploymentType, currentSalary, setCurrentSalary, noticePeriod, setNoticePeriod, previousExperiences, setPreviousExperiences, globalUploadedDocuments, setGlobalUploadedDocuments, newRequestDob, setNewRequestDob, newRequestGender, setNewRequestGender, newRequestMaritalStatus, setNewRequestMaritalStatus, newRequestParentName, setNewRequestParentName, newRequestParentRelationship, setNewRequestParentRelationship, newRequestParentPhone, setNewRequestParentPhone, newRequestParentEmail, setNewRequestParentEmail, newRequestParentEmployment, setNewRequestParentEmployment, newRequestParentOrganization, setNewRequestParentOrganization, newRequestParentDesignation, setNewRequestParentDesignation, newRequestParentIncome, setNewRequestParentIncome, newRequestParentAddress, setNewRequestParentAddress, newRequestIsGuardian, setNewRequestIsGuardian, educationQualifications, setEducationQualifications, showEducationForm, setShowEducationForm, editingEducation, setEditingEducation, educationLevel, setEducationLevel, schoolCollegeName, setSchoolCollegeName, boardUniversity, setBoardUniversity, passingYear, setPassingYear, joiningYear, setJoiningYear, degree, setDegree, branch, setBranch, percentage, setPercentage, cgpa, setCgpa, gradingSystem, setGradingSystem, experienceOrgName, setExperienceOrgName, experienceRole, setExperienceRole, experienceType, setExperienceType, experienceLocation, setExperienceLocation, experienceSalary, setExperienceSalary, experienceJoiningDate, setExperienceJoiningDate, experienceRelievingDate, setExperienceRelievingDate, experienceHistory, setExperienceHistory, currentAddress, setCurrentAddress, permanentAddress, setPermanentAddress, sameAsCurrent, setSameAsCurrent, showDeleteModal, setShowDeleteModal, employeeToDelete, setEmployeeToDelete, deleting, setDeleting, editingEmployeeId, setEditingEmployeeId, editEmployeeName, setEditEmployeeName, editEmployeePhone, setEditEmployeePhone, editEmployeeEmail, setEditEmployeeEmail, editEmployeeDepartment, setEditEmployeeDepartment, editEmployeeDesignation, setEditEmployeeDesignation, editEmployeeId, setEditEmployeeId, emailSubject, setEmailSubject, documentRequests, setDocumentRequests, sendingEmail, setSendingEmail, emailStatus, setEmailStatus, emailMethod, setEmailMethod, ccEmails, setCcEmails, bccEmails, setBccEmails, showNewRequestModal, setShowNewRequestModal, newRequestEmail, setNewRequestEmail, newRequestName, setNewRequestName, newRequestTemplate, setNewRequestTemplate, newRequestSubject, setNewRequestSubject, handleNewRequest, handleSendEmail, getRequiredDocuments, handleDocumentUpload, handleReplaceDocumentClick, handleRemoveDocument, handleViewDocument, handleReuploadDocument, requiredDocuments, handleUpdateExistingDocument, handleSendNewRequest, handleEmailDocumentUpload, handleSelectEmployee, handleSelectAll, handleClearEmailUploads, handleUpdateEmailDocument, handleConfirmSendEmail, handlePreviewDocument, handleUpdateDocument, handleEditEmployee, handleSaveEmployeeEdit, handleConfirmSendEmailWithEdits, handleDeleteEmployee, handleApproveVerification, handleRejectVerification };
 
   return (
     <div className="min-h-screen w-full">
@@ -1795,47 +1815,36 @@ const BackgroundVerification = () => {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {[
-            {
-              title: "Total Employees",
-              value: employees.length,
-              icon: "heroicons:users",
-              iconBg: "bg-blue-50",
-              iconColor: "text-blue-500",
-            },
-            {
-              title: "Pending",
-              value: employees.filter((e) => e.status === "Pending" || e.status === "Not Started").length,
-              icon: "heroicons:clock",
-              iconBg: "bg-amber-50",
-              iconColor: "text-amber-500",
-            },
-            {
-              title: "In Progress",
-              value: employees.filter((e) => e.status === "In Progress" || e.status === "Request Sent").length,
-              icon: "heroicons:arrow-path",
-              iconBg: "bg-sky-50",
-              iconColor: "text-sky-500",
-            },
-            {
-              title: "Completed",
-              value: employees.filter((e) => e.status === "Completed").length,
-              icon: "heroicons:check-badge",
-              iconBg: "bg-emerald-50",
-              iconColor: "text-emerald-500",
-            },
-          ].map((item, index) => (
-            <div key={index} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 lg:p-5 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 ${item.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
-                <Icon icon={item.icon} className={`w-5 h-5 sm:w-6 sm:h-6 ${item.iconColor}`} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs sm:text-sm font-medium text-gray-500 mb-0.5 sm:mb-1 truncate">{item.title}</div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{item.value}</div>
-              </div>
-            </div>
-          ))}
+          <StatCard
+            title="Total Employees"
+            value={employees.length}
+            icon="heroicons:users"
+            color="blue"
+          />
+
+          <StatCard
+            title="Pending"
+            value={employees.filter((e) => e.status === "Pending" || e.status === "Not Started").length}
+            icon="heroicons:clock"
+            color="yellow"
+          />
+
+          <StatCard
+            title="In Progress"
+            value={employees.filter((e) => e.status === "In Progress" || e.status === "Request Sent").length}
+            icon="heroicons:arrow-path"
+            color="cyan"
+          />
+
+          <StatCard
+            title="Completed"
+            value={employees.filter((e) => e.status === "Completed").length}
+            icon="heroicons:check-badge"
+            color="green"
+          />
         </div>
+
+
 
         {documentRequests.length > 0 && (
           <div className="mb-4 sm:mb-6">
@@ -2127,59 +2136,7 @@ const BackgroundVerification = () => {
                               {request && employee.status === "In Progress" && (
                                 <button
                                   className="p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg hover:border-emerald-100 border border-transparent transition-colors"
-                                  onClick={() => {
-                                    if (
-                                      window.confirm(
-                                        `Approve background verification for ${employee.name}?`
-                                      )
-                                    ) {
-                                      const updatedEmployees = employees.map(
-                                        (emp) =>
-                                          emp.id === employee.id
-                                            ? { ...emp, status: "Completed" }
-                                            : emp
-                                      );
-                                      setEmployees(updatedEmployees);
-
-                                      const updatedRequests =
-                                        documentRequests.map((req) =>
-                                          req.employeeId === employee.id
-                                            ? {
-                                              ...req,
-                                              status: "Completed",
-                                              completedDate:
-                                                new Date().toISOString(),
-                                            }
-                                            : req
-                                        );
-                                      saveDocumentRequests(updatedRequests);
-
-                                      const savedProfiles =
-                                        localStorage.getItem("employeeProfiles");
-                                      if (savedProfiles) {
-                                        const profiles =
-                                          JSON.parse(savedProfiles);
-                                        const updatedProfiles = profiles.map(
-                                          (profile) =>
-                                            (profile.employeeId || profile.id) ===
-                                              employee.id
-                                              ? {
-                                                ...profile,
-                                                bgvStatus: "Completed",
-                                              }
-                                              : profile
-                                        );
-                                        localStorage.setItem(
-                                          "employeeProfiles",
-                                          JSON.stringify(updatedProfiles)
-                                        );
-                                      }
-
-                                      alert(
-                                        `Background verification approved for ${employee.name}`
-                                      );
-                                    }
-                                  }}
+                                  onClick={() => handleApproveVerification(employee.id)}
                                   title="Approve Verification"
                                 >
                                   <Icon icon="heroicons:check" className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -2191,56 +2148,7 @@ const BackgroundVerification = () => {
                                   employee.status === "Pending") && (
                                   <button
                                     className="p-1 sm:p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg hover:border-amber-100 border border-transparent transition-colors"
-                                    onClick={() => {
-                                      if (
-                                        window.confirm(
-                                          `Reject background verification for ${employee.name}?`
-                                        )
-                                      ) {
-                                        const updatedEmployees = employees.map(
-                                          (emp) =>
-                                            emp.id === employee.id
-                                              ? { ...emp, status: "Rejected" }
-                                              : emp
-                                        );
-                                        setEmployees(updatedEmployees);
-
-                                        const updatedRequests =
-                                          documentRequests.map((req) =>
-                                            req.employeeId === employee.id
-                                              ? { ...req, status: "Rejected" }
-                                              : req
-                                          );
-                                        saveDocumentRequests(updatedRequests);
-
-                                        const savedProfiles =
-                                          localStorage.getItem(
-                                            "employeeProfiles"
-                                          );
-                                        if (savedProfiles) {
-                                          const profiles =
-                                            JSON.parse(savedProfiles);
-                                          const updatedProfiles = profiles.map(
-                                            (profile) =>
-                                              (profile.employeeId ||
-                                                profile.id) === employee.id
-                                                ? {
-                                                  ...profile,
-                                                  bgvStatus: "Rejected",
-                                                }
-                                                : profile
-                                          );
-                                          localStorage.setItem(
-                                            "employeeProfiles",
-                                            JSON.stringify(updatedProfiles)
-                                          );
-                                        }
-
-                                        alert(
-                                          `Background verification rejected for ${employee.name}`
-                                        );
-                                      }
-                                    }}
+                                    onClick={() => handleRejectVerification(employee.id)}
                                     title="Reject Verification"
                                   >
                                     <Icon icon="heroicons:x-mark" className="w-4 h-4 sm:w-5 sm:h-5" />

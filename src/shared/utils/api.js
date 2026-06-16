@@ -692,6 +692,40 @@ export const hrAPI = {
 };
 
 // ==========================================
+// BACKGROUND VERIFICATION (BGV) APIs
+// ==========================================
+export const bgvAPI = {
+  // Get all BGV employees/profiles
+  getEmployees: () => apiCall('/api/bgv/employees'),
+
+  // Get BGV document requests
+  getRequests: () => apiCall('/api/bgv/requests'),
+
+  // Create or update a document request
+  saveRequest: (data) =>
+    apiCall('/api/bgv/requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+
+  // Delete a request
+  deleteRequest: (id) =>
+    apiCall(`/api/bgv/requests/${id}`, {
+      method: 'DELETE'
+    }),
+
+  // Update employee BGV status
+  updateStatus: (employeeId, status) =>
+    apiCall(`/api/bgv/employees/${employeeId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    })
+};
+
+
+// ==========================================
 // RESUME PARSING API
 // ==========================================
 export const resumeAPI = {
@@ -1298,6 +1332,7 @@ const apiServices = {
   reportsAPI,
   formsAPI,
   superAdminAPI,
+  bgvAPI,
 };
 
 export default apiServices;
