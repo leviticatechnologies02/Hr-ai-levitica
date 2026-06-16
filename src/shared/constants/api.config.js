@@ -2,10 +2,11 @@
 // Base URL for all backend API calls
 
 // Development environment
-export const BASE_URL = 'https://ai-hr-backend-2.onrender.com';
+// export const BASE_URL = 'https://ai-hr-backend-2.onrender.com';
 // export const BASE_URL = 'http://localhost:8000';
 // For production, you can use environment variable:
 // export const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -98,7 +99,7 @@ export const API_ENDPOINTS = {
     USER: (id) => `/api/admin/users/${id}`,
     SUMMARY: '/api/admin/superadmin/summary',
   },
-
+  
   //Productivity
   PRODUCTIVITY: {
     SUMMARY: '/api/productivity/productivity/summary',
@@ -106,6 +107,11 @@ export const API_ENDPOINTS = {
     ORG_OVERVIEW: '/api/productivity/admin/productivity/overview',
     TEAM_SUMMARY: (teamId) => `/api/productivity/admin/productivity/team/${teamId}`,
     DEPARTMENT_SUMMARY: (deptId) => `/api/productivity/admin/productivity/department/${deptId}`,
+    PROJECTS: '/api/productivity/projectmanagement',
+    TASKS: '/api/productivity/taskmanagement',
+    TIME_TRACKING_OVERVIEW: (period) => `/api/productivity/time-tracking/overview?period=${period}`,
+    TIME_TRACKING_ENTRIES: (period, projectId) => `/api/productivity/time-tracking/entries?period=${period}${projectId ? `&project_id=${projectId}` : ''}`,
+    ADMIN_MONITORING: (page, limit, employeeId) => `/api/productivity/admin/monitoring?page=${page}&limit=${limit}${employeeId ? `&employee_id=${employeeId}` : ''}`,
   },
 
   // Offers

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { HiOutlineRocketLaunch } from 'react-icons/hi2';
+import { HiOutlineRocketLaunch, HiOutlineFolderOpen } from 'react-icons/hi2';
 import DashboardLayoutBase from "../../shared/components/DashboardLayoutBase";
 import {
   HiOutlineHome,
@@ -341,11 +341,20 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
       icon: HiOutlineCog6Tooth
     },
     {
-      type: 'link',
-      to: '/productivity/dashboard',
-      tabKey: 'productivity',
+      type: 'title',
+      label: 'Productivity'
+    },
+    {
+      type: 'dropdown',
       label: 'Productivity',
-      icon: HiOutlineRocketLaunch
+      icon: HiOutlineRocketLaunch,
+      items: [
+        { to: '/productivity/dashboard', tabKey: 'productivity', label: 'Dashboard', icon: HiOutlineRocketLaunch },
+        { to: '/productivity/tasks', tabKey: 'prod-tasks', label: 'Task Tracker', icon: HiOutlineClipboardDocumentList },
+        { to: '/productivity/projects', tabKey: 'prod-projects', label: 'Projects', icon: HiOutlineFolderOpen },
+        { to: '/productivity/time-tracking', tabKey: 'prod-time', label: 'Time Tracking', icon: HiOutlineClock },
+        { to: '/productivity/activity', tabKey: 'prod-activity', label: 'Activity', icon: HiOutlineComputerDesktop },
+      ]
     },
     {
       type: 'title',
