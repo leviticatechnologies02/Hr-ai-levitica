@@ -2,11 +2,11 @@
 // Base URL for all backend API calls
 
 // Development environment
-// export const BASE_URL = 'https://ai-hr-backend-2.onrender.com';
+export const BASE_URL = 'https://ai-hr-backend-2.onrender.com';
 // export const BASE_URL = 'http://localhost:8000';
 // For production, you can use environment variable:
 // export const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // API Endpoints
 export const API_ENDPOINTS = {
