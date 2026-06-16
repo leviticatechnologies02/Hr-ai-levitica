@@ -1,20 +1,6 @@
-// src/components/HRMS/Onboarding&Joining/JoiningDayManagement.jsx
 import React, { useState } from 'react';
 import { Icon } from "@iconify/react/dist/iconify.js";
 
-import {
-  Grid, Paper, Typography, Button, Box, Card, CardContent,
-  IconButton, TextField, FormControl, InputLabel, Select,
-  MenuItem, Checkbox, FormControlLabel, Snackbar, RadioGroup,
-  Radio, Alert
-} from '@mui/material';
-import {
-  Close as CloseIcon, Save as SaveIcon, Info as InfoIcon,
-  PersonAdd as PersonAddIcon
-} from '@mui/icons-material';
-import 'bootstrap/dist/css/bootstrap.min.css';
-
-// Default checklist templates by department (used when saving profile)
 const getDefaultChecklist = (departmentId) => {
   const checklists = {
     HR: [
@@ -43,7 +29,6 @@ const getDefaultChecklist = (departmentId) => {
 };
 
 const JoiningDayManagement = () => {
-  // Profile Creation Form State
   const [profileForm, setProfileForm] = useState({
     candidateId: '',
     employeeId: '',
@@ -72,14 +57,12 @@ const JoiningDayManagement = () => {
     sendWebLogin: true
   });
 
-  // Notification State
-  const [snackbar, setSnackbar] = useState({
-    open: false,
+  const [toast, setToast] = useState({
+    show: false,
     message: '',
-    severity: 'success'
+    type: 'success'
   });
 
-  // Generate Employee ID
   const generateEmployeeId = (department, firstName, lastName) => {
     const deptCode = department ? department.substring(0, 3).toUpperCase() : 'EMP';
     const initials = `${firstName ? firstName[0] : 'F'}${lastName ? lastName[0] : 'L'}`.toUpperCase();
@@ -87,7 +70,6 @@ const JoiningDayManagement = () => {
     return `EMP${deptCode}${initials}${randomNum}`;
   };
 
-  // Reset form
   const resetForm = () => {
     setProfileForm({
       candidateId: '',
@@ -118,15 +100,19 @@ const JoiningDayManagement = () => {
     });
   };
 
-  // Save profile
   const handleSaveProfile = () => {
-    // Auto-generate employee ID if needed
+    if (!profileForm.firstName || !profileForm.joiningDate || !profileForm.gender) {
+      showToast('Please fill all mandatory fields (*)', 'error');
+      return;
+    }
+
     let employeeId = profileForm.employeeId;
     if (profileForm.generateIdAuto && !employeeId && profileForm.firstName && profileForm.lastName && profileForm.department) {
       employeeId = generateEmployeeId(profileForm.department, profileForm.firstName, profileForm.lastName);
+    } else if (profileForm.generateIdAuto && !employeeId) {
+      employeeId = `EMP${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     }
 
-    // Calculate confirmation date if not provided (joining date + 1 month)
     let confirmationDate = profileForm.confirmationDate;
     if (!confirmationDate && profileForm.joiningDate) {
       const joiningDate = new Date(profileForm.joiningDate);
@@ -148,15 +134,10 @@ const JoiningDayManagement = () => {
       createdAt: new Date().toISOString()
     };
 
-    // Load existing profiles from localStorage
     const savedProfiles = localStorage.getItem('employeeProfiles');
     const existingProfiles = savedProfiles ? JSON.parse(savedProfiles) : [];
     const updatedProfiles = [...existingProfiles, newProfile];
-
-    // Save to localStorage
     localStorage.setItem('employeeProfiles', JSON.stringify(updatedProfiles));
-
-    // Create checklist for new employee
     const savedChecklists = localStorage.getItem('employeeChecklists');
     const existingChecklists = savedChecklists ? JSON.parse(savedChecklists) : {};
     existingChecklists[employeeId] = {
@@ -191,7 +172,6 @@ const JoiningDayManagement = () => {
     };
     localStorage.setItem('employeeChecklists', JSON.stringify(existingChecklists));
 
-    // Add to employees list
     const savedEmployees = localStorage.getItem('employeeList');
     const existingEmployees = savedEmployees ? JSON.parse(savedEmployees) : [];
     const newEmployee = {
@@ -206,7 +186,6 @@ const JoiningDayManagement = () => {
     const updatedEmployees = [...existingEmployees, newEmployee];
     localStorage.setItem('employeeList', JSON.stringify(updatedEmployees));
 
-    // Also create a form entry for PreJoiningEngagement
     const savedForms = localStorage.getItem('onboardingForms');
     const existingForms = savedForms ? JSON.parse(savedForms) : [];
     const newForm = {
@@ -222,109 +201,114 @@ const JoiningDayManagement = () => {
     existingForms.unshift(newForm);
     localStorage.setItem('onboardingForms', JSON.stringify(existingForms));
 
-    // Reset form
     resetForm();
-    showSnackbar('Profile created successfully', 'success');
+    showToast('Profile created successfully', 'success');
+  };
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3000);
   };
 
-  // Show snackbar
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  // Close snackbar
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
+  const InputWrapper = ({ label, required, children, helperText }) => (
+    <div className="md:mb-4">
+      <label className="block text-sm font-medium text-midnight_text mb-1.5">
+        {label} {required && <span className="text-rose-500">*</span>}
+      </label>
+      {children}
+      {helperText && <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1"><Icon icon="heroicons:information-circle" className="w-3.5 h-3.5" />{helperText}</p>}
+    </div>
+  );
 
   return (
-    <>
-      <Box>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h5 className="text-3xl fw-bold text-dark mb-2 mt-3 d-flex align-items-center gap-2">
-              <Icon icon='heroicons:calendar' />
-              ADD EMPLOYEE
-            </h5>
-          </div>
+    <div className="animate-fade-in p-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-midnight_text flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl shadow-sm border border-primary/20">
+              <Icon icon="heroicons:user-plus" className="text-primary w-7 h-7" />
+            </div>
+            Add Employee
+          </h1>
+          <p className="text-gray-500 mt-2 font-medium">Create a new employee profile and start the onboarding process.</p>
         </div>
+        <button
+          onClick={resetForm}
+          className="px-4 py-2 hover:bg-rose-50 text-rose-600 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-rose-100 font-medium"
+        >
+          <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
+          Reset Form
+        </button>
+      </div>
 
-        <Paper sx={{ mt: 2, p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6">Add New Employee</Typography>
-            <IconButton onClick={resetForm}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          
-          <Grid container spacing={3} sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
-            {/* Left Column - Employee Personal and Contact Information */}
-            <Grid item xs={12} md={8} sx={{ minWidth: { md: 0 } }}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-                    Employee Personal and Contact Information
-                  </Typography>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="xl:col-span-8 space-y-6">
+          <div className="bg-white rounded-2xl shadow-property border border-gray-100 overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-cyan"></div>
+            <div className="px-4 py-4 border-b border-gray-100 bg-section flex items-center justify-between">
+              <h2 className="text-lg font-bold text-midnight_text flex items-center gap-2">
+                <div className="p-1.5 bg-white rounded-md shadow-sm border border-gray-100">
+                  <Icon icon="heroicons:identification" className="text-primary w-5 h-5" />
+                </div>
+                Personal & Contact Information
+              </h2>
+            </div>
 
-                  {/* Employee Name */}
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    Employee Name
-                  </Typography>
-                  <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        label="First Name *"
-                        value={profileForm.firstName}
-                        onChange={(e) => {
-                          const firstName = e.target.value;
-                          const updatedForm = { ...profileForm, firstName };
-                          if (profileForm.generateIdAuto && firstName && profileForm.lastName && profileForm.department) {
-                            updatedForm.employeeId = generateEmployeeId(profileForm.department, firstName, profileForm.lastName);
-                          }
-                          setProfileForm(updatedForm);
-                        }}
-                        required
-                        size="small"
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        label="Middle Name"
-                        value={profileForm.middleName}
-                        onChange={(e) => setProfileForm({ ...profileForm, middleName: e.target.value })}
-                        size="small"
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        label="Last Name"
-                        value={profileForm.lastName}
-                        onChange={(e) => {
-                          const lastName = e.target.value;
-                          const updatedForm = { ...profileForm, lastName };
-                          if (profileForm.generateIdAuto && profileForm.firstName && lastName && profileForm.department) {
-                            updatedForm.employeeId = generateEmployeeId(profileForm.department, profileForm.firstName, lastName);
-                          }
-                          setProfileForm(updatedForm);
-                        }}
-                        size="small"
-                      />
-                    </Grid>
-                  </Grid>
+            <div className="p-6">
+              <h3 className="text-sm font-bold text-gray-800 tracking-wider mb-4 pb-2 border-b border-gray-100">Name & Identity</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                <InputWrapper label="First Name" required>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                    placeholder="Enter first name"
+                    value={profileForm.firstName}
+                    onChange={(e) => {
+                      const firstName = e.target.value;
+                      const updatedForm = { ...profileForm, firstName };
+                      if (profileForm.generateIdAuto && firstName && profileForm.lastName && profileForm.department) {
+                        updatedForm.employeeId = generateEmployeeId(profileForm.department, firstName, profileForm.lastName);
+                      }
+                      setProfileForm(updatedForm);
+                    }}
+                  />
+                </InputWrapper>
+                <InputWrapper label="Middle Name">
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                    placeholder="Enter middle name"
+                    value={profileForm.middleName}
+                    onChange={(e) => setProfileForm({ ...profileForm, middleName: e.target.value })}
+                  />
+                </InputWrapper>
+                <InputWrapper label="Last Name">
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                    placeholder="Enter last name"
+                    value={profileForm.lastName}
+                    onChange={(e) => {
+                      const lastName = e.target.value;
+                      const updatedForm = { ...profileForm, lastName };
+                      if (profileForm.generateIdAuto && profileForm.firstName && lastName && profileForm.department) {
+                        updatedForm.employeeId = generateEmployeeId(profileForm.department, profileForm.firstName, lastName);
+                      }
+                      setProfileForm(updatedForm);
+                    }}
+                  />
+                </InputWrapper>
+              </div>
 
-                  {/* Dates */}
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    Dates
-                  </Typography>
-                  <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Joining Date *"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 tracking-wider mb-4 pb-2 border-b border-gray-100">Important Dates</h3>
+                  <div className="space-y-4">
+                    <InputWrapper label="Joining Date" required>
+                      <input
                         type="date"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
                         value={profileForm.joiningDate}
                         onChange={(e) => {
                           const joiningDate = e.target.value;
@@ -334,391 +318,371 @@ const JoiningDayManagement = () => {
                             confirmationDate: joiningDate ? '' : profileForm.confirmationDate
                           });
                         }}
-                        InputLabelProps={{ shrink: true }}
-                        required
-                        size="small"
                       />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Confirmation Date"
+                    </InputWrapper>
+                    <InputWrapper label="Confirmation Date" helperText="Joining Date + 1 month will be considered if left blank">
+                      <input
                         type="date"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
                         value={profileForm.confirmationDate}
                         onChange={(e) => setProfileForm({ ...profileForm, confirmationDate: e.target.value })}
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        helperText="Joining Date + 1 month will be considered, if left blank"
                       />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Date of Birth"
+                    </InputWrapper>
+                    <InputWrapper label="Date of Birth" helperText="Optional but recommended">
+                      <input
                         type="date"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
                         value={profileForm.dateOfBirth}
                         onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
-                        InputLabelProps={{ shrink: true }}
-                        placeholder="dd-mm-yyyy"
-                        size="small"
-                        helperText="Optional but recommended"
                       />
-                    </Grid>
-                  </Grid>
+                    </InputWrapper>
+                  </div>
+                </div>
 
-                  {/* Gender */}
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    Gender *
-                  </Typography>
-                  <FormControl component="fieldset" sx={{ mb: 3 }}>
-                    <RadioGroup
-                      row
-                      value={profileForm.gender}
-                      onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
-                    >
-                      <FormControlLabel value="Male" control={<Radio />} label="Male" />
-                      <FormControlLabel value="Female" control={<Radio />} label="Female" />
-                      <FormControlLabel value="Transgender" control={<Radio />} label="Transgender" />
-                    </RadioGroup>
-                  </FormControl>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 tracking-wider mb-4 pb-2 border-b border-gray-100">Identity Details</h3>
+                  <div className="space-y-4">
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-midnight_text mb-3">Gender <span className="text-rose-500">*</span></label>
+                      <div className="flex flex-wrap items-center gap-6">
+                        {['Male', 'Female', 'Transgender'].map(g => (
+                          <label key={g} className="flex items-center gap-2 cursor-pointer group">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${profileForm.gender === g ? 'border-primary' : 'border-gray-300 group-hover:border-primary/50'}`}>
+                              {profileForm.gender === g && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
+                            </div>
+                            <input type="radio" className="hidden" name="gender" value={g} checked={profileForm.gender === g} onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })} />
+                            <span className="text-sm font-medium text-gray-700">{g}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
 
-                  {/* Codes */}
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    Codes
-                  </Typography>
-                  <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField
-                          fullWidth
-                          label="Employee Code *"
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-midnight_text mb-1.5">Employee Code <span className="text-rose-500">*</span></label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="text"
+                          disabled={profileForm.generateIdAuto}
+                          className={`flex-1 px-4 py-2.5 border border-gray-200 rounded-lg outline-none text-midnight_text transition-all duration-200 ${profileForm.generateIdAuto ? 'bg-gray-100 cursor-not-allowed opacity-70' : 'bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary'}`}
                           value={profileForm.employeeId}
                           onChange={(e) => setProfileForm({ ...profileForm, employeeId: e.target.value })}
-                          required
-                          size="small"
-                          helperText="Will be auto-generated"
-                          disabled={profileForm.generateIdAuto}
+                          placeholder="Auto-generated"
                         />
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={profileForm.generateIdAuto}
-                              onChange={(e) => setProfileForm({ ...profileForm, generateIdAuto: e.target.checked })}
-                              sx={{ ml: 1 }}
-                            />
-                          }
-                          label="Auto"
-                        />
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField
-                          fullWidth
-                          label="Biometric Code"
-                          value={profileForm.biometricCode}
-                          onChange={(e) => setProfileForm({ ...profileForm, biometricCode: e.target.value })}
-                          size="small"
-                        />
-                        <InfoIcon color="action" />
-                      </Box>
-                    </Grid>
-                  </Grid>
+                        <label className="flex items-center gap-2 cursor-pointer group bg-gray-50 px-3 py-2.5 rounded-lg border border-gray-200 hover:border-primary/30 transition-colors">
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${profileForm.generateIdAuto ? 'bg-primary border-primary' : 'bg-white border-gray-300'}`}>
+                            {profileForm.generateIdAuto && <Icon icon="heroicons:check" className="text-white w-3 h-3" />}
+                          </div>
+                          <input type="checkbox" className="hidden" checked={profileForm.generateIdAuto} onChange={(e) => setProfileForm({ ...profileForm, generateIdAuto: e.target.checked })} />
+                          <span className="text-sm font-medium text-gray-700">Auto</span>
+                        </label>
+                      </div>
+                    </div>
 
-                  {/* Contact Information */}
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    Contact Information
-                  </Typography>
-                  <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Mobile Number"
-                        value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                        size="small"
-                        helperText="Enter 10-digits only"
-                        inputProps={{ maxLength: 10 }}
+                    <InputWrapper label="Biometric Code">
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                        placeholder="Enter biometric code"
+                        value={profileForm.biometricCode}
+                        onChange={(e) => setProfileForm({ ...profileForm, biometricCode: e.target.value })}
                       />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Personal Email"
-                        type="email"
-                        value={profileForm.email}
-                        onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                        size="small"
-                        helperText="Optional"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Official Email"
-                        type="email"
-                        value={profileForm.officialEmail}
-                        onChange={(e) => setProfileForm({ ...profileForm, officialEmail: e.target.value })}
-                        size="small"
-                        helperText="Company email address"
-                      />
-                    </Grid>
-                  </Grid>
+                    </InputWrapper>
+                  </div>
+                </div>
+              </div>
 
-                  {/* Employee Self-Service Access */}
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    Employee Self-Service Access
-                  </Typography>
-                  <Box sx={{ mb: 3 }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={profileForm.sendMobileLogin}
-                          onChange={(e) => setProfileForm({ ...profileForm, sendMobileLogin: e.target.checked })}
-                        />
-                      }
-                      label="Send Mobile Login"
+              <h3 className="text-sm font-bold text-gray-800 tracking-wider mb-4 mt-8 pb-2 border-b border-gray-100">Contact Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <InputWrapper label="Mobile Number" helperText="Enter 10-digits only">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Icon icon="heroicons:phone" className="w-5 h-5" />
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength="10"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                      placeholder="e.g. 9876543210"
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                     />
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={profileForm.sendWebLogin}
-                          onChange={(e) => setProfileForm({ ...profileForm, sendWebLogin: e.target.checked })}
-                        />
-                      }
-                      label="Send Web Login"
+                  </div>
+                </InputWrapper>
+                <InputWrapper label="Personal Email" helperText="Optional">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Icon icon="heroicons:envelope" className="w-5 h-5" />
+                    </span>
+                    <input
+                      type="email"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                      placeholder="personal@example.com"
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
                     />
-                  </Box>
+                  </div>
+                </InputWrapper>
+                <InputWrapper label="Official Email" helperText="Company email address">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Icon icon="heroicons:building-office" className="w-5 h-5" />
+                    </span>
+                    <input
+                      type="email"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                      placeholder="employee@company.com"
+                      value={profileForm.officialEmail}
+                      onChange={(e) => setProfileForm({ ...profileForm, officialEmail: e.target.value })}
+                    />
+                  </div>
+                </InputWrapper>
+              </div>
 
-                  {/* Save Button */}
-<Button
-  variant="contained"
-  startIcon={<SaveIcon />}
-  onClick={handleSaveProfile}
-  fullWidth
-  className="save-btn"
->
-  Save
-</Button>
-                </CardContent>
-              </Card>
-            </Grid>
+              <div className="mt-8 p-3 bg-primary/5 border border-primary/10 rounded-xl">
+                <h3 className="text-sm font-bold text-midnight_text mb-4 flex items-center gap-2">
+                  <Icon icon="heroicons:device-phone-mobile" className="w-5 h-5 text-primary" />
+                  Employee Self-Service Access
+                </h3>
+                <div className="flex flex-wrap items-center gap-6">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${profileForm.sendMobileLogin ? 'bg-primary border-primary' : 'bg-white border-gray-300'}`}>
+                      {profileForm.sendMobileLogin && <Icon icon="heroicons:check" className="text-white w-3.5 h-3.5" />}
+                    </div>
+                    <input type="checkbox" className="hidden" checked={profileForm.sendMobileLogin} onChange={(e) => setProfileForm({ ...profileForm, sendMobileLogin: e.target.checked })} />
+                    <span className="font-medium text-gray-700">Send Mobile Login Credentials</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${profileForm.sendWebLogin ? 'bg-primary border-primary' : 'bg-white border-gray-300'}`}>
+                      {profileForm.sendWebLogin && <Icon icon="heroicons:check" className="text-white w-3.5 h-3.5" />}
+                    </div>
+                    <input type="checkbox" className="hidden" checked={profileForm.sendWebLogin} onChange={(e) => setProfileForm({ ...profileForm, sendWebLogin: e.target.checked })} />
+                    <span className="font-medium text-gray-700">Send Web Login Credentials</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {/* Right Column - Work Profile and Policies */}
-            <Grid item xs={12} md={4} sx={{ minWidth: { md: 360 } }}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  {/* Work Profile */}
-                  <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-                    Work Profile (Optional)
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Select work profile for this employee. If you do not select these values now, system will assign default values, which you can edit later.
-                  </Typography>
-                  
-                  <Grid container  spacing={2} sx={{ mb: 4 }}>
-                    {/* Department */}
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="department-label">Department</InputLabel>
-                        <Select
-                          labelId="department-label"
-                          value={profileForm.department}
-                          onChange={(e) => {
-                            const dept = e.target.value;
-                            const updatedForm = { ...profileForm, department: dept };
-                            if (profileForm.generateIdAuto && profileForm.firstName && profileForm.lastName && dept) {
-                              updatedForm.employeeId = generateEmployeeId(dept, profileForm.firstName, profileForm.lastName);
-                            }
-                            setProfileForm(updatedForm);
-                          }}
-                          label="Department"
-                        >
-                          <MenuItem value="">- Select -</MenuItem>
-                          <MenuItem value="Engineering">Engineering</MenuItem>
-                          <MenuItem value="Marketing">Marketing</MenuItem>
-                          <MenuItem value="Sales">Sales</MenuItem>
-                          <MenuItem value="HR">Human Resources</MenuItem>
-                          <MenuItem value="Finance">Finance</MenuItem>
-                          <MenuItem value="Operations">Operations</MenuItem>
-                          <MenuItem value="IT">Information Technology</MenuItem>
-                          <MenuItem value="Admin">Administration</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    
-                    {/* Designation */}
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Designation"
-                        value={profileForm.designation}
-                        onChange={(e) => setProfileForm({ ...profileForm, designation: e.target.value })}
-                        size="small"
-                        placeholder="e.g., Software Engineer"
-                      />
-                    </Grid>
-                    
-                    {/* Business Unit */}
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="business-unit-label">Business Unit</InputLabel>
-                        <Select
-                          labelId="business-unit-label"
-                          value={profileForm.businessUnit}
-                          onChange={(e) => setProfileForm({ ...profileForm, businessUnit: e.target.value })}
-                          label="Business Unit"
-                        >
-                          <MenuItem value="">- Select -</MenuItem>
-                          <MenuItem value="IT">Technology</MenuItem>
-                          <MenuItem value="HR">Human Resources</MenuItem>
-                          <MenuItem value="Finance">Finance</MenuItem>
-                          <MenuItem value="Operations">Operations</MenuItem>
-                          <MenuItem value="Sales">Sales & Marketing</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    
-                    {/* Location */}
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="location-label">Location</InputLabel>
-                        <Select
-                          labelId="location-label"
-                          value={profileForm.location}
-                          onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
-                          label="Location"
-                        >
-                          <MenuItem value="">- Select -</MenuItem>
-                          <MenuItem value="Mumbai">Mumbai</MenuItem>
-                          <MenuItem value="Delhi">Delhi</MenuItem>
-                          <MenuItem value="Bangalore">Bangalore</MenuItem>
-                          <MenuItem value="Hyderabad">Hyderabad</MenuItem>
-                          <MenuItem value="Chennai">Chennai</MenuItem>
-                          <MenuItem value="Pune">Pune</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    
-                    {/* Cost Center */}
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="cost-center-label">Cost Center</InputLabel>
-                        <Select
-                          labelId="cost-center-label"
-                          value={profileForm.costCenter}
-                          onChange={(e) => setProfileForm({ ...profileForm, costCenter: e.target.value })}
-                          label="Cost Center"
-                        >
-                          <MenuItem value="">- Select -</MenuItem>
-                          <MenuItem value="CC001">CC001 - Corporate</MenuItem>
-                          <MenuItem value="CC002">CC002 - Operations</MenuItem>
-                          <MenuItem value="CC003">CC003 - Sales & Marketing</MenuItem>
-                          <MenuItem value="CC004">CC004 - R&D</MenuItem>
-                          <MenuItem value="CC005">CC005 - Support</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    
-                    {/* Grade */}
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="grade-label">Grade</InputLabel>
-                        <Select
-                          labelId="grade-label"
-                          value={profileForm.grade}
-                          onChange={(e) => setProfileForm({ ...profileForm, grade: e.target.value })}
-                          label="Grade"
-                        >
-                          <MenuItem value="">- Select -</MenuItem>
-                          <MenuItem value="A">Grade A (Executive)</MenuItem>
-                          <MenuItem value="B">Grade B (Manager)</MenuItem>
-                          <MenuItem value="C">Grade C (Senior Manager)</MenuItem>
-                          <MenuItem value="D">Grade D (Director)</MenuItem>
-                          <MenuItem value="E">Grade E (VP & Above)</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    
-                    {/* Reporting Manager */}
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Reporting Manager"
-                        value={profileForm.reportingManager}
-                        onChange={(e) => setProfileForm({ ...profileForm, reportingManager: e.target.value })}
-                        size="small"
-                        placeholder="Enter manager's name or employee ID"
-                      />
-                    </Grid>
-                  </Grid>
+        <div className="xl:col-span-4 space-y-6">
+          <div className="bg-white rounded-2xl shadow-property border border-gray-100 overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-secondary to-gray-400"></div>
+            <div className="px-4 py-4 border-b border-gray-100 bg-section flex items-center justify-between">
+              <h2 className="text-lg font-bold text-midnight_text flex items-center gap-2">
+                <div className="p-1.5 bg-white rounded-md shadow-sm border border-gray-100">
+                  <Icon icon="heroicons:briefcase" className="text-secondary w-5 h-5" />
+                </div>
+                Work Profile
+              </h2>
+            </div>
 
-                  {/* Policies */}
-                  <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-                    Policies (Optional)
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Select policies applicable to this employee. If you do not select these values now, system will assign default values, which you can edit later.
-                  </Typography>
-                  
-                  <Grid container spacing={2}>
-                    {/* Shift Policy */}
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="shift-policy-label">Shift Policy</InputLabel>
-                        <Select
-                          labelId="shift-policy-label"
-                          value={profileForm.shiftPolicy}
-                          onChange={(e) => setProfileForm({ ...profileForm, shiftPolicy: e.target.value })}
-                          label="Shift Policy"
-                        >
-                          <MenuItem value="">- Select -</MenuItem>
-                          <MenuItem value="General">General (9 AM - 6 PM)</MenuItem>
-                          <MenuItem value="Night">Night Shift</MenuItem>
-                          <MenuItem value="Flexible">Flexible Hours</MenuItem>
-                          <MenuItem value="Rotational">Rotational Shifts</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    
-                    {/* Week Off Policy - FIXED */}
-                    <Grid item xs={12}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="week-off-policy-label">Week Off Policy</InputLabel>
-                        <Select
-                          labelId="week-off-policy-label"
-                          value={profileForm.weekOffPolicy}
-                          onChange={(e) => setProfileForm({ ...profileForm, weekOffPolicy: e.target.value })}
-                          label="Week Off Policy"
-                        >
-                          <MenuItem value="">- Select -</MenuItem>
-                          <MenuItem value="Sunday">Sunday Fixed</MenuItem>
-                          <MenuItem value="Saturday-Sunday">Saturday & Sunday</MenuItem>
-                          <MenuItem value="Flexible">Flexible Week Off</MenuItem>
-                          <MenuItem value="Rotational">Rotational Week Off</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Paper>
+            <div className="p-6 space-y-4">
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 flex gap-3 text-amber-800 text-sm mb-6">
+                <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p>Select work profile for this employee. System will assign default values if left blank, which can be edited later.</p>
+              </div>
 
-        {/* Snackbar for Notifications */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              <InputWrapper label="Department">
+                <div className="relative">
+                  <select
+                    className="w-full pl-4 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text appearance-none"
+                    value={profileForm.department}
+                    onChange={(e) => {
+                      const dept = e.target.value;
+                      const updatedForm = { ...profileForm, department: dept };
+                      if (profileForm.generateIdAuto && profileForm.firstName && profileForm.lastName && dept) {
+                        updatedForm.employeeId = generateEmployeeId(dept, profileForm.firstName, profileForm.lastName);
+                      }
+                      setProfileForm(updatedForm);
+                    }}
+                  >
+                    <option value="">- Select Department -</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
+                    <option value="HR">Human Resources</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Operations">Operations</option>
+                    <option value="IT">Information Technology</option>
+                    <option value="Admin">Administration</option>
+                  </select>
+                  <Icon icon="heroicons:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+              </InputWrapper>
+
+              <InputWrapper label="Designation">
+                <input
+                  type="text"
+                  className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                  placeholder="e.g., Software Engineer"
+                  value={profileForm.designation}
+                  onChange={(e) => setProfileForm({ ...profileForm, designation: e.target.value })}
+                />
+              </InputWrapper>
+
+              <div className="grid grid-cols-2 gap-4">
+                <InputWrapper label="Business Unit">
+                  <div className="relative">
+                    <select
+                      className="w-full pl-4 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text appearance-none text-sm"
+                      value={profileForm.businessUnit}
+                      onChange={(e) => setProfileForm({ ...profileForm, businessUnit: e.target.value })}
+                    >
+                      <option value="">- Select -</option>
+                      <option value="IT">Technology</option>
+                      <option value="HR">HR</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Operations">Operations</option>
+                      <option value="Sales">Sales</option>
+                    </select>
+                    <Icon icon="heroicons:chevron-down" className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </InputWrapper>
+
+                <InputWrapper label="Location">
+                  <div className="relative">
+                    <select
+                      className="w-full pl-4 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text appearance-none text-sm"
+                      value={profileForm.location}
+                      onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
+                    >
+                      <option value="">- Select -</option>
+                      <option value="Mumbai">Mumbai</option>
+                      <option value="Delhi">Delhi</option>
+                      <option value="Bangalore">Bangalore</option>
+                      <option value="Hyderabad">Hyderabad</option>
+                      <option value="Chennai">Chennai</option>
+                      <option value="Pune">Pune</option>
+                    </select>
+                    <Icon icon="heroicons:chevron-down" className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </InputWrapper>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <InputWrapper label="Cost Center">
+                  <div className="relative">
+                    <select
+                      className="w-full pl-4 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text appearance-none text-sm"
+                      value={profileForm.costCenter}
+                      onChange={(e) => setProfileForm({ ...profileForm, costCenter: e.target.value })}
+                    >
+                      <option value="">- Select -</option>
+                      <option value="CC001">CC001</option>
+                      <option value="CC002">CC002</option>
+                      <option value="CC003">CC003</option>
+                      <option value="CC004">CC004</option>
+                      <option value="CC005">CC005</option>
+                    </select>
+                    <Icon icon="heroicons:chevron-down" className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </InputWrapper>
+
+                <InputWrapper label="Grade">
+                  <div className="relative">
+                    <select
+                      className="w-full pl-4 pr-8 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text appearance-none text-sm"
+                      value={profileForm.grade}
+                      onChange={(e) => setProfileForm({ ...profileForm, grade: e.target.value })}
+                    >
+                      <option value="">- Select -</option>
+                      <option value="A">Grade A</option>
+                      <option value="B">Grade B</option>
+                      <option value="C">Grade C</option>
+                      <option value="D">Grade D</option>
+                      <option value="E">Grade E</option>
+                    </select>
+                    <Icon icon="heroicons:chevron-down" className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </InputWrapper>
+              </div>
+
+              <InputWrapper label="Reporting Manager">
+                <input
+                  type="text"
+                  className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
+                  placeholder="Enter manager's name/ID"
+                  value={profileForm.reportingManager}
+                  onChange={(e) => setProfileForm({ ...profileForm, reportingManager: e.target.value })}
+                />
+              </InputWrapper>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-property border border-gray-100 overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+            <div className="px-4 py-4 border-b border-gray-100 bg-section flex items-center justify-between">
+              <h2 className="text-lg font-bold text-midnight_text flex items-center gap-2">
+                <div className="p-1.5 bg-white rounded-md shadow-sm border border-gray-100">
+                  <Icon icon="heroicons:clipboard-document-list" className="text-purple-600 w-5 h-5" />
+                </div>
+                Policies
+              </h2>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <InputWrapper label="Shift Policy">
+                <div className="relative">
+                  <select
+                    className="w-full pl-4 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text appearance-none"
+                    value={profileForm.shiftPolicy}
+                    onChange={(e) => setProfileForm({ ...profileForm, shiftPolicy: e.target.value })}
+                  >
+                    <option value="">- Select Shift -</option>
+                    <option value="General">General (9 AM - 6 PM)</option>
+                    <option value="Night">Night Shift</option>
+                    <option value="Flexible">Flexible Hours</option>
+                    <option value="Rotational">Rotational Shifts</option>
+                  </select>
+                  <Icon icon="heroicons:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+              </InputWrapper>
+
+              <InputWrapper label="Week Off Policy">
+                <div className="relative">
+                  <select
+                    className="w-full pl-4 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text appearance-none"
+                    value={profileForm.weekOffPolicy}
+                    onChange={(e) => setProfileForm({ ...profileForm, weekOffPolicy: e.target.value })}
+                  >
+                    <option value="">- Select Week Off -</option>
+                    <option value="Sunday">Sunday Fixed</option>
+                    <option value="Saturday-Sunday">Saturday & Sunday</option>
+                    <option value="Flexible">Flexible Week Off</option>
+                    <option value="Rotational">Rotational Week Off</option>
+                  </select>
+                  <Icon icon="heroicons:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+              </InputWrapper>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
+        <button
+          onClick={resetForm}
+          className="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors flex items-center gap-2"
         >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </>
+          <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+          Cancel
+        </button>
+        <button
+          onClick={handleSaveProfile}
+          className="px-8 py-2.5 bg-gradient-to-r from-primary to-primary-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
+        >
+          <Icon icon="heroicons:document-check" className="w-5 h-5" />
+          Save Profile
+        </button>
+      </div>
+
+      {toast.show && (
+        <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-lg border flex items-center gap-3 animate-slide-up z-[999] ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+          <Icon icon={toast.type === 'success' ? "heroicons:check-circle" : "heroicons:exclamation-circle"} className={`w-6 h-6 ${toast.type === 'success' ? 'text-emerald-500' : 'text-rose-500'}`} />
+          <span className="font-medium">{toast.message}</span>
+        </div>
+      )}
+    </div>
   );
 };
 
