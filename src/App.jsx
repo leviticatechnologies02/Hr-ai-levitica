@@ -6,7 +6,6 @@ import Login from './modules/auth/Login';
 import ForgotPassword from './modules/auth/ForgotPassword';
 import PricingPage from './modules/auth/PricingPage';
 import ProtectedRoute from './modules/auth/ProtectedRoute';
-import ProductivityDashboard from "./modules/productivity/dashboard/ProductivityDashboard";
 import SuperAdminPanel from './modules/super-admin/SuperAdminPanel';
 import SuperAdminLayout from './modules/super-admin/SuperAdminLayout';
 import MultiTenantSetup from './modules/super-admin/MultiTenantSetup';
@@ -151,8 +150,12 @@ import CandidateJobSearch from './modules/candidate/CandidateJobSearch';
 import CandidateApplications from './modules/candidate/CandidateApplications';
 import CandidateProfile from './modules/candidate/CandidateProfile';
 
-
-
+//productivity
+import ProductivityDashboard from "./modules/productivity/dashboard/ProductivityDashboard";
+import TaskTracker from "./modules/productivity/tasks/TaskTracker";
+import Projects from "./modules/productivity/projects/Projects";
+import TimeTracking from "./modules/productivity/timetracking/TimeTracking";
+import Activity from "./modules/productivity/activity/Activity";
 
 
 const App = () => {
@@ -189,7 +192,10 @@ const App = () => {
         }
       />
       <Route path='/productivity/dashboard' element={<ProtectedRoute><RecruiterDashboardLayout><ProductivityDashboard /></RecruiterDashboardLayout></ProtectedRoute>} />
-
+      <Route path='/productivity/tasks' element={<ProtectedRoute><RecruiterDashboardLayout><TaskTracker /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/projects' element={<ProtectedRoute><RecruiterDashboardLayout><Projects /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/time-tracking' element={<ProtectedRoute><RecruiterDashboardLayout><TimeTracking /></RecruiterDashboardLayout></ProtectedRoute>} />
+      <Route path='/productivity/activity' element={<ProtectedRoute><RecruiterDashboardLayout><Activity /></RecruiterDashboardLayout></ProtectedRoute>} />
       <Route
         path='/candidates'
         element={
