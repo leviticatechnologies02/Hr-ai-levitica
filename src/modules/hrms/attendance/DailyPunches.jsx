@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Breadcrump from "../../../shared/components/Breadcrump";
+import { Icon } from "@iconify/react";
+
+import SelfiePunchModal from "../modal/SelfiePunchModal";
+import PunchLocationModal from "../modal/PunchLocationModal";
+import AddPunchModal from "../modal/AddPunchModal";
+import AllPunchesModal from "../modal/AllPunchesModal";
 
 function DailyPunches() {
   const businessUnit = ["All Units", "Default Business Units"];
@@ -23,90 +28,14 @@ function DailyPunches() {
     "Product Development Team",
     "Technical Support",
   ];
-  const [message, setMessage] = useState("");
+
   const [showModal, setShowModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showAddPunchModal, setShowAddPunchModal] = useState(false);
   const [showAllPunchesModal, setShowAllPunchesModal] = useState(false);
   const [selectedPunchForModal, setSelectedPunchForModal] = useState(null);
-  const [punchesData, setPunchesData] = useState([
-    {
-      id: 1,
-      name: "Burri Gowtham",
-      code: "LEV092",
-      designation: "Associate Software Engineer",
-      businessUnit: "Default Business Units",
-      location: "Hyderabad",
-      costCenter: "Associate Software Engineer",
-      department: "OD Team",
-      start: "09:01:49AM",
-      end: "06:01:49PM",
-      duration: "8:58",
-      attendance: "P",
-      attendanceColor: "primary",
-      registeredFace: "/assets/img/users/user-11.jpg",
-      punchImage: "/assets/img/users/user-11.jpg",
-      locationUrl:
-        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.2667144226825!2d78.38363737377158!3d17.446943901089455!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb910d8d1c4f8b%3A0x6ef1b184af90fa3f!2sCapital%20Park!5e0!3m2!1sen!2sin!4v1756977794236!5m2!1sen!2sin",
-    },
-    {
-      id: 2,
-      name: "Chodisetti Sri Rama Sai",
-      code: "LEV081",
-      designation: "Associate Software Engineer",
-      businessUnit: "All Units",
-      location: "Chennai",
-      costCenter: "Associate Software Engineer",
-      department: "Product Development Team",
-      start: "09:12:46",
-      end: "",
-      duration: "0:00",
-      attendance: "P",
-      attendanceColor: "info",
-      registeredFace: "/assets/img/users/user-01.jpg",
-      punchImage: "/assets/img/users/user-01.jpg",
-      locationUrl:
-        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.2667144226825!2d78.38363737377158!3d17.446943901089455!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb910d8d1c4f8b%3A0x6ef1b184af90fa3f!2sCapital%20Park!5e0!3m2!1sen!2sin!4v1756977794236!5m2!1sen!2sin",
-    },
-    {
-      id: 3,
-      name: "Dheeraj Krishna Jakkula",
-      code: "LEV079",
-      designation: "Associate Software Engineer",
-      businessUnit: "Default Business Units",
-      location: "Mumbai",
-      costCenter: "Associate Software Engineer",
-      department: "Technical Support",
-      start: "08:55:28",
-      end: "",
-      duration: "0:00",
-      attendance: "P",
-      attendanceColor: "info",
-      registeredFace: "/assets/img/users/user-37.jpg",
-      punchImage: "/assets/img/users/user-37.jpg",
-      locationUrl:
-        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.2667144226825!2d78.38363737377158!3d17.446943901089455!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb910d8d1c4f8b%3A0x6ef1b184af90fa3f!2sCapital%20Park!5e0!3m2!1sen!2sin!4v1756977794236!5m2!1sen!2sin",
-    },
-    {
-      id: 4,
-      name: "Dubbaka Bharath",
-      code: "LEV085",
-      designation: "Hr Executive",
-      businessUnit: "All Units",
-      location: "Kerala",
-      costCenter: "Hr Executive",
-      department: "OD Team",
-      start: "09:02:58",
-      end: "",
-      duration: "0:00",
-      attendance: "P",
-      attendanceColor: "info",
-      registeredFace: "/assets/img/users/.jpg",
-      punchImage: "/assets/img/users/.jpg",
-      locationUrl:
-        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.2667144226825!2d78.38363737377158!3d17.446943901089455!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb910d8d1c4f8b%3A0x6ef1b184af90fa3f!2sCapital%20Park!5e0!3m2!1sen!2sin!4v1756977794236!5m2!1sen!2sin",
-    },
-  ]);
+  const [punchesData, setPunchesData] = useState([]);
+
   const [filter, setFilter] = useState({
     businessUnit: "All Units",
     location: "All Locations",
@@ -116,7 +45,6 @@ function DailyPunches() {
   });
   const [selectedPunchFilter, setSelectedPunchFilter] = useState("all");
 
-  // Initialize date to today
   const getFormattedDate = (dateObj) => {
     const day = String(dateObj.getDate()).padStart(2, "0");
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -125,55 +53,33 @@ function DailyPunches() {
   };
 
   const [selectedDate, setSelectedDate] = useState(getFormattedDate(new Date()));
-  const [selectedPunch, setSelectedPunch] = useState(null);
-
-  // Add punch form state
-  const [punchFormData, setPunchFormData] = useState({
-    date: "",
-    time: { hh: "", mm: "", ss: "" },
-    remarks: "",
-    type: "selfie",
-  });
-
-  // Employee punches tracking
   const [employeePunches, setEmployeePunches] = useState({});
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilter((prev) => ({ ...prev, [name]: value }));
   };
 
-  const onPunchFilterChange = (e) => setSelectedPunchFilter(e.target.value);
-  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const onPunchFilterChange = (value) => setSelectedPunchFilter(value);
 
   const handleView = () => {
     toast.info(`👀 Viewing punches for ${selectedDate}`);
-    console.log("View:", selectedDate, selectedPunchFilter);
   };
 
-  // Comprehensive filtering
   const filteredPunches = punchesData.filter((p) => {
-    // Business Unit filter
     if (filter.businessUnit !== "All Units" && p.businessUnit !== filter.businessUnit) {
       return false;
     }
-
-    // Location filter
     if (filter.location !== "All Locations" && p.location !== filter.location) {
       return false;
     }
-
-    // Cost Center filter
     if (filter.costCenter !== "All Cost Centers" && p.costCenter !== filter.costCenter) {
       return false;
     }
-
-    // Department filter
     if (filter.department !== "All Departments" && p.department !== filter.department) {
       return false;
     }
-
-    // Search filter
     if (filter.search) {
       const searchLower = filter.search.toLowerCase();
       const name = (p.name || "").toLowerCase();
@@ -184,8 +90,6 @@ function DailyPunches() {
         return false;
       }
     }
-
-    // Status filter
     if (selectedPunchFilter === "late" && p.attendance !== "L") {
       return false;
     }
@@ -195,33 +99,27 @@ function DailyPunches() {
     if (selectedPunchFilter === "nopunch" && (p.start !== "" && p.end !== "")) {
       return false;
     }
-
     return true;
   });
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 2;
   const totalPages = Math.ceil(filteredPunches.length / itemsPerPage);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filter, selectedPunchFilter]);
 
-  // Paginated data
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentData = filteredPunches.slice(startIndex, endIndex);
-  const [jumpPage, setJumpPage] = useState("");
 
-  // Page change
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
-  // IMPORT CSV FUNCTION (NO LIBS)
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -230,14 +128,12 @@ function DailyPunches() {
     reader.onload = (event) => {
       const text = event.target.result;
       const lines = text.split("\n").filter((line) => line.trim() !== "");
-
       const headers = lines[0].split(",").map((h) => h.trim());
       const rows = lines.slice(1);
 
       const importedData = rows.map((line, idx) => {
         const values = line.split(",").map((v) => v.trim());
         const punch = {};
-
         headers.forEach((header, i) => {
           punch[header] = values[i] || "";
         });
@@ -261,11 +157,9 @@ function DailyPunches() {
       setPunchesData((prev) => [...prev, ...importedData]);
       toast.success("CSV imported successfully!");
     };
-
     reader.readAsText(file);
   };
 
-  // EXPORT CSV FUNCTION (NO LIBS)
   const handleExport = () => {
     if (!filteredPunches.length) {
       toast.error("No data to export!");
@@ -278,7 +172,7 @@ function DailyPunches() {
     filteredPunches.forEach((row) => {
       const values = headers.map((header) => {
         const val = row[header] ? row[header].toString() : "";
-        return `"${val.replace(/"/g, '""')}"`; // Escape quotes
+        return `"${val.replace(/"/g, '""')}"`;
       });
       csvRows.push(values.join(","));
     });
@@ -286,7 +180,6 @@ function DailyPunches() {
     const csvString = csvRows.join("\n");
     const blob = new Blob([csvString], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-
     const a = document.createElement("a");
     a.href = url;
     a.download = `daily_punches_${selectedDate.replace(/-/g, "_")}.csv`;
@@ -295,43 +188,33 @@ function DailyPunches() {
     toast.success("CSV exported successfully!");
   };
 
-  // Format to "DD/MM/YYYY" (e.g., "07/1/2026")
   const formatDate = (date) => {
     const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1);
+    const monthIndex = String(date.getMonth() + 1);
     const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${day}/${monthIndex}/${year}`;
   };
 
   const month = formatDate(currentMonthDate);
 
-  // Modify handleMonthChange to move by one day instead of one month
   const handleMonthChange = (direction) => {
     setCurrentMonthDate((prevDate) => {
       const newDate = new Date(prevDate);
       if (direction === "prev") {
-        newDate.setDate(newDate.getDate() - 1); // Go to previous day
+        newDate.setDate(newDate.getDate() - 1);
       } else if (direction === "next") {
-        newDate.setDate(newDate.getDate() + 1); // Go to next day
+        newDate.setDate(newDate.getDate() + 1);
       }
 
-      // Update selectedDate (format as "dd-mm-yyyy")
       const day = String(newDate.getDate()).padStart(2, "0");
-      const month = String(newDate.getMonth() + 1).padStart(2, "0");
+      const monthIndex = String(newDate.getMonth() + 1).padStart(2, "0");
       const year = newDate.getFullYear();
-      setSelectedDate(`${day}-${month}-${year}`);
+      setSelectedDate(`${day}-${monthIndex}-${year}`);
 
       return newDate;
     });
   };
 
-  const getDaysInMonth = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month + 1, 0).getDate(); // last day of the month
-  };
-
-  // Initialize employee punches data
   useEffect(() => {
     setEmployeePunches((prev) => {
       const updated = { ...prev };
@@ -347,329 +230,347 @@ function DailyPunches() {
     });
   }, [punchesData.length]);
 
-  // Prevent body scroll when modals are open
-  useEffect(() => {
-    if (showModal || showLocationModal || showAddPunchModal || showAllPunchesModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+  const handleAddPunchSubmit = (formData) => {
+    const { date, time, remarks, type } = formData;
+    if (!date) {
+      toast.error("Please select a punch date");
+      return;
     }
-    return () => {
-      document.body.style.overflow = "";
+    if (!time.hh || !time.mm || !time.ss) {
+      toast.error("Please enter complete punch time (HH:MM:SS)");
+      return;
+    }
+
+    const finalTime = `${String(time.hh).padStart(2, "0")}:${String(time.mm).padStart(2, "0")}:${String(time.ss).padStart(2, "0")}`;
+    const punchTypeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+
+    const newPunch = {
+      time: finalTime,
+      type: `${punchTypeLabel} Punch`,
+      direction: "IN",
+      id: `${selectedPunchForModal.id}-${Date.now()}`,
     };
-  }, [showModal, showLocationModal, showAddPunchModal, showAllPunchesModal]);
+
+    setEmployeePunches((prev) => ({
+      ...prev,
+      [selectedPunchForModal.id]: [
+        ...(prev[selectedPunchForModal.id] || []),
+        newPunch,
+      ],
+    }));
+
+    toast.success(`Punch added: ${date} ${finalTime} (${punchTypeLabel})`);
+    setShowAddPunchModal(false);
+    setSelectedPunchForModal(null);
+  };
+
+  const handleDeletePunch = (punchId) => {
+    if (!selectedPunchForModal) return;
+    const updatedPunches = employeePunches[selectedPunchForModal.id].filter(
+      (p) => p.id !== punchId
+    );
+    setEmployeePunches((prev) => ({
+      ...prev,
+      [selectedPunchForModal.id]: updatedPunches,
+    }));
+    toast.success("Punch deleted successfully");
+  };
+
+  const getAttendanceBadge = (status) => {
+    switch (status) {
+      case "P":
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+            Present
+          </span>
+        );
+      case "A":
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
+            Absent
+          </span>
+        );
+      case "L":
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100">
+            Late
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+            {status}
+          </span>
+        );
+    }
+  };
 
   return (
-    <div>
+    <div className="w-full mx-auto max-w-7xl space-y-4 sm:space-y-6">
 
-
-      {/* ===== Header ===== */}
-      <div className="d-flex flex-wrap align-items-center justify-content-between mb-3 mt-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
         <div>
-          <div className="fw-bold h4 h2-md">Daily Punches</div>
-          <div className="text-muted" style={{ fontSize: "0.85rem" }}>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Icon icon="heroicons:clock" className="w-6 h-6 text-blue-600" />
+            Daily Punches
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
             View or edit daily time punches for a single date.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <label className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
+            <Icon icon="heroicons:arrow-up-tray" className="w-4 h-4" />
+            Upload CSV
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
+
+          <button
+            type="button"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/10"
+            onClick={handleExport}
+          >
+            <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div className="border border-slate-200 bg-white/50 backdrop-blur-sm shadow-sm rounded-2xl p-4 sm:p-5">
+        <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+          <Icon icon="heroicons:funnel" className="w-4 h-4 text-slate-500" />
+          Filter Punches
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Business Unit</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="businessUnit"
+              value={filter.businessUnit}
+              onChange={handleFilterChange}
+            >
+              {businessUnit.map((b, i) => (
+                <option key={i} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Location</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="location"
+              value={filter.location}
+              onChange={handleFilterChange}
+            >
+              {locations.map((loc, i) => (
+                <option key={i} value={loc}>{loc}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Cost Center</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="costCenter"
+              value={filter.costCenter}
+              onChange={handleFilterChange}
+            >
+              {costCenters.map((c, i) => (
+                <option key={i} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Departments</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="department"
+              value={filter.department}
+              onChange={handleFilterChange}
+            >
+              {departments.map((d, i) => (
+                <option key={i} value={d}>{d}</option>
+              ))}
+            </select>
           </div>
         </div>
-
-        <div className="dropdown mt-2 mt-md-0">
-          <button
-            className="btn btn-primary btn-sm d-flex align-items-center"
-            data-bs-toggle="dropdown"
-          >
-            Options <i className="fa-solid fa-chevron-down ms-2"></i>
-          </button>
-          <ul className="dropdown-menu dropdown-menu-end">
-            <li>
-              <label className="dropdown-item" style={{ cursor: "pointer" }}>
-                <i className="fa-solid fa-upload me-2"></i> Upload
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  hidden
-                />
-              </label>
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={handleExport}>
-                <i className="fa-solid fa-download me-2"></i> Download
-              </button>
-            </li>
-          </ul>
-        </div>
       </div>
 
-      {/* ===== Filters ===== */}
-      <div className="row mb-3 g-3">
-        <div className="col-md-3">
-          <label className="form-label">Business Unit</label>
-          <select
-            className="form-select"
-            name="businessUnit"
-            value={filter.businessUnit}
-            onChange={handleFilterChange}
-          >
-            {businessUnit.map((b, i) => (
-              <option key={i}>{b}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="col-md-3">
-          <label className="form-label">Location</label>
-          <select
-            className="form-select"
-            name="location"
-            value={filter.location}
-            onChange={handleFilterChange}
-          >
-            {locations.map((loc, i) => (
-              <option key={i}>{loc}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="col-md-3">
-          <label className="form-label">Cost Center</label>
-          <select
-            className="form-select"
-            name="costCenter"
-            value={filter.costCenter}
-            onChange={handleFilterChange}
-          >
-            {costCenters.map((c, i) => (
-              <option key={i}>{c}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="col-md-3">
-          <label className="form-label">Departments</label>
-          <select
-            className="form-select"
-            name="department"
-            value={filter.department}
-            onChange={handleFilterChange}
-          >
-            {departments.map((d, i) => (
-              <option key={i}>{d}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* ===== Radio Filters (interactive) ===== */}
-      <div className="d-flex flex-wrap gap-3 mt-3">
+      <div className="flex flex-wrap gap-2">
         {[
-          { label: "Show All", value: "all" },
-          { label: "Late Coming Only", value: "late" },
-          { label: "Absent Only", value: "absent" },
-          { label: "No Punches", value: "nopunch" },
+          { label: "Show All", value: "all", icon: "heroicons:list-bullet" },
+          { label: "Late Coming Only", value: "late", icon: "heroicons:clock" },
+          { label: "Absent Only", value: "absent", icon: "heroicons:x-circle" },
+          { label: "No Punches", value: "nopunch", icon: "heroicons:no-symbol" },
         ].map((f) => {
           const isActive = selectedPunchFilter === f.value;
-
           return (
-            <label
+            <button
               key={f.value}
-              className={`px-3 py-1 rounded-pill border small fw-semibold cursor-pointer
-          ${isActive ? "bg-primary text-white border-primary" : "bg-white text-dark border-secondary"}
-        `}
-              style={{ cursor: "pointer" }}
+              type="button"
+              onClick={() => onPunchFilterChange(f.value)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${isActive
+                ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/15"
+                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
             >
-              <input
-                type="radio"
-                name="selectedPunchFilter"
-                value={f.value}
-                checked={isActive}
-                onChange={onPunchFilterChange}
-                className="d-none"
-              />
+              <Icon icon={f.icon} className="w-3.5 h-3.5" />
               {f.label}
-            </label>
+            </button>
           );
         })}
       </div>
 
-
-      {/* ===== Date + Search ===== */}
-      <div className="d-flex flex-wrap align-items-center gap-3 mt-3">
-        {/* Date Picker */}
-        <div
-          className="d-flex align-items-center border rounded overflow-hidden"
-          style={{ height: 38 }}
-        >
+      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+        <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm max-w-xs">
           <button
-            className="btn btn-primary d-flex align-items-center justify-content-center"
+            type="button"
+            className="p-2.5 hover:bg-slate-50 text-slate-600 transition-colors border-r border-slate-200"
             onClick={() => handleMonthChange("prev")}
           >
-            <i className="fa-solid fa-chevron-left"></i>
+            <Icon icon="heroicons:chevron-left-20-solid" className="w-4 h-4" />
           </button>
-
-          <div className="px-4 bg-light fw-semibold d-flex align-items-center">
-            {month}
+          <div className="px-4 py-2 font-bold text-slate-700 text-xs sm:text-sm whitespace-nowrap flex items-center gap-1.5">
+            <Icon icon="heroicons:calendar" className="w-4 h-4 text-blue-500" />
+            {selectedDate}
           </div>
-
           <button
-            className="btn btn-primary d-flex align-items-center justify-content-center"
+            type="button"
+            className="p-2.5 hover:bg-slate-50 text-slate-600 transition-colors border-l border-slate-200"
             onClick={() => handleMonthChange("next")}
           >
-            <i className="fa-solid fa-chevron-right"></i>
+            <Icon icon="heroicons:chevron-right-20-solid" className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Search */}
-        <div className="input-group" style={{ maxWidth: 320 }}>
-          <input
-            type="text"
-            className="form-control"
-            name="search"
-            placeholder="All Employees"
-            value={filter.search}
-            onChange={handleFilterChange}
-          />
-          <button className="btn btn-primary" onClick={handleView}>
-            <i className="fa-solid fa-magnifying-glass me-1"></i> View
+        <div className="flex gap-2 max-w-md w-full">
+          <div className="relative flex-grow">
+            <Icon icon="heroicons:magnifying-glass" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              name="search"
+              placeholder="Search by Employee name, code, designation..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700 shadow-sm"
+              value={filter.search}
+              onChange={handleFilterChange}
+            />
+          </div>
+          <button
+            type="button"
+            className="px-4 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+            onClick={handleView}
+          >
+            <Icon icon="heroicons:arrow-path" className="w-4 h-4" />
+            View
           </button>
         </div>
       </div>
 
-
-      {/* ===== Table ===== */}
-      <div className="card mt-3 w-100">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="table-light">
+      <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
               <tr>
-                {/* SN */}
-                <th className="ps-3" style={{ width: "60px" }}>
-                  SN
-                </th>
-                <th>Employee</th>
-                <th>Designation</th>
-                <th className="text-center">Start</th>
-                <th className="text-center">End</th>
-                <th className="text-center">Duration</th>
-                <th className="text-center">Attendance</th>
-                <th className="text-center">Actions</th>
+                <th className="p-3">Employee Info</th>
+                <th className="p-3 text-center">Face Registered</th>
+                <th className="p-3 text-center">Punch Selfie</th>
+                <th className="p-3 text-center">Punch Location</th>
+                <th className="p-3 text-center">In Time</th>
+                <th className="p-3 text-center">Out Time</th>
+                <th className="p-3 text-center">Duration</th>
+                <th className="p-3 text-center">Attendance</th>
+                <th className="p-3 text-center">Action</th>
               </tr>
             </thead>
-
-            <tbody>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {currentData.length > 0 ? (
-                currentData.map((p, i) => (
-                  <tr key={p.id}>
-                    {/* SN */}
-                    <td className="ps-3 fw-semibold" style={{ width: "60px", backgroundColor:"red", textAlign:"center" }} >
-                      {startIndex + i + 1}
+                currentData.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-3">
+                      <div className="font-bold text-slate-800">{p.name}</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Code: {p.code}</div>
+                      <div className="text-[10px] text-slate-400 font-medium">{p.designation}</div>
                     </td>
-
-                    {/* Employee */}
-                    <td>
-                      <div className="fw-semibold text-dark">{p.name}</div>
-                      <small className="text-muted">{p.code}</small>
-                    </td>
-
-                    {/* Designation */}
-                    <td>{p.designation}</td>
-
-                    {/* Start */}
-                    <td className="text-center">
-                      <div className="d-inline-flex align-items-center gap-2">
-                        <i
-                          className="fa-solid fa-camera text-primary"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedPunchForModal(p);
-                            setShowModal(true);
-                          }}
+                    <td className="p-3 text-center">
+                      {p.registeredFace ? (
+                        <img
+                          src={p.registeredFace}
+                          alt="Face"
+                          className="w-8 h-8 rounded-full border border-slate-200 mx-auto object-cover"
                         />
-                        <span>{p.start}</span>
-                        <i
-                          className="fa-solid fa-location-dot text-success"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedPunchForModal(p);
-                            setShowLocationModal(true);
-                          }}
-                        />
-                      </div>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
                     </td>
-
-                    {/* End */}
-                    <td className="text-center">
-                      <div className="d-inline-flex align-items-center gap-2">
-                        <i
-                          className="fa-solid fa-camera text-primary"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedPunchForModal(p);
-                            setShowModal(true);
-                          }}
-                        />
-                        <span>{p.end || "--"}</span>
-                        <i
-                          className="fa-solid fa-location-dot text-success"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedPunchForModal(p);
-                            setShowLocationModal(true);
-                          }}
-                        />
-                      </div>
-                    </td>
-
-                    {/* Duration */}
-                    <td className="text-center">{p.duration}</td>
-
-                    {/* Attendance */}
-                    <td className="text-center">
-                      <span
-                        className="d-inline-flex align-items-center justify-content-center fw-semibold"
-                        style={{
-                          width: 36,
-                          height: 24,
-                          background: "#7ADCE7",
-                          borderRadius: 4,
-                        }}
-                      >
-                        {p.attendance}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="text-center">
-                      <div className="d-flex justify-content-center gap-2">
+                    <td className="p-3 text-center">
+                      {p.punchImage ? (
                         <button
-                          className="btn btn-sm btn-primary rounded-circle d-flex justify-content-center align-items-center"
-                          style={{ width: 32, height: 32 }}
+                          type="button"
+                          className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 mx-auto hover:ring-2 hover:ring-blue-500/50 transition-all block"
                           onClick={() => {
-                            setSelectedPunch(p);
                             setSelectedPunchForModal(p);
-                            setPunchFormData({
-                              date: new Date().toISOString().split("T")[0],
-                              time: { hh: "", mm: "", ss: "" },
-                              remarks: "",
-                              type: "selfie",
-                            });
+                            setShowModal(true);
+                          }}
+                        >
+                          <img src={p.punchImage} alt="Selfie" className="w-full h-full object-cover" />
+                        </button>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-center">
+                      {p.locationUrl ? (
+                        <button
+                          type="button"
+                          className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors inline-flex items-center justify-center shadow-inner"
+                          onClick={() => {
+                            setSelectedPunchForModal(p);
+                            setShowLocationModal(true);
+                          }}
+                        >
+                          <Icon icon="heroicons:map-pin" className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-center font-semibold">{p.start || "--"}</td>
+                    <td className="p-3 text-center font-semibold">{p.end || "--"}</td>
+                    <td className="p-3 text-center font-medium text-slate-500">{p.duration || "--"}</td>
+                    <td className="p-3 text-center">{getAttendanceBadge(p.attendance)}</td>
+                    <td className="p-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          className="w-8 h-8 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full flex items-center justify-center transition-all shadow-inner"
+                          onClick={() => {
+                            setSelectedPunchForModal(p);
                             setShowAddPunchModal(true);
                           }}
                           title="Add Punch"
                         >
-                          <i className="fa-solid fa-plus"></i>
+                          <Icon icon="heroicons:plus" className="w-4 h-4" />
                         </button>
-
                         <button
-                          className="btn btn-sm btn-secondary rounded-circle d-flex justify-content-center align-items-center"
-                          style={{ width: 32, height: 32 }}
+                          type="button"
+                          className="w-8 h-8 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-full flex items-center justify-center transition-all shadow-inner"
                           onClick={() => {
-                            setSelectedPunch(p);
                             setSelectedPunchForModal(p);
                             setShowAllPunchesModal(true);
                           }}
-                          title="View All Punches"
+                          title="All Punches"
                         >
-                          <i className="fa-solid fa-ellipsis"></i>
+                          <Icon icon="heroicons:ellipsis-horizontal" className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -677,8 +578,9 @@ function DailyPunches() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="text-center text-muted py-4">
-                    No records found.
+                  <td colSpan={9} className="p-8 text-center text-slate-400 font-medium">
+                    <Icon icon="heroicons:inbox" className="w-8 h-8 mx-auto mb-1.5 text-slate-300" />
+                    No attendance records found.
                   </td>
                 </tr>
               )}
@@ -687,594 +589,138 @@ function DailyPunches() {
         </div>
       </div>
 
+      {totalPages > 1 && (
+        <nav className="flex justify-center mt-4">
+          <ul className="flex items-center gap-1.5">
+            <li>
+              <button
+                type="button"
+                className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${currentPage === 1 ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <Icon icon="heroicons:chevron-left-20-solid" className="w-4 h-4 text-slate-600" />
+              </button>
+            </li>
+            {[...Array(totalPages)].map((_, idx) => (
+              <li key={idx}>
+                <button
+                  type="button"
+                  className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${currentPage === idx + 1
+                    ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/15"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  onClick={() => goToPage(idx + 1)}
+                >
+                  {idx + 1}
+                </button>
+              </li>
+            ))}
+            <li>
+              <button
+                type="button"
+                className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${currentPage === totalPages ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <Icon icon="heroicons:chevron-right-20-solid" className="w-4 h-4 text-slate-600" />
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
 
+      <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-3">
+        <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+          <Icon icon="heroicons:information-circle" className="w-4 h-4 text-slate-400" />
+          Punch Legends
+        </h4>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "Biometric Fetch", icon: "heroicons:fingerprint" },
+            { label: "Biometric Sync", icon: "heroicons:arrow-path" },
+            { label: "Manual", icon: "heroicons:pencil-square" },
+            { label: "Excel Import", icon: "heroicons:document-text" },
+            { label: "Missed", icon: "heroicons:clock" },
+            { label: "Time Relax", icon: "heroicons:adjustments-horizontal" },
+            { label: "Travel", icon: "heroicons:truck" },
+            { label: "API", icon: "heroicons:command-line" },
+          ].map((item, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-white border border-slate-200 text-slate-600 shadow-sm"
+            >
+              <Icon icon={item.icon} className="w-3.5 h-3.5 text-slate-400" />
+              {item.label}
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/60 text-[10px] font-bold">
+          <span className="inline-flex px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+            XX - Processed
+          </span>
+          <span className="inline-flex px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">
+            XX - Pending
+          </span>
+        </div>
+      </div>
 
+      {showModal && selectedPunchForModal && (
+        <SelfiePunchModal
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedPunchForModal(null);
+          }}
+          selectedPunch={selectedPunchForModal}
+        />
+      )}
 
-      {/* Toastify */}
+      {showLocationModal && selectedPunchForModal && (
+        <PunchLocationModal
+          isOpen={showLocationModal}
+          onClose={() => {
+            setShowLocationModal(false);
+            setSelectedPunchForModal(null);
+          }}
+          selectedPunch={selectedPunchForModal}
+        />
+      )}
+
+      {showAddPunchModal && selectedPunchForModal && (
+        <AddPunchModal
+          isOpen={showAddPunchModal}
+          onClose={() => {
+            setShowAddPunchModal(false);
+            setSelectedPunchForModal(null);
+          }}
+          selectedPunch={selectedPunchForModal}
+          onSubmit={handleAddPunchSubmit}
+        />
+      )}
+
+      {showAllPunchesModal && selectedPunchForModal && (
+        <AllPunchesModal
+          isOpen={showAllPunchesModal}
+          onClose={() => {
+            setShowAllPunchesModal(false);
+            setSelectedPunchForModal(null);
+          }}
+          selectedPunch={selectedPunchForModal}
+          punches={employeePunches[selectedPunchForModal.id]}
+          onDeletePunch={handleDeletePunch}
+        />
+      )}
+
       <ToastContainer
         position="top-right"
         autoClose={2000}
         hideProgressBar={false}
         newestOnTop
+        className="text-xs"
       />
-
-      <nav className="mt-3">
-        <ul className="pagination justify-content-center align-items-center gap-1 mb-0">
-
-          {/* Previous */}
-          <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-            <button
-              className="page-link d-flex align-items-center justify-content-center"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              style={{ width: "40px", height: "40px" }}
-            >
-              <i className="fa-solid fa-chevron-left"></i>
-            </button>
-          </li>
-
-          {/* Page Numbers */}
-          {totalPages > 0 ? (
-            [...Array(Math.min(totalPages, 5))].map((_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              return (
-                <li
-                  key={pageNum}
-                  className={`page-item ${currentPage === pageNum ? "active" : ""}`}
-                >
-                  <button
-                    className="page-link d-flex align-items-center justify-content-center"
-                    onClick={() => goToPage(pageNum)}
-                    style={{ width: "40px", height: "40px" }}
-                  >
-                    {pageNum}
-                  </button>
-                </li>
-              );
-            })
-          ) : (
-            <li className="page-item active">
-              <button className="page-link d-flex align-items-center justify-content-center" style={{ width: "40px", height: "40px" }}>
-                1
-              </button>
-            </li>
-          )}
-
-          {/* Next */}
-          <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-            <button
-              className="page-link d-flex align-items-center justify-content-center"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              style={{ width: "40px", height: "40px" }}
-            >
-              <i className="fa-solid fa-chevron-right"></i>
-            </button>
-          </li>
-
-        </ul>
-      </nav>
-
-      <div className="mt-3 mb-1 small text-dark">Punch Legend:</div>
-      <div
-        className="d-flex bg-info-subtle flex-wrap align-items-center px-1 py-1 rounded"
-        style={{ fontSize: "12px" }}
-      >
-        <div className="me-1 mb-1 mt-1 small badge rounded-pill text-dark bg-white">
-          <i className="fe fe-send text-info me-1"></i> Remote
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge rounded-pill text-dark bg-white">
-          <i className="fe fe-camera text-danger me-1"></i> Selfie
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-globe text-success me-1"></i> Web/Chat
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-grid text-dark me-1"></i> QR Scan
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-fingerprint text-dark me-1"></i> Biometric Fetch
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-refresh-cw text-warning me-1"></i> Biometric Sync
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-edit text-muted me-1"></i> Manual
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-file-text text-success me-1"></i> Excel Import
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-clock text-danger me-1"></i> Missed
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-clock text-warning me-1"></i> Time Relax
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-truck text-primary me-1"></i> Travel
-        </div>
-        <div className="me-1 mb-1 mt-1 small badge px-2 rounded-pill text-dark bg-white">
-          <i className="fe fe-power text-success me-1"></i> API
-        </div>
-      </div>
-      <div
-        className="d-inline-block bg-info-subtle px-2 py-1 rounded mt-2 mb-2"
-        style={{ fontSize: "13px" }}
-      >
-        <span className="mb-1 mt-1 badge bg-white rounded-pill text-success me-2">
-          XX - Processed
-        </span>
-        <span className="mb-1 mt-1 badge bg-white rounded-pill text-danger me-2">
-          XX - Pending
-        </span>
-      </div>
-
-      {/* Selfie Punch Image Modal */}
-      {showModal && selectedPunchForModal && (
-        <div
-          className="modal fade show d-block"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 1055
-          }}
-          tabIndex="-1"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowModal(false);
-              setSelectedPunchForModal(null);
-            }
-          }}
-        >
-          <div
-            className="modal-dialog modal-dialog-centered"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-content">
-              {/* Header */}
-              <div className="modal-header">
-                <h5 className="modal-title">Selfie Punch Image</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                ></button>
-              </div>
-
-              {/* Body */}
-              <div className="modal-body d-flex justify-content-center gap-3">
-                {selectedPunchForModal ? (
-                  <>
-                    <div className="mt-2 text-center">
-                      <img
-                        src={selectedPunchForModal.registeredFace || "https://placehold.co/150x150.png?text=?"}
-                        alt="Registered Face"
-                        className="rounded shadow"
-                        style={{ width: "150px", height: "150px", objectFit: "cover" }}
-                        onError={(e) => {
-                          e.target.src = "https://placehold.co/150x150.png?text=?";
-                        }}
-                      />
-                      <p className="mt-1">Registered Face</p>
-                    </div>
-
-                    <div className="mt-2 text-center">
-                      <img
-                        src={selectedPunchForModal.punchImage || "https://placehold.co/150x150.png?text=?"}
-                        alt="Punch Image"
-                        className="rounded shadow"
-                        style={{ width: "150px", height: "150px", objectFit: "cover" }}
-                        onError={(e) => {
-                          e.target.src = "https://placehold.co/150x150.png?text=?";
-                        }}
-                      />
-                      <p className="mt-1">Punch Image</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="mt-2 text-center">
-                      <img
-                        src="https://placehold.co/150x150.png?text=?"
-                        alt="Dummy 1"
-                        className="rounded shadow"
-                      />
-                      <p className="mt-1">Registered Face</p>
-                    </div>
-
-                    <div className="mt-2 text-center">
-                      <img
-                        src="https://placehold.co/150x150.png?text=?"
-                        alt="Dummy 2"
-                        className="rounded shadow"
-                      />
-                      <p className="mt-1">Punch Image</p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setShowModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Location Modal */}
-      {showLocationModal && selectedPunchForModal && (
-        <div
-          className="modal fade show d-block"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 1055
-          }}
-          tabIndex="-1"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowLocationModal(false);
-              setSelectedPunchForModal(null);
-            }
-          }}
-        >
-          <div
-            className="modal-dialog modal-lg modal-dialog-centered"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  Location - {selectedPunchForModal.name} ({selectedPunchForModal.code})
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowLocationModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                {selectedPunchForModal.locationUrl ? (
-                  <iframe
-                    src={selectedPunchForModal.locationUrl}
-                    width="100%"
-                    height="450"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  ></iframe>
-                ) : (
-                  <p className="text-muted">Location data not available</p>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setShowLocationModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Time Punch Modal */}
-      {showAddPunchModal && selectedPunchForModal && (
-        <div
-          className="modal fade show d-block"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 1055
-          }}
-          tabIndex="-1"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowAddPunchModal(false);
-              setSelectedPunchForModal(null);
-            }
-          }}
-        >
-          <div
-            className="modal-dialog modal-md modal-dialog-centered"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Add Time Punch</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowAddPunchModal(false);
-                    setSelectedPunchForModal(null);
-                    setPunchFormData({
-                      date: "",
-                      time: { hh: "", mm: "", ss: "" },
-                      remarks: "",
-                      type: "selfie",
-                    });
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Employee:</label>
-                  <p className="mb-0">
-                    {selectedPunchForModal.name} ({selectedPunchForModal.code})
-                  </p>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">
-                    Punch Date <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={punchFormData.date}
-                    onChange={(e) => setPunchFormData({ ...punchFormData, date: e.target.value })}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">
-                    Punch Time <span className="text-danger">*</span>
-                  </label>
-                  <div className="d-flex gap-2">
-                    {["hh", "mm", "ss"].map((field) => (
-                      <input
-                        key={field}
-                        type="number"
-                        className="form-control"
-                        placeholder={field.toUpperCase()}
-                        value={punchFormData.time[field]}
-                        onChange={(e) =>
-                          setPunchFormData({
-                            ...punchFormData,
-                            time: { ...punchFormData.time, [field]: e.target.value },
-                          })
-                        }
-                        style={{ width: "80px" }}
-                        min="0"
-                        max={field === "hh" ? "23" : "59"}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">
-                    Punch Type <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="form-select"
-                    value={punchFormData.type}
-                    onChange={(e) => setPunchFormData({ ...punchFormData, type: e.target.value })}
-                  >
-                    <option value="selfie">Selfie</option>
-                    <option value="remote">Remote</option>
-                    <option value="manual">Manual</option>
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Remarks</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter remarks (optional)"
-                    value={punchFormData.remarks}
-                    onChange={(e) => setPunchFormData({ ...punchFormData, remarks: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setShowAddPunchModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-success"
-                  onClick={() => {
-                    // Validation
-                    if (!punchFormData.date) {
-                      toast.error("Please select a punch date");
-                      return;
-                    }
-                    if (!punchFormData.time.hh || !punchFormData.time.mm || !punchFormData.time.ss) {
-                      toast.error("Please enter complete punch time (HH:MM:SS)");
-                      return;
-                    }
-
-                    const finalTime = `${String(punchFormData.time.hh).padStart(2, "0")}:${String(punchFormData.time.mm).padStart(2, "0")}:${String(punchFormData.time.ss).padStart(2, "0")}`;
-                    const punchTypeLabel = punchFormData.type.charAt(0).toUpperCase() + punchFormData.type.slice(1);
-
-                    // Add punch to employee's punch list
-                    const newPunch = {
-                      time: finalTime,
-                      type: `${punchTypeLabel} Punch`,
-                      direction: "IN",
-                      id: `${selectedPunchForModal.id}-${Date.now()}`,
-                    };
-
-                    setEmployeePunches((prev) => ({
-                      ...prev,
-                      [selectedPunchForModal.id]: [
-                        ...(prev[selectedPunchForModal.id] || []),
-                        newPunch,
-                      ],
-                    }));
-
-                    toast.success(`Punch added: ${punchFormData.date} ${finalTime} (${punchTypeLabel})`);
-
-                    // Reset form
-                    setPunchFormData({
-                      date: "",
-                      time: { hh: "", mm: "", ss: "" },
-                      remarks: "",
-                      type: "selfie",
-                    });
-                    setShowAddPunchModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                >
-                  Insert
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* All Punches Modal */}
-      {showAllPunchesModal && selectedPunchForModal && (
-        <div
-          className="modal fade show d-block"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 1055
-          }}
-          tabIndex="-1"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowAllPunchesModal(false);
-              setSelectedPunchForModal(null);
-            }
-          }}
-        >
-          <div
-            className="modal-dialog modal-md modal-dialog-centered"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title fw-semibold">
-                  All Punches - {selectedPunchForModal.name} ({selectedPunchForModal.code})
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowAllPunchesModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <ul className="list-group mb-3">
-                  {employeePunches[selectedPunchForModal.id] && employeePunches[selectedPunchForModal.id].length > 0 ? (
-                    employeePunches[selectedPunchForModal.id].map((punch) => (
-                      <li key={punch.id} className="list-group-item d-flex align-items-center justify-content-between">
-                        <div>
-                          <div className="fw-semibold">{punch.time}</div>
-                          <small className="text-muted">{punch.type}</small>
-                        </div>
-                        <div className="d-flex align-items-center gap-3">
-                          <span className={`badge px-3 ${punch.direction === "IN" ? "bg-success" : "bg-warning text-dark"}`}>
-                            {punch.direction}
-                          </span>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => {
-                              const updatedPunches = employeePunches[selectedPunchForModal.id].filter(
-                                (p) => p.id !== punch.id
-                              );
-                              setEmployeePunches((prev) => ({
-                                ...prev,
-                                [selectedPunchForModal.id]: updatedPunches,
-                              }));
-                              toast.success("Punch deleted successfully");
-                            }}
-                          >
-                            <i className="fa-solid fa-trash"></i>
-                          </button>
-                        </div>
-                      </li>
-                    ))
-                  ) : (
-                    <li className="list-group-item text-center text-muted">
-                      No punches found for this employee
-                    </li>
-                  )}
-                </ul>
-                <div className="small text-muted d-flex align-items-center">
-                  <i className="fa-solid fa-circle-info me-2 text-primary"></i>
-                  All punches for selected date are shown.
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setShowAllPunchesModal(false);
-                    setSelectedPunchForModal(null);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,20 +1,34 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Icon } from "@iconify/react";
 import Breadcrump from "../../../shared/components/Breadcrump";
 
+// Import modularized modals
+import DownloadManualAttendanceModal from "../modal/DownloadManualAttendanceModal";
+import UploadManualAttendanceModal from "../modal/UploadManualAttendanceModal";
 
 const ManualAttendance = () => {
-  const [attendance, setAttendance] = useState([
-    { id: 1, name: "Abhilash Gurrampally", code: "LEV029", P: 0, A: 0, H: 0, W: 0, CO: 0, CL: 0, LW: 0 },
-    { id: 2, name: "Anusha Enigalla", code: "LEV039", P: 0, A: 0, H: 0, W: 0, CO: 0, CL: 0, LW: 0 },
-    { id: 3, name: "Ashok Kota", code: "LEV047", P: 0, A: 0, H: 0, W: 0, CO: 0, CL: 0, LW: 0 },
-    { id: 4, name: "Bogala Chandramouli", code: "LEV027", P: 0, A: 0, H: 0, W: 0, CO: 0, CL: 0, LW: 0 },
-    { id: 5, name: "Burri Gowtham", code: "LEV023", P: 0, A: 0, H: 0, W: 0, CO: 0, CL: 0, LW: 0 },
-  ]);
+  // Attendance data - will be populated from API
+  const [attendance, setAttendance] = useState([]);
 
-  const [financialYear, setFinancialYear] = useState("SEP-2025");
+  const [financialYear, setFinancialYear] = useState(() => {
+    const now = new Date();
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    return `${months[now.getMonth()]}-${now.getFullYear()}`;
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 2;
+
+  // Create a ref to track if this is the initial load
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const handleYearChange = (direction) => {
     const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -23,253 +37,395 @@ const ManualAttendance = () => {
     let monthIndex = months.indexOf(currentMonth);
 
     if (direction === "prev") {
-      if (monthIndex === 0) { monthIndex = 11; year--; } else { monthIndex--; }
+      if (monthIndex === 0) {
+        monthIndex = 11;
+        year--;
+      } else {
+        monthIndex--;
+      }
     } else if (direction === "next") {
-      if (monthIndex === 11) { monthIndex = 0; year++; } else { monthIndex++; }
+      if (monthIndex === 11) {
+        monthIndex = 0;
+        year++;
+      } else {
+        monthIndex++;
+      }
     }
 
-    setFinancialYear(`${months[monthIndex]}-${year}`);
+    const newPeriod = `${months[monthIndex]}-${year}`;
+    setFinancialYear(newPeriod);
+    // Fetch attendance data for the new period
+    fetchAttendanceData(newPeriod, false);
+  };
+
+  const fetchAttendanceData = async (period, showToast = true) => {
+    setIsLoading(true);
+    try {
+      // TODO: Replace with actual API call
+      // const response = await api.getManualAttendance({ period });
+      // setAttendance(response.data);
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // For demo purposes, set empty array or you can add sample data for testing
+      setAttendance([]);
+
+      // Only show toast if not initial load and showToast is true
+      if (!isInitialLoad && showToast) {
+        toast.info(`Loaded attendance for ${period}`);
+      }
+    } catch (error) {
+      toast.error("Failed to load attendance data");
+    } finally {
+      setIsLoading(false);
+      setIsInitialLoad(false);
+    }
   };
 
   const handleChange = (id, field, value) => {
     setAttendance((prev) =>
       prev.map((row) =>
-        row.id === id ? { ...row, [field]: Number(value) } : row
+        row.id === id ? { ...row, [field]: Number(value) || 0 } : row
       )
     );
   };
 
-  const handleSave = (id) => {
+  const handleSave = async (id) => {
     const emp = attendance.find((e) => e.id === id);
-    alert(`✅ Attendance saved for ${emp.name}`);
+    if (!emp) return;
+
+    try {
+      // TODO: Replace with actual API call
+      // await api.updateManualAttendance(emp);
+      toast.success(`Attendance saved for ${emp.name}`);
+    } catch (error) {
+      toast.error("Failed to save attendance");
+    }
   };
 
-  return (
-    <div className="mt-4">
+  const handleDownloadSubmit = async (format) => {
+    try {
+      // TODO: Replace with actual API call
+      // await api.downloadManualAttendance({ period: financialYear, format });
+      toast.success(`Attendance downloaded successfully in ${format.toUpperCase()} format!`);
+    } catch (error) {
+      toast.error("Failed to download attendance");
+    }
+  };
 
-      <div className="d-flex justify-content-between align-items-center">
+  const handleUploadSubmit = async (file) => {
+    try {
+      // TODO: Replace with actual API call
+      // const formData = new FormData();
+      // formData.append('file', file);
+      // formData.append('period', financialYear);
+      // await api.uploadManualAttendance(formData);
+
+      toast.success(`File "${file.name}" uploaded successfully!`);
+      // Refresh attendance data after upload
+      fetchAttendanceData(financialYear, true);
+    } catch (error) {
+      toast.error("Failed to upload file");
+    }
+  };
+
+  // Filter Logic
+  const filteredAttendance = attendance.filter((emp) => {
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        emp.name?.toLowerCase().includes(searchLower) ||
+        emp.code?.toLowerCase().includes(searchLower)
+      );
+    }
+    return true;
+  });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredAttendance.length / itemsPerPage);
+
+  useEffect(() => {
+    // Fetch initial attendance data when component mounts - only once
+    fetchAttendanceData(financialYear, false);
+  }, []); // Empty dependency array - runs only once on mount
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, financialYear]);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = filteredAttendance.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const breadcrumbItems = [
+    { label: "Dashboard", link: "/hrms/dashboard" },
+    { label: "Attendance", link: "/hrms/attendance" },
+    { label: "Manual Attendance", active: true }
+  ];
+
+  // Define attendance fields
+  const attendanceFields = ["P", "A", "H", "W", "CO", "CL", "LW"];
+
+  return (
+    <div className="w-full mx-auto max-w-7xl space-y-4 sm:space-y-6 px-3 sm:px-4 py-4 sm:py-6">
+      {/* <Breadcrump items={breadcrumbItems} /> */}
+
+      {/* ===== Header ===== */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
         <div>
-          <h4 className="fw-bold mb-1">Manual Attendance</h4>
-          <p className="text-muted mb-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Icon icon="heroicons:pencil-square" className="w-6 h-6 text-blue-600" />
+            Manual Attendance
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
             Capture number of days present, absent, etc. directly without tracking time punches.
           </p>
         </div>
-        <div className="dropdown">
+
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
-            className="btn btn-primary btn-sm dropdown-toggle d-inline-flex align-items-center"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
+            type="button"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+            onClick={() => setShowDownloadModal(true)}
           >
-            Options <i className="fe fe-chevron-down ms-1"></i>
+            <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
+            Download
           </button>
-          <ul className="dropdown-menu dropdown-menu-end">
-            <li>
-              <button className="dropdown-item" onClick={() => setShowDownloadModal(true)}>
-                <i className="fe fe-download me-2"></i>Download Attendance
-              </button>
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={() => setShowUploadModal(true)}>
-                <i className="fe fe-upload me-2"></i>Upload Attendance
-              </button>
-            </li>
-          </ul>
+          <button
+            type="button"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/10"
+            onClick={() => setShowUploadModal(true)}
+          >
+            <Icon icon="heroicons:arrow-up-tray" className="w-4 h-4" />
+            Upload
+          </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div
-        className="mb-3 p-3 rounded"
-        style={{
-          backgroundColor: "#f8fafc",
-          border: "1px solid #e5e7eb",
-        }}
-      >
-        <div className="row g-3">
-          <div className="col-md-3">
-            <label className="form-label small fw-semibold">
-              Business Unit
-            </label>
-            <select className="form-select">
+      {/* ===== Filters ===== */}
+      <div className="border border-slate-200 bg-white/50 backdrop-blur-sm shadow-sm rounded-2xl p-4 sm:p-5">
+        <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+          <Icon icon="heroicons:funnel" className="w-4 h-4 text-slate-500" />
+          Filter Criteria
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Business Unit</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
               <option>All Units</option>
             </select>
           </div>
 
-          <div className="col-md-3">
-            <label className="form-label small fw-semibold">
-              Location
-            </label>
-            <select className="form-select">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Location</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
               <option>All Locations</option>
             </select>
           </div>
 
-          <div className="col-md-3">
-            <label className="form-label small fw-semibold">
-              Cost Center
-            </label>
-            <select className="form-select">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Cost Center</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
               <option>All Cost Centers</option>
             </select>
           </div>
 
-          <div className="col-md-3">
-            <label className="form-label small fw-semibold">
-              Department
-            </label>
-            <select className="form-select">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Department</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
               <option>All Departments</option>
             </select>
           </div>
         </div>
       </div>
 
-
-      {/* Month Selector */}
-      <div className="d-flex align-items-center mb-3 gap-3">
-        <div className="d-flex align-items-center border rounded overflow-hidden" style={{ height: "38px" }}>
+      {/* ===== Period selector + search ===== */}
+      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+        <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm max-w-xs">
           <button
-            className="btn btn-secondary border-0 rounded-0"
+            type="button"
+            className="p-2.5 hover:bg-slate-50 text-slate-600 transition-colors border-r border-slate-200"
             onClick={() => handleYearChange("prev")}
-            style={{ height: "38px", width: "38px" }}
           >
-            <i className="fe fe-arrow-left"></i>
+            <Icon icon="heroicons:chevron-left-20-solid" className="w-4 h-4" />
           </button>
-          <div className="px-4 py-2 bg-light fw-semibold text-center d-flex align-items-center justify-content-center" style={{ minWidth: "100px" }}>
+          <div className="px-4 py-2 font-bold text-slate-700 text-xs sm:text-sm whitespace-nowrap flex items-center gap-1.5">
+            <Icon icon="heroicons:calendar" className="w-4 h-4 text-blue-500" />
             {financialYear}
           </div>
           <button
-            className="btn btn-secondary border-0 rounded-0"
+            type="button"
+            className="p-2.5 hover:bg-slate-50 text-slate-600 transition-colors border-l border-slate-200"
             onClick={() => handleYearChange("next")}
-            style={{ height: "38px", width: "38px" }}
           >
-            <i className="fe fe-arrow-right"></i>
+            <Icon icon="heroicons:chevron-right-20-solid" className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="input-group" style={{ width: "250px" }}>
-          <input
-            type="text"
-            className="form-control"
-            defaultValue="All Employees"
-            style={{ height: "38px" }}
-          />
-          <button className="btn btn-primary" style={{ height: "38px" }}>
-            <i className="fe fe-search"></i>
-          </button>
+        <div className="flex gap-2 max-w-md w-full">
+          <div className="relative flex-grow">
+            <Icon icon="heroicons:magnifying-glass" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by Employee name, code..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700 shadow-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Attendance Table */}
-      <table className="table table-bordered align-middle text-center">
-        <thead className="table-light">
-          <tr>
-            <th>Sl.No</th>
-            <th>Employee</th>
-            <th>P</th><th>A</th><th>H</th><th>W</th><th>CO</th><th>CL</th><th>LW</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {attendance.map((emp, index) => (
-            <tr key={emp.id}>
-              <td>{index + 1}</td>
-              <td className="text-start">
-                <strong>{emp.name}</strong><br />
-                <span className="text-muted small">{emp.code}</span>
-              </td>
-              {["P", "A", "H", "W", "CO", "CL", "LW"].map((field) => (
-                <td key={field}>
-                  <input
-                    type="number"
-                    min="0"
-                    className="form-control form-control-sm text-center"
-                    value={emp[field]}
-                    onChange={(e) => handleChange(emp.id, field, e.target.value)}
-                  />
-                </td>
-              ))}
-              <td>
-                <button className="btn btn-success btn-sm" onClick={() => handleSave(emp.id)}>
-                  <i className="fe fe-save"></i>
+      {/* ===== Attendance Table ===== */}
+      <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Icon icon="svg-spinners:180-ring" className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-xs text-slate-500 mt-2">Loading attendance data...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="p-3 text-center w-12">Sl.No</th>
+                  <th className="p-3">Employee</th>
+                  {attendanceFields.map((hdr) => (
+                    <th key={hdr} className="p-3 text-center w-16">{hdr}</th>
+                  ))}
+                  <th className="p-3 text-center w-20">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {currentData.length > 0 ? (
+                  currentData.map((emp, index) => (
+                    <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3 text-center font-semibold text-slate-400">
+                        {startIndex + index + 1}
+                      </td>
+                      <td className="p-3">
+                        <div className="font-bold text-slate-800">{emp.name}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">Code: {emp.code}</div>
+                      </td>
+                      {attendanceFields.map((field) => (
+                        <td key={field} className="p-2">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-14 mx-auto block px-2 py-1 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-center font-bold text-slate-700"
+                            value={emp[field] || 0}
+                            onChange={(e) => handleChange(emp.id, field, e.target.value)}
+                          />
+                        </td>
+                      ))}
+                      <td className="p-3 text-center">
+                        <button
+                          type="button"
+                          className="w-8 h-8 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center transition-all mx-auto shadow-inner"
+                          onClick={() => handleSave(emp.id)}
+                          title="Save Changes"
+                        >
+                          <Icon icon="heroicons:check" className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="p-8 text-center text-slate-400 font-medium">
+                      <Icon icon="heroicons:inbox" className="w-8 h-8 mx-auto mb-1.5 text-slate-300" />
+                      No attendance records found for {financialYear}.
+                      <p className="text-[10px] mt-1 text-slate-400">
+                        Upload a CSV file or add attendance data via API to get started.
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ===== Pagination ===== */}
+      {totalPages > 1 && (
+        <nav className="flex justify-center mt-4">
+          <ul className="flex items-center gap-1.5">
+            <li>
+              <button
+                type="button"
+                className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${currentPage === 1 ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <Icon icon="heroicons:chevron-left-20-solid" className="w-4 h-4 text-slate-600" />
+              </button>
+            </li>
+            {[...Array(totalPages)].map((_, idx) => (
+              <li key={idx}>
+                <button
+                  type="button"
+                  className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${currentPage === idx + 1
+                      ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/15"
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  onClick={() => goToPage(idx + 1)}
+                >
+                  {idx + 1}
                 </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </li>
+            ))}
+            <li>
+              <button
+                type="button"
+                className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${currentPage === totalPages ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <Icon icon="heroicons:chevron-right-20-solid" className="w-4 h-4 text-slate-600" />
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
 
-      {/* Pagination */}
-      <div className="d-flex justify-content-between mt-3">
-        <button className="btn btn-outline-secondary btn-sm">Previous</button>
-        <span className="small">Page 1 of 1</span>
-        <button className="btn btn-outline-secondary btn-sm">Next</button>
-      </div>
-
-      {/* ✅ Download Attendance Modal */}
+      {/* ===== Modals ===== */}
       {showDownloadModal && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h6 className="modal-title">Download Attendance</h6>
-                <button className="btn-close" onClick={() => setShowDownloadModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3"><strong>Period:</strong> {financialYear}</div>
-                <div className="mb-3">
-                  <label className="form-label">Location</label>
-                  <select className="form-select"><option>All Locations</option></select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Cost Center</label>
-                  <select className="form-select"><option>All Cost Centers</option></select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Department</label>
-                  <select className="form-select"><option>All Departments</option></select>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-outline-secondary" onClick={() => setShowDownloadModal(false)}>Close</button>
-                <button className="btn btn-primary">
-                  <i className="fe fe-download me-1"></i>Download
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DownloadManualAttendanceModal
+          isOpen={showDownloadModal}
+          onClose={() => setShowDownloadModal(false)}
+          financialYear={financialYear}
+          onDownload={handleDownloadSubmit}
+        />
       )}
 
-      {/* ✅ Upload Attendance Modal */}
       {showUploadModal && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h6 className="modal-title">Upload Attendance</h6>
-                <button className="btn-close" onClick={() => setShowUploadModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3"><strong>Period:</strong> {financialYear}</div>
-                <div className="mb-3">
-                  <label className="form-label">Select File</label>
-                  <input type="file" className="form-control" />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-outline-secondary" onClick={() => setShowUploadModal(false)}>Close</button>
-                <button className="btn btn-primary">
-                  <i className="fe fe-upload me-1"></i>Upload
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <UploadManualAttendanceModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          financialYear={financialYear}
+          onUpload={handleUploadSubmit}
+        />
       )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        className="text-xs"
+      />
     </div>
   );
 };
 
 export default ManualAttendance;
-

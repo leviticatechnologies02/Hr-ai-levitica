@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
-import Breadcrump from "../../../shared/components/Breadcrump";
-
+import "react-toastify/dist/ReactToastify.css";
+import { Icon } from "@iconify/react";
+import AddPunchModal from "../modal/AddPunchModal";
+import AllPunchesModal from "../modal/AllPunchesModal";
 
 const punchTypes = [
   { label: "Selfie", value: "selfie" },
@@ -18,8 +20,7 @@ const DailyAttendance = () => {
     search: "",
   });
   const [selectedPunchFilter, setSelectedPunchFilter] = useState("all");
-  
-  // Initialize date to today
+
   const getFormattedDate = (dateObj) => {
     const day = String(dateObj.getDate()).padStart(2, "0");
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -27,164 +28,58 @@ const DailyAttendance = () => {
     const year = dateObj.getFullYear();
     return `${day}-${month}-${year}`;
   };
-  
+
   const [date, setDate] = useState(getFormattedDate(new Date()));
   const [showPunchModal, setShowPunchModal] = useState(false);
   const [showAddPunchModal, setShowAddPunchModal] = useState(false);
-  const [punchDate, setPunchDate] = useState("");
-  const [punchTime, setPunchTime] = useState({ hh: "", mm: "", ss: "" });
-  const [punchType, setPunchType] = useState("selfie");
-  const [remarks, setRemarks] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [employeePunches, setEmployeePunches] = useState({});
 
-  // Prevent body scroll when modals are open
-  useEffect(() => {
-    if (showPunchModal || showAddPunchModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [showPunchModal, showAddPunchModal]);
+  const [attendanceData, setAttendanceData] = useState([]);
 
-  // Dummy Data
-  const [attendanceData, setAttendanceData] = useState([
-    {
-      id: 209187,
-      name: "Anusha Engilala",
-      code: "LEV039",
-      date: "08-Oct-2025",
-      status: "Present",
-      note: "Present marked as at least one time-punch was found",
-      location: "Hyderabad",
-      businessUnit: "Development",
-      costCenter: "Cost-1",
-      designation: "Associate Software Engineer",
-      department: "Technical Support",
-      punchIn: "09:17A",
-      punchOut: "06:05P",
-      punchType: "Selfie",
-      timeline: { start: "03:00A", general: "09:00A - 06:00P", end: "12:00A" },
-    },
-    {
-      id: 209188,
-      name: "Ravi Kumar",
-      code: "LEV040",
-      date: "08-Oct-2025",
-      status: "Present",
-      note: "Employee completed full shift",
-      location: "Bengaluru",
-      businessUnit: "Development",
-      costCenter: "Cost-1",
-      designation: "Frontend Developer",
-      department: "Engineering",
-      punchIn: "09:05A",
-      punchOut: "06:12P",
-      punchType: "Manual",
-      timeline: { start: "03:00A", general: "09:00A - 06:00P", end: "12:00A" },
-    },
-    {
-      id: 209189,
-      name: "Sneha Reddy",
-      code: "LEV041",
-      date: "08-Oct-2025",
-      status: "Late",
-      note: "Late punch-in recorded",
-      location: "Chennai",
-      businessUnit: "Support",
-      costCenter: "Cost-2",
-      designation: "QA Engineer",
-      department: "Quality Assurance",
-      punchIn: "09:42A",
-      punchOut: "06:00P",
-      punchType: "Selfie",
-      timeline: { start: "03:00A", general: "09:00A - 06:00P", end: "12:00A" },
-    },
-    {
-      id: 209190,
-      name: "Arjun Patel",
-      code: "LEV042",
-      date: "08-Oct-2025",
-      status: "Half Day",
-      note: "Employee worked half day",
-      location: "Pune",
-      businessUnit: "Development",
-      costCenter: "Cost-1",
-      designation: "Backend Developer",
-      department: "Engineering",
-      punchIn: "09:10A",
-      punchOut: "01:45P",
-      punchType: "Manual",
-      timeline: { start: "03:00A", general: "09:00A - 06:00P", end: "12:00A" },
-    },
-    {
-      id: 209191,
-      name: "Priya Sharma",
-      code: "LEV043",
-      date: "08-Oct-2025",
-      status: "Absent",
-      note: "No punch-in or punch-out found",
-      location: "Delhi",
-      businessUnit: "Support",
-      costCenter: "Cost-2",
-      designation: "HR Executive",
-      department: "Human Resources",
-      punchIn: "--",
-      punchOut: "--",
-      punchType: "-",
-      timeline: { start: "03:00A", general: "09:00A - 06:00P", end: "12:00A" },
-    },
-  ]);
-
-  // Initialize employee punches data
   useEffect(() => {
     setEmployeePunches((prev) => {
       const updated = { ...prev };
       attendanceData.forEach((emp) => {
         if (!updated[emp.id]) {
           updated[emp.id] = [
-            { time: emp.punchIn !== "--" ? emp.punchIn : "08:40:16", type: `${emp.punchType} Punch`, direction: "IN" },
-            { time: emp.punchOut !== "--" ? emp.punchOut : "18:00:12", type: `${emp.punchType} Punch`, direction: "OUT" },
+            {
+              time: emp.punchIn !== "--" ? emp.punchIn : "08:40:16",
+              type: `${emp.punchType || "Manual"} Punch`,
+              direction: "IN",
+              id: `${emp.id}-in`
+            },
+            ...(emp.punchOut !== "--" ? [{
+              time: emp.punchOut,
+              type: `${emp.punchType || "Manual"} Punch`,
+              direction: "OUT",
+              id: `${emp.id}-out`
+            }] : []),
           ];
         }
       });
       return updated;
     });
-  }, [attendanceData.length]);
-
-
+  }, [attendanceData]);
 
   const businessUnit = ["All Units", "Development", "Support"];
   const locations = ["All", "Hyderabad", "Chennai", "Bengaluru", "Pune", "Delhi"];
   const costCenters = ["All", "Cost-1", "Cost-2"];
   const departments = ["All", "Technical", "Support", "HR", "Engineering", "Quality Assurance", "Technical Support"];
 
-  // Filter attendance data
   const filteredAttendanceData = attendanceData.filter((emp) => {
-    // Business Unit filter
     if (filter.businessUnit !== "All Units" && emp.businessUnit !== filter.businessUnit) {
       return false;
     }
-
-    // Location filter
     if (filter.location !== "All" && emp.location !== filter.location) {
       return false;
     }
-
-    // Cost Center filter
     if (filter.costCenter !== "All" && emp.costCenter !== filter.costCenter) {
       return false;
     }
-
-    // Department filter
     if (filter.department !== "All" && emp.department !== filter.department) {
       return false;
     }
-
-    // Search filter
     if (filter.search) {
       const searchLower = filter.search.toLowerCase();
       if (
@@ -195,8 +90,6 @@ const DailyAttendance = () => {
         return false;
       }
     }
-
-    // Status filter
     if (selectedPunchFilter === "late" && emp.status !== "Late") {
       return false;
     }
@@ -206,33 +99,48 @@ const DailyAttendance = () => {
     if (selectedPunchFilter === "nopunch" && (emp.punchIn !== "--" && emp.punchOut !== "--")) {
       return false;
     }
-
     return true;
   });
 
-  // Filter Change
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 2;
+  const totalPages = Math.ceil(filteredAttendanceData.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, selectedPunchFilter, date]);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = filteredAttendanceData.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilter({ ...filter, [name]: value });
   };
 
-  const handleDateChange = (type) => {
-    // Parse current date (format: DD-MMM-YYYY)
+  const handleDateChange = (direction) => {
     const dateParts = date.split("-");
     const day = parseInt(dateParts[0]);
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const month = monthNames.indexOf(dateParts[1]);
     const year = parseInt(dateParts[2]);
-    
+
     const currentDate = new Date(year, month, day);
     const newDate = new Date(currentDate);
-    
-    if (type === "next") {
+
+    if (direction === "next") {
       newDate.setDate(newDate.getDate() + 1);
     } else {
       newDate.setDate(newDate.getDate() - 1);
     }
-    
+
     setDate(getFormattedDate(newDate));
   };
 
@@ -312,574 +220,455 @@ const DailyAttendance = () => {
     toast.success("Exported successfully");
   };
 
+  const handleAddPunchSubmit = (formData) => {
+    const { date: pDate, time, remarks: pRemarks, type } = formData;
+    if (!pDate) {
+      toast.error("Please select a punch date");
+      return;
+    }
+    if (!time.hh || !time.mm || !time.ss) {
+      toast.error("Please enter complete punch time (HH:MM:SS)");
+      return;
+    }
+
+    const finalTime = `${String(time.hh).padStart(2, "0")}:${String(time.mm).padStart(2, "0")}:${String(time.ss).padStart(2, "0")}`;
+    const punchTypeLabel = punchTypes.find((pt) => pt.value === type)?.label || type;
+
+    const newPunch = {
+      time: finalTime,
+      type: `${punchTypeLabel} Punch`,
+      direction: "IN",
+      id: `${selectedEmployee.id}-${Date.now()}`,
+    };
+
+    setEmployeePunches((prev) => ({
+      ...prev,
+      [selectedEmployee.id]: [
+        ...(prev[selectedEmployee.id] || []),
+        newPunch,
+      ],
+    }));
+
+    toast.success(`Punch Added: ${pDate} ${finalTime} (${punchTypeLabel})`);
+    setShowAddPunchModal(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleDeletePunch = (punchId) => {
+    if (!selectedEmployee) return;
+    const updatedPunches = employeePunches[selectedEmployee.id].filter(
+      (p) => p.id !== punchId
+    );
+    setEmployeePunches((prev) => ({
+      ...prev,
+      [selectedEmployee.id]: updatedPunches,
+    }));
+    toast.success("Punch deleted successfully");
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Present":
+        return (
+          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+            Present
+          </span>
+        );
+      case "Absent":
+        return (
+          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
+            Absent
+          </span>
+        );
+      case "Late":
+        return (
+          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100">
+            Late
+          </span>
+        );
+      case "Half Day":
+        return (
+          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-100">
+            Half Day
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+            {status}
+          </span>
+        );
+    }
+  };
+
   return (
-    <div className="page-content">
-      <ToastContainer />
-
-      <div className="container-fluid">
-        {/* Header */}
-        <div className="d-md-flex d-block align-items-center justify-content-between mb-3 mt-3">
-          <div>
-            <h4 className="fw-bold mb-1">Daily Attendance</h4>
-            <p className="text-muted mb-0">
-              View or edit daily time punches for a single date.
-            </p>
-          </div>
-          <div className="dropdown">
-            <button
-              className="btn btn-primary btn-sm"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Options <i className="fe fe-chevron-down m-1"></i>
-            </button>
-            <ul className="dropdown-menu">
-              <li>
-                <label className="dropdown-item" style={{ cursor: "pointer" }}>
-                  <i className="fe fe-upload m-1"></i>Upload
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileUpload}
-                    style={{ display: "none" }}
-                  />
-                </label>
-              </li>
-              <li>
-                <button className="dropdown-item" onClick={handleExport}>
-                  <i className="fe fe-download m-1"></i>Download
-                </button>
-              </li>
-            </ul>
-          </div>
+    <div className="w-full mx-auto max-w-7xl space-y-4 sm:space-y-6 px-3 sm:px-4 py-4 sm:py-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Icon icon="heroicons:calendar-days" className="w-6 h-6 text-blue-600" />
+            Daily Attendance
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            View or edit daily time punches for a single date.
+          </p>
         </div>
 
-        {/* Filters */}
-        <div className="row mb-3">
-          {[
-            {
-              name: "businessUnit",
-              label: "Business Unit",
-              options: businessUnit,
-            },
-            { name: "location", label: "Location", options: locations },
-            { name: "costCenter", label: "Cost Center", options: costCenters },
-            { name: "department", label: "Departments", options: departments },
-          ].map((field, idx) => (
-            <div className="col-md-3" key={idx}>
-              <label>{field.label}</label>
-              <select
-                className="form-select"
-                name={field.name}
-                value={filter[field.name]}
-                onChange={handleFilterChange}
-              >
-                {field.options.map((opt, i) => (
-                  <option key={i}>{opt}</option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <label className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
+            <Icon icon="heroicons:arrow-up-tray" className="w-4 h-4" />
+            Upload CSV
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
 
-        {/* Radio Filters */}
-        <div className="mt-3 d-flex flex-wrap gap-3">
-          {[
-            { label: "Show All", value: "all" },
-            { label: "Late Coming Only", value: "late" },
-            { label: "Absent Only", value: "absent" },
-            { label: "No Punches", value: "nopunch" },
-          ].map((f) => (
-            <div key={f.value}>
-              <input
-                type="radio"
-                id={`filter-${f.value}`}
-                name="selectedPunchFilter"
-                value={f.value}
-                className="d-none"
-                checked={selectedPunchFilter === f.value}
-                onChange={(e) => setSelectedPunchFilter(e.target.value)}
-              />
-              <label
-                htmlFor={`filter-${f.value}`}
-                className={`px-3 py-1 rounded-pill border small cursor-pointer
-          ${selectedPunchFilter === f.value
-                    ? "bg-primary text-white border-primary"
-                    : "bg-light text-dark"
-                  }`}
-                style={{ cursor: "pointer" }}
-              >
-                {f.label}
-              </label>
-            </div>
-          ))}
-        </div>
-
-        {/* Date Navigation + Search */}
-        <div className="d-flex align-items-center  mt-3 gap-3 flex-wrap">
-          {/* Date Navigation */}
-          <div
-            className="d-flex align-items-center border rounded overflow-hidden"
-            style={{ height: "40px" }}
+          <button
+            type="button"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/10"
+            onClick={handleExport}
           >
-            <button
-              className="btn btn-primary h-100 px-3"
-              onClick={() => handleDateChange("prev")}
-            >
-              <i className="fa fa-arrow-left"></i>
-            </button>
+            <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
+      </div>
 
-            <div className="px-4 bg-light fw-semibold d-flex align-items-center h-100">
-              {date}
-            </div>
-
-            <button
-              className="btn btn-primary h-100 px-3"
-              onClick={() => handleDateChange("next")}
+      <div className="border border-slate-200 bg-white/50 backdrop-blur-sm shadow-sm rounded-2xl p-4 sm:p-5">
+        <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+          <Icon icon="heroicons:funnel" className="w-4 h-4 text-slate-500" />
+          Filter Attendance
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Business Unit</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="businessUnit"
+              value={filter.businessUnit}
+              onChange={handleFilterChange}
             >
-              <i className="fa fa-arrow-right"></i>
-            </button>
+              {businessUnit.map((b, i) => (
+                <option key={i} value={b}>{b}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Search + View */}
-          <div className="input-group" style={{ maxWidth: "320px", height: "40px" }}>
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Location</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="location"
+              value={filter.location}
+              onChange={handleFilterChange}
+            >
+              {locations.map((loc, i) => (
+                <option key={i} value={loc}>{loc}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Cost Center</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="costCenter"
+              value={filter.costCenter}
+              onChange={handleFilterChange}
+            >
+              {costCenters.map((c, i) => (
+                <option key={i} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Departments</label>
+            <select
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700"
+              name="department"
+              value={filter.department}
+              onChange={handleFilterChange}
+            >
+              {departments.map((d, i) => (
+                <option key={i} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: "Show All", value: "all", icon: "heroicons:list-bullet" },
+          { label: "Late Coming Only", value: "late", icon: "heroicons:clock" },
+          { label: "Absent Only", value: "absent", icon: "heroicons:x-circle" },
+          { label: "No Punches", value: "nopunch", icon: "heroicons:no-symbol" },
+        ].map((f) => {
+          const isActive = selectedPunchFilter === f.value;
+          return (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setSelectedPunchFilter(f.value)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${isActive
+                ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/15"
+                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              <Icon icon={f.icon} className="w-3.5 h-3.5" />
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+        <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm max-w-xs">
+          <button
+            type="button"
+            className="p-2.5 hover:bg-slate-50 text-slate-600 transition-colors border-r border-slate-200"
+            onClick={() => handleDateChange("prev")}
+          >
+            <Icon icon="heroicons:chevron-left-20-solid" className="w-4 h-4" />
+          </button>
+          <div className="px-4 py-2 font-bold text-slate-700 text-xs sm:text-sm whitespace-nowrap flex items-center gap-1.5">
+            <Icon icon="heroicons:calendar" className="w-4 h-4 text-blue-500" />
+            {date}
+          </div>
+          <button
+            type="button"
+            className="p-2.5 hover:bg-slate-50 text-slate-600 transition-colors border-l border-slate-200"
+            onClick={() => handleDateChange("next")}
+          >
+            <Icon icon="heroicons:chevron-right-20-solid" className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex gap-2 max-w-md w-full">
+          <div className="relative flex-grow">
+            <Icon icon="heroicons:magnifying-glass" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              className="form-control"
               name="search"
-              placeholder="All Employees"
+              placeholder="Search by Employee name, code, designation..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700 shadow-sm"
               value={filter.search}
               onChange={handleFilterChange}
             />
-            <button className="btn btn-primary" onClick={handleView}>
-              <i className="fa fa-search me-1"></i> View
-            </button>
           </div>
+          <button
+            type="button"
+            className="px-4 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+            onClick={handleView}
+          >
+            <Icon icon="heroicons:arrow-path" className="w-4 h-4" />
+            View
+          </button>
         </div>
+      </div>
 
-        {/* Attendance Cards */}
-        <div className="mt-4">
-          {filteredAttendanceData.length > 0 ? (
-            filteredAttendanceData.map((emp) => (
+      <div className="space-y-4">
+        {currentData.length > 0 ? (
+          currentData.map((emp) => (
             <div
               key={emp.id}
-              className="card mb-3 shadow-sm"
-              style={{ borderRadius: 12 }}
+              className="border border-slate-200 hover:border-blue-100 hover:shadow-md transition-all duration-200 bg-white rounded-2xl p-4 sm:p-5 space-y-4"
             >
-              <div className="card-body">
-
-                {/* ===== Header ===== */}
-                <div className="d-flex justify-content-between align-items-center flex-wrap mb-3">
-                  <div className="fw-semibold text-dark">
-                    {emp.name} <span className="text-muted">({emp.code})</span>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center border border-slate-200">
+                    {emp.name?.charAt(0) || "E"}
                   </div>
-
-                  <div className="d-flex align-items-center flex-wrap gap-3 text-dark">
-                    <span>
-                      <i className="fa-solid fa-location-dot text-danger me-1"></i>
-                      {emp.location}
-                    </span>
-                    <span>
-                      <i className="fa-solid fa-briefcase text-warning me-1"></i>
-                      {emp.designation}
-                    </span>
-                    <span>
-                      <i className="fa-solid fa-building text-primary me-1"></i>
-                      {emp.department}
-                    </span>
+                  <div>
+                    <div className="font-bold text-slate-800 text-sm sm:text-base">
+                      {emp.name || "Unknown Employee"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium">
+                      Code: {emp.code || "N/A"}
+                    </div>
                   </div>
                 </div>
 
-                {/* ===== Timeline Section ===== */}
-                <div className="border-top pt-3">
-                  <div className="row align-items-center">
-
-                    {/* Left Info */}
-                    <div className="col-md-3 mb-2">
-                      <div className="text-primary fw-semibold">{emp.date}</div>
-                      <small>
-                        <strong>{emp.status}</strong>
-                        <br />
-                        {emp.note}
-                      </small>
-                    </div>
-
-                    {/* Timeline */}
-                    <div className="col-md-6 mb-2">
-                      <div className="text-center mb-1">
-                        <small className="text-muted">General</small>
-                      </div>
-
-                      <div className="d-flex align-items-center">
-                        {/* Start */}
-                        <div className="text-start" style={{ width: "15%" }}>
-                          <div className="small">{emp.timeline.start}</div>
-                          <div className="bg-success rounded" style={{ height: 5 }}></div>
-                          <div className="small text-primary mt-1">{emp.punchIn}</div>
-                        </div>
-
-                        {/* Middle */}
-                        <div style={{ width: "70%" }}>
-                          <div className="d-flex justify-content-between small text-muted">
-                            <span>09:00A</span>
-                            <span>06:00P</span>
-                          </div>
-                          <div className="bg-primary rounded" style={{ height: 5 }}></div>
-                        </div>
-
-                        {/* End */}
-                        <div className="text-end" style={{ width: "15%" }}>
-                          <div className="small">{emp.timeline.end}</div>
-                          <div className="bg-warning rounded" style={{ height: 5 }}></div>
-                          <div className="small text-success mt-1">
-                            {emp.punchOut} ({emp.punchType})
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Actions */}
-                    <div className="col-md-3 d-flex justify-content-end align-items-center gap-3">
-                      <div>
-                        In-Time:{" "}
-                        <strong className="text-primary">8 h 35 m</strong>
-                      </div>
-
-                      <div className="d-flex">
-                        <button
-                          className="btn btn-outline-success rounded-circle btn-sm me-2"
-                          onClick={() => {
-                            setSelectedEmployee(emp);
-                            setPunchDate(new Date().toISOString().split("T")[0]);
-                            setPunchTime({ hh: "", mm: "", ss: "" });
-                            setRemarks("");
-                            setPunchType("selfie");
-                            setShowAddPunchModal(true);
-                          }}
-                        >
-                          <i className="fa-solid fa-plus"></i>
-                        </button>
-
-                        <button
-                          className="btn btn-outline-info rounded-circle btn-sm"
-                          onClick={() => {
-                            setSelectedEmployee(emp);
-                            setShowPunchModal(true);
-                          }}
-                        >
-                          <i className="fa-solid fa-ellipsis"></i>
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
+                <div className="flex flex-wrap gap-2 text-[10px] sm:text-xs">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-100/50">
+                    <Icon icon="heroicons:map-pin" className="w-3.5 h-3.5" />
+                    {emp.location || "N/A"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-100/50">
+                    <Icon icon="heroicons:briefcase" className="w-3.5 h-3.5" />
+                    {emp.designation || "N/A"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100/50">
+                    <Icon icon="heroicons:building-office" className="w-3.5 h-3.5" />
+                    {emp.department || "N/A"}
+                  </span>
                 </div>
-
               </div>
-            </div>
-            ))
-          ) : (
-            <div className="card p-4 text-center">
-              <p className="text-muted mb-0">No attendance records found for the selected filters.</p>
-            </div>
-          )}
-        </div>
 
-        {/* Punch Modal */}
-        {showPunchModal && selectedEmployee && (
-          <div
-            className="modal fade show d-block"
-            style={{ 
-              background: "rgba(0,0,0,0.5)",
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              zIndex: 1055
-            }}
-            tabIndex="-1"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setShowPunchModal(false);
-              }
-            }}
-          >
-            <div 
-              className="modal-dialog modal-md modal-dialog-centered"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="modal-content">
-
-                {/* ===== Header ===== */}
-                <div className="modal-header">
-                  <h5 className="modal-title fw-semibold">
-                    All Punches - {selectedEmployee.name} ({selectedEmployee.code})
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => setShowPunchModal(false)}
-                  ></button>
-                </div>
-
-                {/* ===== Body ===== */}
-                <div className="modal-body">
-                  <ul className="list-group mb-3">
-                    {employeePunches[selectedEmployee.id] && employeePunches[selectedEmployee.id].length > 0 ? (
-                      employeePunches[selectedEmployee.id].map((punch, idx) => (
-                        <li key={idx} className="list-group-item d-flex align-items-center justify-content-between">
-                          <div>
-                            <div className="fw-semibold">{punch.time}</div>
-                            <small className="text-muted">{punch.type}</small>
-                          </div>
-                          <div className="d-flex align-items-center gap-3">
-                            <span className={`badge px-3 ${punch.direction === "IN" ? "bg-success" : "bg-warning text-dark"}`}>
-                              {punch.direction}
-                            </span>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => {
-                                const updatedPunches = employeePunches[selectedEmployee.id].filter((_, i) => i !== idx);
-                                setEmployeePunches((prev) => ({
-                                  ...prev,
-                                  [selectedEmployee.id]: updatedPunches,
-                                }));
-                                toast.success("Punch deleted successfully");
-                              }}
-                            >
-                              <i className="fa-solid fa-trash"></i>
-                            </button>
-                          </div>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="list-group-item text-center text-muted">
-                        No punches found for this employee
-                      </li>
-                    )}
-                  </ul>
-
-                  <div className="small text-muted d-flex align-items-center">
-                    <i className="fa-solid fa-circle-info me-2 text-primary"></i>
-                    All punches for selected date are shown.
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center pt-3 border-t border-slate-100 text-xs">
+                <div className="space-y-1.5">
+                  <div className="font-bold text-blue-600">{emp.date || date}</div>
+                  <div className="flex flex-col gap-1">
+                    <div>{getStatusBadge(emp.status || "Present")}</div>
+                    <div className="text-[10px] text-slate-400 leading-relaxed font-medium">{emp.note || ""}</div>
                   </div>
                 </div>
 
-                {/* ===== Footer ===== */}
-                <div className="modal-footer">
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => setShowPunchModal(false)}
-                  >
-                    Close
-                  </button>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-        )}
-
-        {/* Add Punch Modal */}
-        {showAddPunchModal && selectedEmployee && (
-          <div
-            className="modal fade show d-block"
-            style={{ 
-              background: "rgba(0,0,0,0.5)",
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              zIndex: 1055
-            }}
-            tabIndex="-1"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setShowAddPunchModal(false);
-              }
-            }}
-          >
-            <div 
-              className="modal-dialog modal-md modal-dialog-centered"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Add Time Punch </h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => {
-                      setShowAddPunchModal(false);
-                      setPunchDate("");
-                      setPunchTime({ hh: "", mm: "", ss: "" });
-                      setRemarks("");
-                      setPunchType("selfie");
-                    }}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  <div className="row mb-3">
-                    <div className="col-lg-4">
-                      <label className="from-label fw-semibold">
-                        Employee Name:
-                      </label>
-                    </div>
-                    <div className="col-md-6 ">
-                      <h5 className="fw-semibold"> {selectedEmployee.name}</h5>
-                      <p>{selectedEmployee.id}</p>
-                    </div>
+                <div className="md:col-span-2 space-y-2 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                  <div className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    General Shift Timeline
                   </div>
-                  <div className="row g-3 mb-2">
-                    <div className="col-md-4">
-                      <label className="form-label fw-semibold">
-                        Punch Date <span className="text-danger">*</span>
-                      </label>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-2">
+                    <div className="bg-white sm:bg-transparent p-2 sm:p-0 rounded-xl border border-slate-100/80 sm:border-0 flex items-center justify-between sm:block sm:w-1/5 sm:text-left">
+                      <div className="text-[10px] text-slate-400 font-semibold">{emp.timeline?.start || "03:00A"}</div>
+                      <div className="hidden sm:block h-1 bg-emerald-500 rounded-full my-1"></div>
+                      <div className="text-xs sm:text-[10px] text-blue-600 font-extrabold">
+                        In: {emp.punchIn || "--"}
+                      </div>
                     </div>
-                    <div className="col-md-7">
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={punchDate}
-                        onChange={(e) => setPunchDate(e.target.value)}
-                      />
+
+                    <div className="hidden sm:block sm:w-3/5 space-y-1">
+                      <div className="flex justify-between text-[10px] text-slate-400 font-bold">
+                        <span>09:00 AM</span>
+                        <span>06:00 PM</span>
+                      </div>
+                      <div className="h-1 bg-blue-500 rounded-full"></div>
                     </div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-md-4">
-                      <label className="form-label fw-semibold">
-                        Punch Time <span className="text-danger">*</span>
-                      </label>
-                    </div>
-                    <div className="col-md-7">
-                      <div className="d-flex align-items-center gap-2">
-                        {["hh", "mm", "ss"].map((field) => (
-                          <input
-                            key={field}
-                            type="number"
-                            className="form-control"
-                            placeholder={field.toUpperCase()}
-                            value={punchTime[field]}
-                            onChange={(e) =>
-                              setPunchTime((prev) => ({
-                                ...prev,
-                                [field]: e.target.value,
-                              }))
-                            }
-                            style={{ width: "80px" }}
-                          />
-                        ))}
+
+                    <div className="bg-white sm:bg-transparent p-2 sm:p-0 rounded-xl border border-slate-100/80 sm:border-0 flex items-center justify-between sm:block sm:w-1/5 sm:text-right">
+                      <div className="text-[10px] text-slate-400 font-semibold">{emp.timeline?.end || "12:00A"}</div>
+                      <div className="hidden sm:block h-1 bg-amber-500 rounded-full my-1"></div>
+                      <div className="text-xs sm:text-[10px] text-emerald-600 font-extrabold">
+                        Out: {emp.punchOut || "--"} {emp.punchType && emp.punchType !== "-" && `(${emp.punchType})`}
                       </div>
                     </div>
                   </div>
-                  <div className="row mb-2">
-                    <div className="col-md-4">
-                      <label className="form-label fw-semibold">
-                        Punch Type <span className="text-danger">*</span>
-                      </label>
-                    </div>
-                    <div className="col-md-7">
-                      <select
-                        className="form-select"
-                        value={punchType}
-                        onChange={(e) => setPunchType(e.target.value)}
-                      >
-                        {punchTypes.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-md-4">
-                      <label className="form-label fw-semibold">
-                        Remarks
-                      </label>
-                    </div>
-                    <div className="col-md-7">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter remarks (optional)"
-                        value={remarks}
-                        onChange={(e) => setRemarks(e.target.value)}
-                      />
-                    </div>
-                  </div>
                 </div>
-                <div className="modal-footer">
-                  <div className="row gap-5">
-                    <div className="col-lg-3 text-start">
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => setShowAddPunchModal(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                    <div className="col-lg-3 text-end">
-                      <button
-                        className="btn btn-success"
-                        onClick={() => {
-                          // Validation
-                          if (!punchDate) {
-                            toast.error("Please select a punch date");
-                            return;
-                          }
-                          if (!punchTime.hh || !punchTime.mm || !punchTime.ss) {
-                            toast.error("Please enter complete punch time (HH:MM:SS)");
-                            return;
-                          }
 
-                          const finalTime = `${String(punchTime.hh).padStart(2, "0")}:${String(punchTime.mm).padStart(2, "0")}:${String(punchTime.ss).padStart(2, "0")}`;
-                          const punchTypeLabel = punchTypes.find((pt) => pt.value === punchType)?.label || punchType;
-                          
-                          // Add punch to employee's punch list
-                          const newPunch = {
-                            time: finalTime,
-                            type: `${punchTypeLabel} Punch`,
-                            direction: "IN", // You can add logic to determine IN/OUT
-                          };
+                <div className="flex md:flex-col lg:flex-row justify-between md:justify-center items-center gap-3">
+                  <div className="text-left md:text-center lg:text-left">
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase">Total In-Time</span>
+                    <strong className="text-blue-600 font-extrabold text-sm sm:text-base">8 h 35 m</strong>
+                  </div>
 
-                          setEmployeePunches((prev) => ({
-                            ...prev,
-                            [selectedEmployee.id]: [
-                              ...(prev[selectedEmployee.id] || []),
-                              newPunch,
-                            ],
-                          }));
-
-                          toast.success(
-                            `Punch Added: ${punchDate} ${finalTime} (${punchTypeLabel})`
-                          );
-                          
-                          // Reset form
-                          setPunchDate("");
-                          setPunchTime({ hh: "", mm: "", ss: "" });
-                          setRemarks("");
-                          setShowAddPunchModal(false);
-                        }}
-                      >
-                        Insert
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="w-8 h-8 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full flex items-center justify-center transition-all shadow-inner"
+                      onClick={() => {
+                        setSelectedEmployee(emp);
+                        setShowAddPunchModal(true);
+                      }}
+                      title="Add Punch"
+                    >
+                      <Icon icon="heroicons:plus" className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="w-8 h-8 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-full flex items-center justify-center transition-all shadow-inner"
+                      onClick={() => {
+                        setSelectedEmployee(emp);
+                        setShowPunchModal(true);
+                      }}
+                      title="View All Punches"
+                    >
+                      <Icon icon="heroicons:ellipsis-horizontal" className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+          ))
+        ) : (
+          <div className="border border-slate-200 bg-white rounded-2xl p-8 text-center text-slate-400 text-xs sm:text-sm">
+            <Icon icon="heroicons:inbox" className="w-8 h-8 mx-auto mb-1.5 text-slate-300" />
+            No attendance records found for the selected filters.
+            <p className="mt-2 text-[10px] text-slate-400">
+              Upload a CSV file or add attendance data via API to get started.
+            </p>
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <nav className="flex justify-center mt-4">
+          <ul className="flex items-center gap-1.5">
+            <li>
+              <button
+                type="button"
+                className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${currentPage === 1 ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <Icon icon="heroicons:chevron-left-20-solid" className="w-4 h-4 text-slate-600" />
+              </button>
+            </li>
+            {[...Array(totalPages)].map((_, idx) => (
+              <li key={idx}>
+                <button
+                  type="button"
+                  className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${currentPage === idx + 1
+                    ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/15"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  onClick={() => goToPage(idx + 1)}
+                >
+                  {idx + 1}
+                </button>
+              </li>
+            ))}
+            <li>
+              <button
+                type="button"
+                className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${currentPage === totalPages ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <Icon icon="heroicons:chevron-right-20-solid" className="w-4 h-4 text-slate-600" />
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
+
+      {showPunchModal && selectedEmployee && (
+        <AllPunchesModal
+          isOpen={showPunchModal}
+          onClose={() => {
+            setShowPunchModal(false);
+            setSelectedEmployee(null);
+          }}
+          selectedPunch={selectedEmployee}
+          punches={employeePunches[selectedEmployee.id]}
+          onDeletePunch={handleDeletePunch}
+        />
+      )}
+
+      {showAddPunchModal && selectedEmployee && (
+        <AddPunchModal
+          isOpen={showAddPunchModal}
+          onClose={() => {
+            setShowAddPunchModal(false);
+            setSelectedEmployee(null);
+          }}
+          selectedPunch={selectedEmployee}
+          onSubmit={handleAddPunchSubmit}
+        />
+      )}
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        className="text-xs"
+      />
     </div>
   );
 };
