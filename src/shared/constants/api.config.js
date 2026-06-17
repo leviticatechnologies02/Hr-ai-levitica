@@ -57,11 +57,17 @@ export const API_ENDPOINTS = {
     APPLICATIONS_OVER_TIME: '/api/recruiter_dashboard/analytics/applications-over-time',
   },
   
-  // Assessments
+  // Assessments (backend mounts at /assessments and /assignments — no /api prefix)
   ASSESSMENTS: {
-    LIST: '/api/assessments',
-    CREATE: '/api/assessments',
-    ASSIGN: '/api/assignments',
+    LIST: '/assessments',
+    CREATE: '/assessments',
+    GET: (id) => `/assessments/${id}`,
+    UPDATE: (id) => `/assessments/${id}`,
+    DELETE: (id) => `/assessments/${id}`,
+    ASSIGN: '/assignments',
+    ASSIGNMENTS_LIST: '/assignments',
+    ASSIGNMENTS_WITH_STATUS: '/assignments/with-status',
+    ALL_RESULTS: '/assignments/all-results',
     RESULTS: (candidateId) => `/api/assessment_results/candidates/${candidateId}`,
   },
   

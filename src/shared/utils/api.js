@@ -124,7 +124,7 @@ export const jobAPI = {
 
   // Update job
   update: (id, formData) =>
-  apiCall(`/api/jobs/api/jobs/update/${id}`, {
+  apiCall(`/api/jobs/update/${id}`, {
     method: 'PUT',
     body: formData
   }),
@@ -695,32 +695,88 @@ export const hrAPI = {
 // BACKGROUND VERIFICATION (BGV) APIs
 // ==========================================
 export const bgvAPI = {
-  // Get all BGV employees/profiles
-  getEmployees: () => apiCall('/api/bgv/employees'),
+  // Get BGV KPI summary
+  getKPI: () => apiCall('/background-verification/kpi'),
 
-  // Get BGV document requests
-  getRequests: () => apiCall('/api/bgv/requests'),
+  // Get all BGV requests
+  getRequests: (search = null, status = null, skip = 0, limit = 50) => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (status) params.append('status_filter', status);
+    params.append('skip', skip);
+    params.append('limit', limit);
+    return apiCall(`/background-verification/?${params.toString()}`);
+  },
 
-  // Create or update a document request
-  saveRequest: (data) =>
-    apiCall('/api/bgv/requests', {
+  // Get single BGV request by ID
+  getRequest: (id) => apiCall(`/background-verification/${id}`),
+
+  // Create a BGV request
+  createRequest: (data) =>
+    apiCall('/background-verification/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
 
-  // Delete a request
+  // Update a BGV request
+  updateRequest: (id, data) =>
+    apiCall(`/background-verification/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+
+  // Delete a BGV request
   deleteRequest: (id) =>
-    apiCall(`/api/bgv/requests/${id}`, {
+    apiCall(`/background-verification/${id}`, {
       method: 'DELETE'
     }),
 
-  // Update employee BGV status
-  updateStatus: (employeeId, status) =>
-    apiCall(`/api/bgv/employees/${employeeId}/status`, {
-      method: 'PATCH',
+  // Upload a document for a BGV request
+  uploadDocument: (bgvId, docId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiCall(`/background-verification/${bgvId}/documents/${docId}/upload`, {
+      method: 'POST',
+      body: formData
+    });
+  },
+
+  // Add education record
+  addEducation: (bgvId, data) =>
+    apiCall(`/background-verification/${bgvId}/education`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify(data)
+    }),
+
+  // Delete education record
+  deleteEducation: (bgvId, eduId) =>
+    apiCall(`/background-verification/${bgvId}/education/${eduId}`, {
+      method: 'DELETE'
+    }),
+
+  // Save guardian details
+  saveGuardian: (bgvId, data) =>
+    apiCall(`/background-verification/${bgvId}/guardian`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+
+  // Save address details
+  saveAddress: (bgvId, data) =>
+    apiCall(`/background-verification/${bgvId}/address`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+
+  // Send BGV email to candidate
+  sendEmail: (bgvId) =>
+    apiCall(`/background-verification/${bgvId}/send-email`, {
+      method: 'POST'
     })
 };
 
