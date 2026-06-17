@@ -27,6 +27,9 @@ const ManualAttendance = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 2;
 
+  // Create a ref to track if this is the initial load
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   const handleYearChange = (direction) => {
     const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     const [currentMonth, currentYearStr] = financialYear.split("-");
@@ -49,12 +52,13 @@ const ManualAttendance = () => {
       }
     }
 
-    setFinancialYear(`${months[monthIndex]}-${year}`);
+    const newPeriod = `${months[monthIndex]}-${year}`;
+    setFinancialYear(newPeriod);
     // Fetch attendance data for the new period
-    fetchAttendanceData(`${months[monthIndex]}-${year}`);
+    fetchAttendanceData(newPeriod, false);
   };
 
-  const fetchAttendanceData = async (period) => {
+  const fetchAttendanceData = async (period, showToast = true) => {
     setIsLoading(true);
     try {
       // TODO: Replace with actual API call
@@ -67,11 +71,15 @@ const ManualAttendance = () => {
       // For demo purposes, set empty array or you can add sample data for testing
       setAttendance([]);
 
-      toast.info(`Loaded attendance for ${period}`);
+      // Only show toast if not initial load and showToast is true
+      if (!isInitialLoad && showToast) {
+        toast.info(`Loaded attendance for ${period}`);
+      }
     } catch (error) {
       toast.error("Failed to load attendance data");
     } finally {
       setIsLoading(false);
+      setIsInitialLoad(false);
     }
   };
 
@@ -116,7 +124,7 @@ const ManualAttendance = () => {
 
       toast.success(`File "${file.name}" uploaded successfully!`);
       // Refresh attendance data after upload
-      fetchAttendanceData(financialYear);
+      fetchAttendanceData(financialYear, true);
     } catch (error) {
       toast.error("Failed to upload file");
     }
@@ -138,9 +146,9 @@ const ManualAttendance = () => {
   const totalPages = Math.ceil(filteredAttendance.length / itemsPerPage);
 
   useEffect(() => {
-    // Fetch initial attendance data when component mounts
-    fetchAttendanceData(financialYear);
-  }, []);
+    // Fetch initial attendance data when component mounts - only once
+    fetchAttendanceData(financialYear, false);
+  }, []); // Empty dependency array - runs only once on mount
 
   useEffect(() => {
     setCurrentPage(1);
