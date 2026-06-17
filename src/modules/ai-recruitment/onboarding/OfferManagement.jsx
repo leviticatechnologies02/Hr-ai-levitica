@@ -152,49 +152,7 @@ const OfferManagement = () => {
 
   const OFFER_TYPES = ["Full-time", "Contract", "Internship", "Consultant"];
 
-  const TEMPLATES = [
-    {
-      id: "standard",
-      name: "Standard Offer Letter",
-      applicableTo: ["L1", "L2"],
-      sections: ["header", "candidate_info", "position_details", "ctc_breakup", "terms", "signatures"],
-      customizableFields: ["terms", "probation_period", "notice_period"],
-      defaultTerms: `1. This offer is subject to background verification.\n2. You will be on probation for 3 months.\n3. Standard company policies apply.\n4. Please acknowledge acceptance by the expiry date.`,
-    },
-    {
-      id: "executive",
-      name: "Executive Offer Letter",
-      applicableTo: ["L3", "L4", "L5"],
-      sections: ["header", "candidate_info", "position_details", "ctc_breakup", "stock_options", "terms", "signatures"],
-      customizableFields: ["terms", "probation_period", "notice_period", "stock_options", "benefits"],
-      defaultTerms: `1. This offer is subject to background verification.\n2. You will be on probation for 6 months.\n3. Executive compensation package includes stock options.\n4. Standard company policies apply.\n5. Please acknowledge acceptance by the expiry date.`,
-    },
-    {
-      id: "intern",
-      name: "Internship Offer Letter",
-      applicableTo: ["Intern"],
-      sections: ["header", "candidate_info", "position_details", "stipend", "terms", "signatures"],
-      customizableFields: ["terms", "duration", "stipend"],
-      defaultTerms: `1. This is an internship position for a duration of 6 months.\n2. Stipend will be paid monthly.\n3. Performance will be evaluated at the end of internship.\n4. Conversion to full-time is subject to performance and business needs.`,
-    },
-    {
-      id: "contract",
-      name: "Contract Offer Letter",
-      applicableTo: ["Contract"],
-      sections: ["header", "candidate_info", "position_details", "ctc_breakup", "contract_terms", "signatures"],
-      customizableFields: ["terms", "contract_duration", "renewal_terms"],
-      defaultTerms: `1. This is a contract position for a specified duration.\n2. Contract terms and renewal are subject to project requirements.\n3. Standard company policies apply during contract period.`,
-    },
-    {
-      id: "custom",
-      name: "Custom Template",
-      applicableTo: ["All"],
-      sections: ["header", "candidate_info", "position_details", "ctc_breakup", "terms", "signatures"],
-      customizableFields: ["all"],
-      defaultTerms: `1. This offer is subject to background verification.\n2. Standard company policies apply.\n3. Please acknowledge acceptance by the expiry date.`,
-    },
-  ];
-
+  
   const APPROVAL_WORKFLOWS = [
     {
       id: "direct",
@@ -498,24 +456,7 @@ const OfferManagement = () => {
       totalCTCMonthly: "0", performanceBonus: "0"
     };
 
-    const breakupItems = [
-      { label: "Basic Salary", amount: parseAmount(ctcBreakup.basic) },
-      { label: "House Rent Allowance (HRA)", amount: parseAmount(ctcBreakup.hra) },
-      { label: "Special Allowance", amount: parseAmount(ctcBreakup.specialAllowance) },
-      { label: "Conveyance Allowance", amount: parseAmount(ctcBreakup.conveyance) },
-      { label: "Telephone Allowance", amount: parseAmount(ctcBreakup.telephoneAllowance) },
-      { label: "Medical Allowance", amount: parseAmount(ctcBreakup.medicalAllowance) },
-      { label: "Gross Salary", amount: parseAmount(ctcBreakup.grossSalary) },
-      { label: "Employee PF", amount: parseAmount(ctcBreakup.employeePF) },
-      { label: "Professional Tax", amount: parseAmount(ctcBreakup.professionalTax) },
-      { label: "Gratuity", amount: parseAmount(ctcBreakup.gratuity) },
-      { label: "Net Take Home", amount: parseAmount(ctcBreakup.netTakeHome) },
-      { label: "Employer PF", amount: parseAmount(ctcBreakup.employerPF) },
-      { label: "Group Insurance", amount: parseAmount(ctcBreakup.groupInsurance) },
-      { label: "Performance Bonus", amount: parseAmount(ctcBreakup.performanceBonus) },
-      { label: "Total CTC (Monthly)", amount: parseAmount(ctcBreakup.totalCTCMonthly) }
-    ];
-
+    
     const validBreakupItems = breakupItems.filter(item => item.amount > 0);
     const calculatedTotal = validBreakupItems.reduce((sum, item) => sum + item.amount, 0);
 

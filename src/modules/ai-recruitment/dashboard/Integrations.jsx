@@ -2,47 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 
 const Integrations = () => {
-  const [integrations, setIntegrations] = useState([
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Get real-time hiring notifications in Slack channels.',
-      status: 'connected',
-      lastSync: '2 hours ago',
-      settings: {
-        channel: '#recruitment',
-        notifications: ['new_candidate', 'stage_change']
-      }
-    },
-    {
-      id: 'gmail',
-      name: 'Gmail',
-      description: 'Sync recruiter inbox for candidate emails and updates.',
-      status: 'disconnected',
-      lastSync: null,
-      settings: null
-    },
-    {
-      id: 'google-calendar',
-      name: 'Google Calendar',
-      description: 'Auto-schedule interviews directly from the platform.',
-      status: 'disconnected',
-      lastSync: null,
-      settings: null
-    },
-    {
-      id: 'ats',
-      name: 'ATS (External System)',
-      description: 'Import job data or export candidates to another ATS.',
-      status: 'connected',
-      lastSync: '15 minutes ago',
-      settings: {
-        syncFrequency: 'hourly',
-        autoExport: true
-      }
-    }
-  ]);
-
+  
   const [notification, setNotification] = useState(null);
   const [showSettings, setShowSettings] = useState(null);
   const [isDragging, setIsDragging] = useState(false);

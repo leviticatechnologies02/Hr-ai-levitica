@@ -2093,11 +2093,6 @@ const PayrollIntegration = () => {
       return;
     }
     
-    const sampleData = [
-      { Employee: 'John Smith', Amount: '$1,500.00', Status: 'Processed' },
-      { Employee: 'Sarah Johnson', Amount: '$1,200.00', Status: 'Pending' },
-      { Employee: 'Robert Chen', Amount: '$1,800.00', Status: 'Processed' }
-    ];
     
     const headers = Object.keys(sampleData[0]);
     

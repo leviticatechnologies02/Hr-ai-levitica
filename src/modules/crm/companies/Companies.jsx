@@ -38,16 +38,6 @@ import {
 import Modal from '../../../shared/components/Modal';
 import { FaBuilding } from 'react-icons/fa';
 
-const sampleCompanies = [
-  { name: 'Brightwave Innovations', email: 'clara@example.com', phone: '(563) 245 3156', location: 'Germany', rating: 4.5 },
-  { name: 'Stellar Dynamics', email: 'sharon@example.com', phone: '(148) 126 6495', location: 'USA', rating: 4.5 },
-  { name: 'Quantum Nexus', email: 'rayuhan@example.com', phone: '(248) 136 6495', location: 'India', rating: 4.5 },
-  { name: 'EcoVision Enterprises', email: 'jessica@example.com', phone: '(563) 245 3156', location: 'Canada', rating: 4.5 },
-  { name: 'Aurora Technologies', email: 'clara@example.com', phone: '(563) 245 3156', location: 'Germany', rating: 4.5 },
-  { name: 'BluSky Ventures', email: 'diana@example.com', phone: '(563) 245 3156', location: 'Japan', rating: 4.5 },
-  { name: 'TerraFusion Energy', email: 'rakesh@example.com', phone: '(563) 245 3156', location: 'Indonesia', rating: 4.5 },
-  { name: 'UrbanPulse Design', email: 'jonella@example.com', phone: '(563) 245 3156', location: 'USA', rating: 4.5 },
-];
 
 function Companies() {
   const [loading, setLoading] = useState(true);

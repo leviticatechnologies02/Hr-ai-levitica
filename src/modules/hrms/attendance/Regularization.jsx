@@ -68,13 +68,7 @@ const regularizationReducer = (state, action) => {
 };
 
 // ==================== INITIAL DATA ====================
-const initialEmployees = [
-  { id: "EMP001", name: "Khuswanth Rao", department: "IT", position: "Developer" },
-  { id: "EMP002", name: "John Smith", department: "HR", position: "Manager" },
-  { id: "EMP003", name: "Sarah Johnson", department: "Finance", position: "Analyst" },
-  { id: "EMP004", name: "Mike Brown", department: "Sales", position: "Executive" },
-  { id: "EMP005", name: "Emma Wilson", department: "IT", position: "Tester" },
-];
+
 
 const Regularization = () => {
   const [activeTab, setActiveTab] = useState("requests");

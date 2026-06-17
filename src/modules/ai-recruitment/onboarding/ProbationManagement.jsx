@@ -844,12 +844,7 @@ const ProbationManagement = () => {
   };
 
   const ReviewMilestones = ({ employee }) => {
-    const steps = [
-      { label: '30D', completed: employee.review30.completed, date: employee.review30.date },
-      { label: '60D', completed: employee.review60.completed, date: employee.review60.date },
-      { label: '90D', completed: employee.review90.completed, date: employee.review90.date },
-      { label: 'Final', completed: employee.status === 'completed', date: employee.confirmationDate }
-    ];
+    
     return (
       <div className="flex items-center justify-center gap-1">
         {steps.map((step, idx) => (

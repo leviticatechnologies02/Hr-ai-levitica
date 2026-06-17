@@ -2,16 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit3, Trash2, GripVertical, Save, X, Check } from 'lucide-react';
 
 const Stages = () => {
-  const [stages, setStages] = useState([
-    { id: 1, name: 'Applied', type: 'Screening', order: 1 },
-    { id: 2, name: 'Phone Screen', type: 'Screening', order: 2 },
-    { id: 3, name: 'Interview', type: 'Interview', order: 3 },
-    { id: 4, name: 'Onsite Interview', type: 'Interview', order: 4 },
-    { id: 5, name: 'Offer Extended', type: 'Decision', order: 5 },
-    { id: 6, name: 'Hired', type: 'Final', order: 6 },
-    { id: 7, name: 'Rejected', type: 'Final', order: 7 }
-  ]);
-
+  
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [stageToDelete, setStageToDelete] = useState(null);
