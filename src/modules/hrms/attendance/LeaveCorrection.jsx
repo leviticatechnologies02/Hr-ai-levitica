@@ -1,17 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import Breadcrump from "../../../shared/components/Breadcrump";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Icon } from "@iconify/react";
+import DownloadLeaveCorrectionModal from "../modal/DownloadLeaveCorrectionModal";
+import UploadLeaveCorrectionModal from "../modal/UploadLeaveCorrectionModal";
 
 function LeaveCorrection() {
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [month, setMonth] = useState("SEP-2025");
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    return `${months[now.getMonth()]}-${now.getFullYear()}`;
+  });
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [leaveType, setLeaveType] = useState("LV458 - Comp Off");
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const isInitialLoad = useRef(true);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -26,6 +36,22 @@ function LeaveCorrection() {
     "LV2638 - Sick Leave",
     "LV2640 - Half Day",
   ];
+
+  const fetchAttendanceData = async (period, showToast = true) => {
+    setIsLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setEmployees([]);
+      if (!isInitialLoad.current && showToast) {
+        toast.info(`Loaded leave corrections for ${period}`);
+      }
+    } catch (error) {
+      toast.error("Failed to load leave corrections data");
+    } finally {
+      setIsLoading(false);
+      isInitialLoad.current = false;
+    }
+  };
 
   const handleMonthChange = (direction) => {
     const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -49,28 +75,40 @@ function LeaveCorrection() {
       }
     }
 
-    setMonth(`${months[monthIndex]}-${currentYear}`);
+    const newMonth = `${months[monthIndex]}-${currentYear}`;
+    setMonth(newMonth);
+    fetchAttendanceData(newMonth, true);
   };
 
   const handleLoad = () => {
-    console.log("Load clicked with search:", searchInput);
     setPage(1);
-  };
-
-  const handleFileUpload = () => {
-    alert("File uploaded successfully!");
-    setShowUploadModal(false);
+    fetchAttendanceData(month, true);
   };
 
   const handleCorrectionChange = (id, value) => {
     setEmployees((prev) =>
       prev.map((emp) =>
-        emp.id === id ? { ...emp, correction: Number(value) } : emp
+        emp.id === id ? { ...emp, correction: Number(value) || 0 } : emp
       )
     );
   };
 
+  const handleSave = async (id) => {
+    const emp = employees.find((e) => e.id === id);
+    if (!emp) return;
+    try {
+      toast.success(`Correction saved for ${emp.name}`);
+    } catch (error) {
+      toast.error("Failed to save correction");
+    }
+  };
+
   const downloadAllExcel = () => {
+    if (!employees.length) {
+      toast.error("No data to export!");
+      return;
+    }
+
     const exportData = employees.map((emp) => ({
       Name: emp.name,
       ID: emp.id,
@@ -80,34 +118,43 @@ function LeaveCorrection() {
       Correction: emp.correction,
       Closing: emp.closing,
     }));
+    
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Leave Corrections");
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     saveAs(
       new Blob([wbout], { type: "application/octet-stream" }),
-      "Leave_Corrections.xlsx"
+      `Leave_Corrections_${month}.xlsx`
     );
+    toast.success("Downloaded successfully!");
+  };
+
+  const handleDownloadSubmit = async (format) => {
+    try {
+      downloadAllExcel();
+      toast.success(`Leave corrections downloaded successfully in ${format.toUpperCase()} format!`);
+    } catch (error) {
+      toast.error("Failed to download leave corrections");
+    }
+  };
+
+  const handleUploadSubmit = async (file) => {
+    try {
+      toast.success(`File "${file.name}" uploaded successfully!`);
+      setShowUploadModal(false);
+      fetchAttendanceData(month, true);
+    } catch (error) {
+      toast.error("Failed to upload file");
+    }
   };
 
   useEffect(() => {
-    const data = [
-      { name: "Abhilash Gurrampally", id: "LEV029", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Anusha Enigalla", id: "LEV039", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "ARAVELLY THARUN", id: "LEV122", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Ashok Kota", id: "LEV047", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Baluguri Ashritha Rao", id: "LEV121", designation: "HR Executive", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Abhilash Gurrampally", id: "LEV029", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Anusha Enigalla", id: "LEV039", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Ashok Kota", id: "LEV047", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Bogala Chandramouli", id: "LEV027", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-      { name: "Burri Gowtham", id: "LEV023", designation: "Associate Software Engineer", opening: 0, activity: 0, correction: 0, closing: 0 },
-    ];
-    setEmployees(data);
-  }, []);
+    fetchAttendanceData(month, false);
+  }, [leaveType]);
 
   const filteredEmployees = employees.filter((emp) =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase())
+    emp.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE) || 1;
   const paginatedEmployees = filteredEmployees.slice(
@@ -124,334 +171,300 @@ function LeaveCorrection() {
   };
 
   return (
-    <div className="container-fluid">
-     
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3 mt-3 flex-wrap">
+    <div className="w-full mx-auto max-w-7xl space-y-4 sm:space-y-6 px-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100">
         <div>
-          <h4 className="fw-bold mb-1">Leave Correction</h4>
-          <p className="text-muted mb-0">Make corrections in leave balances</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Icon icon="heroicons:pencil-square" className="w-6 h-6 text-blue-600" />
+            Leave Correction
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Make corrections in leave balances for employees.
+          </p>
         </div>
 
-        <div className="dropdown">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
-            className="btn btn-primary btn-sm dropdown-toggle"
             type="button"
-            id="optionsDropdown"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+            onClick={() => setShowDownloadModal(true)}
           >
-            Options <i className="fe fe-chevron-down"></i>
+            <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
+            Download
           </button>
-          <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="optionsDropdown">
-            <li>
-              <button
-                className="dropdown-item"
-                onClick={() => setShowDownloadModal(true)}
-              >
-                <i className="fe fe-download me-2"></i> Download
-              </button>
-            </li>
-            <li>
-              <button
-                className="dropdown-item"
-                onClick={() => setShowUploadModal(true)}
-              >
-                <i className="fe fe-upload me-2"></i> Upload
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Download Modal */}
-      {showDownloadModal && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", background: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-md modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Download Corrections</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowDownloadModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <p>Download leave correction data for the selected period.</p>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={() => setShowDownloadModal(false)}
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    downloadAllExcel();
-                    setShowDownloadModal(false);
-                  }}
-                >
-                  <i className="fe fe-download me-1"></i> Download
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", background: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-md modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Upload Data</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowUploadModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Select File</label>
-                  <input type="file" className="form-control" accept=".xlsx,.xls,.csv" />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={() => setShowUploadModal(false)}
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleFileUpload}
-                >
-                  <i className="fe fe-upload me-1"></i> Upload
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters Row */}
-      <div className="row mb-3">
-        <div className="col-md-3 col-lg-2">
-          <label className="form-label text-muted small">Business Unit</label>
-          <select className="form-select form-select-sm">
-            <option>All Units</option>
-            <option>Default Business Unit</option>
-          </select>
-        </div>
-        <div className="col-md-3 col-lg-2">
-          <label className="form-label text-muted small">Location</label>
-          <select className="form-select form-select-sm">
-            <option>All Locations</option>
-            <option>Hyderabad</option>
-          </select>
-        </div>
-        <div className="col-md-3 col-lg-2">
-          <label className="form-label text-muted small">Cost Center</label>
-          <select className="form-select form-select-sm">
-            <option>All Cost Centers</option>
-            <option>Associate Software Engineer</option>
-            <option>HR Executive</option>
-          </select>
-        </div>
-        <div className="col-md-3 col-lg-2">
-          <label className="form-label text-muted small">Department</label>
-          <select className="form-select form-select-sm">
-            <option>All Locations</option>
-            <option>Product Development Team</option>
-            <option>HR Executive</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Month + Leave Type + Search */}
-      <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
-        {/* Month Selector */}
-        <div
-          className="d-inline-flex align-items-center border rounded overflow-hidden"
-          style={{ height: "38px" }}
-        >
           <button
-            className="btn btn-secondary d-flex align-items-center justify-content-center border-0 rounded-0"
-            onClick={() => handleMonthChange("prev")}
-            style={{ width: "38px", height: "38px" }}
+            type="button"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/10"
+            onClick={() => setShowUploadModal(true)}
           >
-            <i className="fe fe-arrow-left"></i>
+            <Icon icon="heroicons:arrow-up-tray" className="w-4 h-4" />
+            Upload
+          </button>
+        </div>
+      </div>
+
+      <div className="border border-slate-200 bg-white/50 backdrop-blur-sm shadow-sm rounded-2xl p-4 sm:p-5">
+        <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+          <Icon icon="heroicons:funnel" className="w-4 h-4 text-slate-500" />
+          Filter Criteria
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Business Unit</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
+              <option>All Units</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Location</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
+              <option>All Locations</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Cost Center</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
+              <option>All Cost Centers</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-slate-500">Department</label>
+            <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
+              <option>All Departments</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full flex flex-wrap items-center gap-4">
+        <div className="flex items-center h-10 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+
+          <button
+            type="button"
+            onClick={() => handleMonthChange("prev")}
+            className="w-12 h-full flex items-center justify-center hover:bg-slate-100 border-r border-slate-200"
+          >
+            <Icon
+              icon="heroicons:chevron-left"
+              className="w-5 h-5 text-slate-600"
+            />
           </button>
 
-          <div
-            className="bg-light fw-semibold text-center d-flex align-items-center justify-content-center"
-            style={{
-              minWidth: "100px",
-              height: "38px",
-              padding: "0 12px",
-              fontSize: "14px",
-            }}
-          >
+          <div className="px-6 h-full flex items-center gap-2 font-semibold text-slate-700 min-w-[170px] justify-center">
+
+            <Icon
+              icon="heroicons:calendar-days"
+              className="w-5 h-5 text-blue-600"
+            />
+
             {month}
           </div>
 
           <button
-            className="btn btn-secondary d-flex align-items-center justify-content-center border-0 rounded-0"
+            type="button"
             onClick={() => handleMonthChange("next")}
-            style={{ width: "38px", height: "38px" }}
+            className="w-12 h-full flex items-center justify-center hover:bg-slate-100 border-l border-slate-200"
           >
-            <i className="fe fe-arrow-right"></i>
+            <Icon
+              icon="heroicons:chevron-right"
+              className="w-5 h-5 text-slate-600"
+            />
           </button>
+
         </div>
 
-        {/* Leave Type Dropdown */}
         <select
-          className="form-select"
-          style={{ width: "180px", height: "38px" }}
           value={leaveType}
           onChange={(e) => setLeaveType(e.target.value)}
+          className="h-10 min-w-[280px] px-4 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          {leaveTypes.map((type, i) => (
-            <option key={i} value={type}>{type}</option>
+          {leaveTypes.map((item, index) => (
+            <option key={index} value={item}>
+              {item}
+            </option>
           ))}
         </select>
 
-        {/* Search Input */}
-        <div className="input-group" style={{ width: "200px" }}>
+        <div className="relative flex-1 min-w-[320px]">
+          <Icon
+            icon="heroicons:magnifying-glass"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
+          />
           <input
             type="text"
-            placeholder="All Employees"
             value={searchInput}
+            placeholder="Search by Employee name, code..."
             onChange={(e) => {
               setSearchInput(e.target.value);
               setSearchTerm(e.target.value);
             }}
-            className="form-control"
-            style={{ height: "38px" }}
+            className="w-full h-10 pl-12 pr-4 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        {/* View Button */}
-        <button className="btn btn-primary" onClick={handleLoad} style={{ height: "38px" }}>
-          <i className="fe fe-search me-1"></i> View
+        <button
+          type="button"
+          onClick={handleLoad}
+          className="h-10 px-8 bg-slate-900 hover:bg-black text-white rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all"
+        >
+          <Icon
+            icon="heroicons:arrow-path"
+            className="w-5 h-5"
+          />
+
+          View
         </button>
       </div>
 
-      {/* Table */}
-      <div className="card shadow-sm">
-        <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover mb-0">
-              <thead style={{ backgroundColor: "#f8f9fa" }}>
+      <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Icon icon="svg-spinners:180-ring" className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-xs text-slate-500 mt-2">Loading leave corrections data...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold tracking-wider text-[12px]">
                 <tr>
-                  <th className="text-start py-3 px-4" style={{ fontWeight: 600, fontSize: "13px", color: "#6c757d" }}>EMPLOYEE</th>
-                  <th className="text-start py-3 px-4" style={{ fontWeight: 600, fontSize: "13px", color: "#6c757d" }}>DESIGNATION</th>
-                  <th className="text-center py-3 px-4" style={{ fontWeight: 600, fontSize: "13px", color: "#6c757d" }}>OPENING</th>
-                  <th className="text-center py-3 px-4" style={{ fontWeight: 600, fontSize: "13px", color: "#6c757d" }}>
-                    ACTIVITY <i className="fe fe-info" style={{ fontSize: "12px" }}></i>
+                  <th className="p-3 text-left min-w-[160px]">Employee</th>
+                  <th className="p-3 text-left min-w-[140px]">Designation</th>
+                  <th className="p-3 text-center w-20">Opening</th>
+                  <th className="p-3 text-center w-20">
+                    Activity <Icon icon="heroicons:information-circle" className="w-3.5 h-3.5 inline text-slate-400" />
                   </th>
-                  <th className="text-center py-3 px-4" style={{ fontWeight: 600, fontSize: "13px", color: "#6c757d" }}>CORRECTION</th>
-                  <th className="text-center py-3 px-4" style={{ fontWeight: 600, fontSize: "13px", color: "#6c757d" }}>CLOSING</th>
-                  <th className="text-center py-3 px-4" style={{ width: "60px" }}></th>
+                  <th className="p-3 text-center w-28">Correction</th>
+                  <th className="p-3 text-center w-20">Closing</th>
+                  <th className="p-3 text-center w-16">Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
                 {paginatedEmployees.length > 0 ? (
                   paginatedEmployees.map((emp, index) => (
-                    <tr key={`${emp.id}-${index}`} style={{ borderBottom: "1px solid #e9ecef" }}>
-                      <td className="text-start py-3 px-4">
-                        <div>
-                          <div className="fw-bold" style={{ fontSize: "14px", color: "#212529" }}>{emp.name}</div>
-                          <small className="text-muted">{emp.id}</small>
-                        </div>
+                    <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-bold text-slate-800 text-xs">{emp.name}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">ID: {emp.id}</div>
                       </td>
-                      <td className="text-start py-3 px-4" style={{ fontSize: "14px", color: "#6c757d" }}>
-                        {emp.designation}
-                      </td>
-                      <td className="text-center py-3 px-4" style={{ fontSize: "14px", color: "#6c757d" }}>
-                        {emp.opening}
-                      </td>
-                      <td className="text-center py-3 px-4" style={{ fontSize: "14px", color: "#6c757d" }}>
-                        {emp.activity}
-                      </td>
-                      <td className="text-center py-3 px-4">
+                      <td className="p-3 text-slate-600 text-xs">{emp.designation}</td>
+                      <td className="p-3 text-center font-semibold text-slate-700">{emp.opening}</td>
+                      <td className="p-3 text-center font-semibold text-slate-700">{emp.activity}</td>
+                      <td className="p-3 text-center">
                         <input
                           type="number"
+                          min="0"
                           value={emp.correction}
                           onChange={(e) => handleCorrectionChange(emp.id, e.target.value)}
-                          className="form-control text-center mx-auto"
-                          style={{ width: "80px", height: "32px", fontSize: "14px" }}
+                          className="w-16 mx-auto block px-2 py-1 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-center font-bold text-slate-700"
                         />
                       </td>
-                      <td className="text-center py-3 px-4" style={{ fontSize: "14px", color: "#6c757d" }}>
-                        {emp.closing}
-                      </td>
-                      <td className="text-center py-3 px-4">
+                      <td className="p-3 text-center font-semibold text-slate-700">{emp.closing}</td>
+                      <td className="p-3 text-center">
                         <button
-                          className="btn btn-success btn-sm rounded-circle d-flex align-items-center justify-content-center"
-                          style={{ width: "32px", height: "32px" }}
-                          onClick={() => alert(`Saved correction for ${emp.name}`)}
-                          title="Save"
+                          type="button"
+                          className="w-8 h-8 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center transition-all mx-auto shadow-inner"
+                          onClick={() => handleSave(emp.id)}
+                          title="Save Changes"
                         >
-                          <i className="fe fe-check" style={{ fontSize: "14px" }}></i>
+                          <Icon icon="heroicons:check" className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center py-4 text-muted">
-                      No records found
+                    <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                      <Icon icon="heroicons:inbox" className="w-8 h-8 mx-auto mb-1.5 text-slate-300" />
+                      No leave correction records found.
+                      <p className="text-[10px] mt-1 text-slate-400">
+                        Upload a file or add leave correction data via API to get started.
+                      </p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Footer Note and Pagination */}
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <p className="mb-0 text-muted small">
-          <span style={{ color: "#17a2b8" }}>Note:</span> Corrections are added at the beginning of the period.
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-2">
+        <p className="text-[10px] sm:text-xs text-slate-500 flex items-center gap-1.5">
+          <Icon icon="heroicons:information-circle" className="w-4 h-4 text-cyan-500" />
+          <span className="font-medium">Note:</span> Corrections are added at the beginning of the period.
         </p>
-        <div className="d-flex gap-2 align-items-center">
-          <button
-            className="btn btn-outline-secondary btn-sm"
-            disabled={page === 1}
-            onClick={handlePrevious}
-          >
-            Previous
-          </button>
-          <span className="small text-muted">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            className="btn btn-primary btn-sm"
-            disabled={page === totalPages}
-            onClick={handleNext}
-          >
-            Next
-          </button>
-        </div>
+
+        {totalPages > 1 && (
+          <nav className="flex justify-center sm:justify-end">
+            <ul className="flex items-center gap-1.5">
+              <li>
+                <button
+                  type="button"
+                  className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${page === 1 ? "opacity-50 pointer-events-none" : ""}`}
+                  onClick={handlePrevious}
+                  disabled={page === 1}
+                >
+                  <Icon icon="heroicons:chevron-left-20-solid" className="w-4 h-4 text-slate-600" />
+                </button>
+              </li>
+              {[...Array(totalPages)].map((_, idx) => (
+                <li key={idx}>
+                  <button
+                    type="button"
+                    className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
+                      page === idx + 1
+                        ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/15"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                    onClick={() => setPage(idx + 1)}
+                  >
+                    {idx + 1}
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors ${page === totalPages ? "opacity-50 pointer-events-none" : ""}`}
+                  onClick={handleNext}
+                  disabled={page === totalPages}
+                >
+                  <Icon icon="heroicons:chevron-right-20-solid" className="w-4 h-4 text-slate-600" />
+                </button>
+              </li>
+            </ul>
+          </nav>
+        )}
       </div>
+
+      {showDownloadModal && (
+        <DownloadLeaveCorrectionModal
+          isOpen={showDownloadModal}
+          onClose={() => setShowDownloadModal(false)}
+          financialYear={month}
+          onDownload={handleDownloadSubmit}
+        />
+      )}
+
+      {showUploadModal && (
+        <UploadLeaveCorrectionModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          financialYear={month}
+          onUpload={handleUploadSubmit}
+        />
+      )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        className="text-xs"
+      />
     </div>
   );
 }
