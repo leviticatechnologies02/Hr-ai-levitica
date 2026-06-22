@@ -1,4 +1,3 @@
-// modal/ImportModal.jsx
 import React, { useRef } from 'react';
 import { Icon } from '@iconify/react';
 import Modal from '../../../shared/components/Modal';

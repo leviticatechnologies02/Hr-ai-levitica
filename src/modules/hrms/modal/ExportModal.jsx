@@ -1,4 +1,3 @@
-// modal/ExportModal.jsx
 import React from 'react';
 import { Icon } from '@iconify/react';
 import Modal from '../../../shared/components/Modal';

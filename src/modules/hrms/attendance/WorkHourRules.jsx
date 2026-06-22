@@ -4,13 +4,9 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import * as XLSX from 'xlsx';
 
-// Import modular modals
 import ExportModal from "../modal/ExportModal";
 import ImportModal from "../modal/ImportModal";
 
-// ==============================
-// CONTEXT FOR GLOBAL STATE
-// ==============================
 const WorkHourContext = createContext();
 
 const useWorkHourRules = () => {
@@ -21,9 +17,6 @@ const useWorkHourRules = () => {
   return context;
 };
 
-// ==============================
-// INITIAL STATE - Completely Empty
-// ==============================
 const initialState = {
   attendanceRules: {
     lateArrival: {
@@ -170,9 +163,6 @@ const initialState = {
   },
 };
 
-// ==============================
-// REDUCER FUNCTION
-// ==============================
 const rulesReducer = (state, action) => {
   switch (action.type) {
     case "UPDATE_ATTENDANCE_RULE":
@@ -259,9 +249,6 @@ const rulesReducer = (state, action) => {
   }
 };
 
-// ==============================
-// ATTENDANCE RULES COMPONENT
-// ==============================
 const AttendanceRules = () => {
   const [rules, setRules] = useState(() => {
     const savedRules = localStorage.getItem("attendanceRules");
@@ -746,9 +733,6 @@ const AttendanceRules = () => {
   );
 };
 
-// ==============================
-// OVERTIME MANAGEMENT COMPONENT - COMPLETELY CLEAN
-// ==============================
 const OvertimeManagement = () => {
   const [rules, setRules] = useState(() => {
     const savedRules = localStorage.getItem("overtimeManagementRules");
@@ -1026,9 +1010,6 @@ const OvertimeManagement = () => {
   );
 };
 
-// ==============================
-// BREAK MANAGEMENT COMPONENT - COMPLETELY CLEAN
-// ==============================
 const BreakManagement = () => {
   const [rules, setRules] = useState(() => {
     const savedRules = localStorage.getItem("breakManagementRules");
@@ -1574,9 +1555,6 @@ const BreakManagement = () => {
   );
 };
 
-// ==============================
-// SETTINGS COMPONENT
-// ==============================
 const Settings = () => {
   const [settings, setSettings] = useState(() => {
     const savedSettings = localStorage.getItem("workHourSettings");
@@ -1731,9 +1709,6 @@ const Settings = () => {
   );
 };
 
-// ==============================
-// MAIN COMPONENT
-// ==============================
 const WHR = () => {
   const [state, dispatch] = useReducer(rulesReducer, initialState);
   const [activeTab, setActiveTab] = useState("attendance");
