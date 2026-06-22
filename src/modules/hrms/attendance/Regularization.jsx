@@ -1,38 +1,15 @@
 import React, { useState, useEffect, useReducer } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
-import {
-  Clock,
-  Calendar,
-  FileText,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Download,
-  Upload,
-  Search,
-  Filter,
-  Plus,
-  Edit,
-  Eye,
-  Send,
-  RefreshCw,
-  Settings,
-  User,
-  Building,
-  Home,
-  Briefcase,
-  Mail,
-  Bell,
-  AlertTriangle,
-  Check,
-  X,
-  FileCheck,
-  CalendarDays,
-  BarChart3,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-// ==================== REDUCER FOR STATE MANAGEMENT ====================
+import RegularizationRequestModal from "../modal/RegularizationRequestModal";
+import RegularizationApprovalModal from "../modal/RegularizationApprovalModal";
+import RegularizationBulkModal from "../modal/RegularizationBulkModal";
+
+const initialEmployees = [
+];
+
 const regularizationReducer = (state, action) => {
   switch (action.type) {
     case "SET_REQUESTS":
@@ -67,9 +44,6 @@ const regularizationReducer = (state, action) => {
   }
 };
 
-// ==================== INITIAL DATA ====================
-
-
 const Regularization = () => {
   const [activeTab, setActiveTab] = useState("requests");
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -81,7 +55,6 @@ const Regularization = () => {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterType, setFilterType] = useState("All");
 
-  // Form states
   const [requestForm, setRequestForm] = useState({
     employeeId: "",
     requestType: "missing",
@@ -115,7 +88,6 @@ const Regularization = () => {
     file: null,
   });
 
-  // Report form state
   const [reportForm, setReportForm] = useState({
     fromDate: "",
     toDate: "",
@@ -123,7 +95,6 @@ const Regularization = () => {
     format: "pdf",
   });
 
-  // Load from localStorage
   const loadFromStorage = (key, defaultValue) => {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : defaultValue;
@@ -142,7 +113,6 @@ const Regularization = () => {
   const [state, dispatch] = useReducer(regularizationReducer, initialState);
   const { requests, autoRejectRules, bulkProcessing, reports } = state;
 
-  // Save to localStorage
   useEffect(() => {
     localStorage.setItem("regularizationRequests", JSON.stringify(requests));
     localStorage.setItem("autoRejectRules", JSON.stringify(autoRejectRules));
@@ -150,7 +120,6 @@ const Regularization = () => {
     localStorage.setItem("regularizationReports", JSON.stringify(reports));
   }, [state]);
 
-  // Auto-reject processing
   useEffect(() => {
     const processAutoReject = () => {
       const today = new Date();
@@ -182,21 +151,19 @@ const Regularization = () => {
       });
 
       if (rejectedCount > 0) {
-        console.log(`Auto-rejected ${rejectedCount} request(s)`);
+        toast.info(`Auto-rejected ${rejectedCount} request(s)`);
       }
     };
 
-    // Check every hour
     const interval = setInterval(processAutoReject, 3600000);
-    processAutoReject(); // Run immediately
+    processAutoReject();
 
     return () => clearInterval(interval);
   }, [requests, autoRejectRules]);
 
-  // ==================== REQUEST FUNCTIONS ====================
   const handleSubmitRequest = () => {
     if (!requestForm.employeeId || !requestForm.reason || !requestForm.remarks) {
-      alert("Please fill all required fields (Employee, Reason, Remarks)");
+      toast.error("Please fill all required fields (Employee, Reason, Remarks)");
       return;
     }
 
@@ -237,7 +204,7 @@ const Regularization = () => {
       summary: "",
       attachment: null,
     });
-    alert("Regularization request submitted successfully");
+    toast.success("Regularization request submitted successfully");
   };
 
   const handleApproveRequest = (requestId, approved) => {
@@ -260,16 +227,15 @@ const Regularization = () => {
     dispatch({ type: "UPDATE_REQUEST", payload: updatedRequest });
     setShowApprovalModal(false);
     setApprovalForm({ action: "", remarks: "" });
-    alert(`Request ${approved ? "approved" : "rejected"} successfully`);
+    toast.success(`Request ${approved ? "approved" : "rejected"} successfully`);
   };
 
   const handleBulkProcess = () => {
     if (!bulkForm.fromDate || !bulkForm.toDate || !bulkForm.issueType) {
-      alert("Please fill all required fields");
+      toast.error("Please fill all required fields");
       return;
     }
 
-    // Simulate bulk processing
     const processedCount = bulkForm.employees.length || 10;
     const bulkProcess = {
       id: Date.now(),
@@ -289,37 +255,30 @@ const Regularization = () => {
       employees: [],
       file: null,
     });
-    alert(`Bulk regularization processed for ${processedCount} employees`);
+    toast.success(`Bulk regularization processed for ${processedCount} employees`);
   };
 
-  // ==================== REPORT FUNCTIONS ====================
   const handleGenerateReport = () => {
     if (!reportForm.fromDate || !reportForm.toDate) {
-      alert("Please select both From Date and To Date");
+      toast.error("Please select both From Date and To Date");
       return;
     }
 
-    // Filter requests based on report criteria
     let filteredReportData = requests.filter((req) => {
       const requestDate = new Date(req.submittedAt);
       const fromDate = new Date(reportForm.fromDate);
       const toDate = new Date(reportForm.toDate);
-      toDate.setHours(23, 59, 59, 999); // Include entire end day
+      toDate.setHours(23, 59, 59, 999);
 
-      // Date range filter
       if (requestDate < fromDate || requestDate > toDate) {
         return false;
       }
-
-      // Request type filter
       if (reportForm.requestType && reportForm.requestType !== "" && req.requestType !== reportForm.requestType) {
         return false;
       }
-
       return true;
     });
 
-    // Generate report summary
     const reportSummary = {
       totalRequests: filteredReportData.length,
       pending: filteredReportData.filter(r => r.status === "pending").length,
@@ -335,7 +294,6 @@ const Regularization = () => {
       }, {})
     };
 
-    // Create report object
     const report = {
       id: Date.now(),
       ...reportForm,
@@ -346,10 +304,8 @@ const Regularization = () => {
       fileName: `regularization-report-${Date.now()}.${reportForm.format}`
     };
 
-    // Save report
     dispatch({ type: "ADD_REPORT", payload: report });
 
-    // Simulate file download
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -360,10 +316,7 @@ const Regularization = () => {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    // Show success message
-    alert(`Report generated successfully!\n\nDownloaded: ${report.fileName}\n\nStatistics:\n• Total Requests: ${reportSummary.totalRequests}\n• Pending: ${reportSummary.pending}\n• Approved: ${reportSummary.approved}\n• Rejected: ${reportSummary.rejected}`);
-
-    // Reset form
+    toast.success(`Report generated successfully! Downloaded: ${report.fileName}`);
     setReportForm({
       fromDate: "",
       toDate: "",
@@ -372,11 +325,10 @@ const Regularization = () => {
     });
   };
 
-  // ==================== FILTERED DATA ====================
   const filteredRequests = requests.filter((req) => {
     const matchesSearch =
-      req.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.reason.toLowerCase().includes(searchTerm.toLowerCase());
+      req.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.reason?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "All" || req.status === filterStatus.toLowerCase();
     const matchesType =
@@ -384,266 +336,219 @@ const Regularization = () => {
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // ==================== RENDER FUNCTIONS ====================
+  const getStatusBadge = (status) => {
+    const config = {
+      pending: { label: 'Pending', color: 'yellow' },
+      approved: { label: 'Approved', color: 'green' },
+      rejected: { label: 'Rejected', color: 'red' },
+      'auto-rejected': { label: 'Auto-Rejected', color: 'gray' },
+    };
+    const { label, color } = config[status] || { label: status, color: 'gray' };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-50 text-${color}-700 border border-${color}-100`}>
+        {label}
+      </span>
+    );
+  };
+
+  const getRequestTypeBadge = (type) => {
+    const config = {
+      missing: { label: 'Missing Punch', color: 'blue' },
+      incorrect: { label: 'Incorrect Time', color: 'amber' },
+      forgot: { label: 'Forgot Punch', color: 'purple' },
+      wfh: { label: 'WFH', color: 'cyan' },
+      on_duty: { label: 'On-Duty', color: 'emerald' },
+    };
+    const { label, color } = config[type] || { label: type, color: 'gray' };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-50 text-${color}-700 border border-${color}-100`}>
+        {label}
+      </span>
+    );
+  };
+
   const renderRequests = () => (
-    <div className="row g-4">
-      <div className="col-12">
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white py-3">
-            <div className="d-flex justify-content-between align-items-center">
-              <h7 className="mb-0 d-flex align-items-center fw-bold">
-                <FileText size={20} className="me-2 text-primary" />
-                Regularization Requests
-              </h7>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  setRequestType("missing");
-                  setRequestForm({ ...requestForm, requestType: "missing" });
-                  setShowRequestModal(true);
-                }}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 20px'
-                }}
-              >
-                <Plus size={18} />
-                <span>New Request</span>
-              </button>
+    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h5 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+          <Icon icon="heroicons:document-text" className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <span className="hidden xs:inline">Regularization Requests</span>
+          <span className="xs:hidden">Requests</span>
+        </h5>
+        <button
+          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/10"
+          onClick={() => {
+            setRequestType("missing");
+            setRequestForm({ ...requestForm, requestType: "missing" });
+            setShowRequestModal(true);
+          }}
+        >
+          <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+          <span className="hidden xs:inline">New Request</span>
+          <span className="xs:hidden">New</span>
+        </button>
+      </div>
+
+      <div className="p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Icon icon="heroicons:magnifying-glass" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm"
+                placeholder="Search requests..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
-          <div className="card-body">
-            <div className="row g-3 mb-3">
-              <div className="col-md-4">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search requests..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="col-md-4">
-                <select
-                  className="form-select"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="All">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="auto-rejected">Auto-Rejected</option>
-                </select>
-              </div>
-              <div className="col-md-4">
-                <select
-                  className="form-select"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <option value="All">All Types</option>
-                  <option value="missing">Missing Punch</option>
-                  <option value="incorrect">Incorrect Time</option>
-                  <option value="forgot">Forgot Punch</option>
-                  <option value="wfh">WFH</option>
-                  <option value="on_duty">On-Duty</option>
-                </select>
-              </div>
-            </div>
+          <div className="sm:w-40">
+            <select
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm bg-white"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="All">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="auto-rejected">Auto-Rejected</option>
+            </select>
+          </div>
+          <div className="sm:w-40">
+            <select
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm bg-white"
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <option value="All">All Types</option>
+              <option value="missing">Missing Punch</option>
+              <option value="incorrect">Incorrect Time</option>
+              <option value="forgot">Forgot Punch</option>
+              <option value="wfh">WFH</option>
+              <option value="on_duty">On-Duty</option>
+            </select>
+          </div>
+        </div>
 
-            <div className="table-responsive">
-              <table className="table table-hover">
-                <thead className="table-light">
-                  <tr>
-                    <th>Employee</th>
-                    <th>Type</th>
-                    <th>Date/Time</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRequests.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="text-center py-4">
-                        <div style={{ 
-                          textAlign: 'center', 
-                          padding: '60px 0',
-                          minHeight: '300px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <div style={{ 
-                            width: '80px',
-                            height: '80px',
-                            backgroundColor: '#f1f5f9',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: '20px'
-                          }}>
-                            <FileText size={40} color="#64748b" />
-                          </div>
-                          <h5 style={{ color: '#475569', marginBottom: '8px', fontWeight: '600' }}>
-                            No Regularization Requests Found
-                          </h5>
-                          <p style={{ color: '#94a3b8', marginBottom: '24px', maxWidth: '400px' }}>
-                            When you submit regularization requests, they will appear here for review and approval.
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRequests.map((req) => (
-                      <tr key={req.id}>
-                        <td>
-                          <div className="fw-medium">{req.employeeName}</div>
-                          <small className="text-muted">{req.department}</small>
-                        </td>
-                        <td>
-                          <span className="badge bg-info">
-                            {req.requestType === "missing"
-                              ? "Missing Punch"
-                              : req.requestType === "incorrect"
-                              ? "Incorrect Time"
-                              : req.requestType === "forgot"
-                              ? "Forgot Punch"
-                              : req.requestType === "wfh"
-                              ? "WFH"
-                              : "On-Duty"}
-                          </span>
-                        </td>
-                        <td>
-                          <small>
-                            {req.dateTime || req.date || req.originalTime || "N/A"}
-                          </small>
-                        </td>
-                        <td>
-                          <small className="text-truncate d-inline-block" style={{ maxWidth: "200px" }}>
-                            {req.reason}
-                          </small>
-                        </td>
-                        <td>
-                          <span
-                            className={`badge bg-${
-                              req.status === "approved"
-                                ? "success"
-                                : req.status === "rejected" || req.status === "auto-rejected"
-                                ? "danger"
-                                : "warning"
-                            }`}
-                          >
-                            {req.status === "auto-rejected" ? "Auto-Rejected" : req.status}
-                          </span>
-                        </td>
-                        <td>
-                          <small>
-                            {new Date(req.submittedAt).toLocaleDateString()}
-                          </small>
-                        </td>
-                        <td>
-                          <div className="d-flex gap-2">
-                            {req.status === "pending" && (
-                              <>
-                                <button
-                                  className="btn btn-sm btn-outline-success"
-                                  onClick={() => handleApproveRequest(req.id, true)}
-                                  title="Approve"
-                                >
-                                  <Check size={14} />
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => {
-                                    setSelectedRequest(req);
-                                    setShowApprovalModal(true);
-                                  }}
-                                  title="Reject"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </>
-                            )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+              <tr>
+                <th className="p-2 sm:p-3">Employee</th>
+                <th className="p-2 sm:p-3 hidden sm:table-cell">Type</th>
+                <th className="p-2 sm:p-3 hidden md:table-cell">Date/Time</th>
+                <th className="p-2 sm:p-3">Reason</th>
+                <th className="p-2 sm:p-3">Status</th>
+                <th className="p-2 sm:p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {filteredRequests.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="p-6 text-center text-slate-400">
+                    <Icon icon="heroicons:inbox" className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    No regularization requests found
+                  </td>
+                </tr>
+              ) : (
+                filteredRequests.map((req) => (
+                  <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3">
+                      <div className="font-bold text-slate-800 text-xs sm:text-sm">{req.employeeName}</div>
+                      <div className="text-[10px] text-slate-400">{req.department}</div>
+                    </td>
+                    <td className="p-2 sm:p-3 hidden sm:table-cell">
+                      {getRequestTypeBadge(req.requestType)}
+                    </td>
+                    <td className="p-2 sm:p-3 hidden md:table-cell text-slate-600">
+                      {req.dateTime || req.date || req.originalTime || "N/A"}
+                    </td>
+                    <td className="p-2 sm:p-3">
+                      <span className="text-xs text-slate-600 line-clamp-2">{req.reason}</span>
+                    </td>
+                    <td className="p-2 sm:p-3">{getStatusBadge(req.status)}</td>
+                    <td className="p-2 sm:p-3 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        {req.status === "pending" && (
+                          <>
                             <button
-                              className="btn btn-sm btn-outline-primary"
+                              className="p-1.5 text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+                              onClick={() => handleApproveRequest(req.id, true)}
+                              title="Approve"
+                            >
+                              <Icon icon="heroicons:check" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                            <button
+                              className="p-1.5 text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
                               onClick={() => {
                                 setSelectedRequest(req);
                                 setShowApprovalModal(true);
                               }}
-                              title="View Details"
+                              title="Reject"
                             >
-                              <Eye size={14} />
+                              <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
-                            {req.attachments && req.attachments.length > 0 && (
-                              <button
-                                className="btn btn-sm btn-outline-info"
-                                title="View Attachments"
-                              >
-                                <FileText size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                          </>
+                        )}
+                        <button
+                          className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                          onClick={() => {
+                            setSelectedRequest(req);
+                            setShowApprovalModal(true);
+                          }}
+                          title="View Details"
+                        >
+                          <Icon icon="heroicons:eye" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 
   const renderSettings = () => (
-    <div className="row g-3">
-      <div className="col-12 col-md-8">
-        <div className="card border-0 shadow-sm h-100">
-          <div className="card-header bg-white py-3">
-            <h7 className="mb-0 d-flex align-items-center fw-bold">
-              <Settings size={18} className="me-2 text-primary" />
-              Auto-Reject Rules
-            </h7>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="lg:col-span-2">
+        <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200">
+            <h5 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Icon icon="heroicons:cog-6-tooth" className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+              <span className="hidden xs:inline">Auto-Reject Rules</span>
+              <span className="xs:hidden">Rules</span>
+            </h5>
           </div>
-          <div className="card-body">
-            <div className="table-responsive">
-              <table className="table table-hover">
-                <thead className="table-light">
+          <div className="p-3 sm:p-4">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th>Request Type</th>
-                    <th>Days</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th className="p-2 sm:p-3">Request Type</th>
+                    <th className="p-2 sm:p-3">Days</th>
+                    <th className="p-2 sm:p-3">Status</th>
+                    <th className="p-2 sm:p-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
                   {autoRejectRules.map((rule) => (
-                    <tr key={rule.id}>
-                      <td>
-                        {rule.requestType === "missing"
-                          ? "Missing Punch"
-                          : rule.requestType === "forgot"
-                          ? "Forgot Punch"
-                          : rule.requestType}
+                    <tr key={rule.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-2 sm:p-3 font-medium">
+                        {getRequestTypeBadge(rule.requestType)}
                       </td>
-                      <td>{rule.days} days</td>
-                      <td>
-                        <span className={`badge bg-${rule.enabled ? "success" : "secondary"}`}>
-                          {rule.enabled ? "Enabled" : "Disabled"}
-                        </span>
+                      <td className="p-2 sm:p-3">{rule.days} days</td>
+                      <td className="p-2 sm:p-3">
+                        {getStatusBadge(rule.enabled ? "approved" : "rejected")}
                       </td>
-                      <td>
+                      <td className="p-2 sm:p-3 text-right">
                         <button
-                          className="btn btn-sm btn-outline-primary"
+                          className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                           onClick={() => {
                             const updated = {
                               ...rule,
@@ -669,45 +574,38 @@ const Regularization = () => {
         </div>
       </div>
 
-      <div className="col-12 col-md-4">
-        <div className="card border-0 shadow-sm h-100">
-          <div className="card-header bg-white py-3">
-            <h7 className="mb-0 d-flex align-items-center fw-bold">
-              <BarChart3 size={18} className="me-2 text-primary" />
-              Request Statistics
-            </h7>
+      <div>
+        <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200">
+            <h5 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Icon icon="heroicons:chart-bar" className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+              <span className="hidden xs:inline">Statistics</span>
+              <span className="xs:hidden">Stats</span>
+            </h5>
           </div>
-          <div className="card-body">
-            <div className="row g-3">
-              <div className="col-12">
-                <div className="text-center p-3 border rounded bg-light">
-                  <div className="h4 mb-0 text-primary fw-bold">{requests.length}</div>
-                  <small className="text-muted">Total Requests</small>
-                </div>
+          <div className="p-3 sm:p-4 space-y-3">
+            <div className="bg-slate-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-blue-600">{requests.length}</p>
+              <p className="text-xs text-slate-500">Total Requests</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <p className="text-sm font-bold text-amber-600">
+                  {requests.filter((r) => r.status === "pending").length}
+                </p>
+                <p className="text-[10px] text-slate-500">Pending</p>
               </div>
-              <div className="col-12">
-                <div className="text-center p-3 border rounded bg-light">
-                  <div className="h4 mb-0 text-warning fw-bold">
-                    {requests.filter((r) => r.status === "pending").length}
-                  </div>
-                  <small className="text-muted">Pending</small>
-                </div>
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <p className="text-sm font-bold text-emerald-600">
+                  {requests.filter((r) => r.status === "approved").length}
+                </p>
+                <p className="text-[10px] text-slate-500">Approved</p>
               </div>
-              <div className="col-12">
-                <div className="text-center p-3 border rounded bg-light">
-                  <div className="h4 mb-0 text-success fw-bold">
-                    {requests.filter((r) => r.status === "approved").length}
-                  </div>
-                  <small className="text-muted">Approved</small>
-                </div>
-              </div>
-              <div className="col-12">
-                <div className="text-center p-3 border rounded bg-light">
-                  <div className="h4 mb-0 text-danger fw-bold">
-                    {requests.filter((r) => r.status === "rejected" || r.status === "auto-rejected").length}
-                  </div>
-                  <small className="text-muted">Rejected</small>
-                </div>
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <p className="text-sm font-bold text-rose-600">
+                  {requests.filter((r) => r.status === "rejected" || r.status === "auto-rejected").length}
+                </p>
+                <p className="text-[10px] text-slate-500">Rejected</p>
               </div>
             </div>
           </div>
@@ -717,783 +615,260 @@ const Regularization = () => {
   );
 
   const renderBulkProcessing = () => (
-    <div className="row g-4">
-      <div className="col-12">
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white py-3">
-            <div className="d-flex justify-content-between align-items-center">
-              <h8 className="mb-0 d-flex align-items-center fw-bold">
-                <Upload size={20} className="me-2 text-primary" />
-                Bulk Regularization Processing
-              </h8>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowBulkModal(true)}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 20px'
-                }}
-              >
-                <Plus size={18} />
-                <span>Process Bulk</span>
-              </button>
-            </div>
+    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h5 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+          <Icon icon="heroicons:arrow-up-tray" className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <span className="hidden xs:inline">Bulk Regularization Processing</span>
+          <span className="xs:hidden">Bulk</span>
+        </h5>
+        <button
+          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/10"
+          onClick={() => setShowBulkModal(true)}
+        >
+          <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+          <span className="hidden xs:inline">Process Bulk</span>
+          <span className="xs:hidden">Bulk</span>
+        </button>
+      </div>
+
+      <div className="p-3 sm:p-4">
+        <p className="text-xs text-slate-500 mb-3">
+          Use bulk processing for system-wide issues like device malfunctions, sync errors, or network failures affecting multiple employees.
+        </p>
+        {bulkProcessing.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="p-2 sm:p-3">Date Range</th>
+                  <th className="p-2 sm:p-3">Issue Type</th>
+                  <th className="p-2 sm:p-3">Processed</th>
+                  <th className="p-2 sm:p-3">Status</th>
+                  <th className="p-2 sm:p-3">Processed By</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {bulkProcessing.map((process) => (
+                  <tr key={process.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3">{process.fromDate} to {process.toDate}</td>
+                    <td className="p-2 sm:p-3">
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700">
+                        {process.issueType}
+                      </span>
+                    </td>
+                    <td className="p-2 sm:p-3">{process.processedCount} employees</td>
+                    <td className="p-2 sm:p-3">{getStatusBadge("approved")}</td>
+                    <td className="p-2 sm:p-3">{process.processedBy}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="card-body">
-            <p className="text-muted">
-              Use bulk processing for system-wide issues like device malfunctions,
-              sync errors, or network failures affecting multiple employees.
-            </p>
-            {bulkProcessing.length > 0 && (
-              <div className="table-responsive mt-3">
-                <table className="table table-hover">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Date Range</th>
-                      <th>Issue Type</th>
-                      <th>Processed</th>
-                      <th>Status</th>
-                      <th>Processed By</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bulkProcessing.map((process) => (
-                      <tr key={process.id}>
-                        <td>
-                          {process.fromDate} to {process.toDate}
-                        </td>
-                        <td>{process.issueType}</td>
-                        <td>{process.processedCount} employees</td>
-                        <td>
-                          <span className="badge bg-success">{process.status}</span>
-                        </td>
-                        <td>{process.processedBy}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+        ) : (
+          <div className="text-center py-6">
+            <Icon icon="heroicons:inbox" className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm text-slate-400">No bulk processing records</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 
   const renderReports = () => (
-    <div className="row g-4">
-      <div className="col-12">
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white py-3">
-            <h7 className="mb-0 d-flex align-items-center fw-bold">
-              <BarChart3 size={20} className="me-2 text-primary" />
-              Regularization Reports
-            </h7>
+    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200">
+        <h5 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+          <Icon icon="heroicons:chart-bar" className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <span className="hidden xs:inline">Regularization Reports</span>
+          <span className="xs:hidden">Reports</span>
+        </h5>
+      </div>
+
+      <div className="p-3 sm:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">From Date</label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+              value={reportForm.fromDate}
+              onChange={(e) => setReportForm({...reportForm, fromDate: e.target.value})}
+            />
           </div>
-          <div className="card-body">
-            <div className="row g-3 mb-3">
-              <div className="col-md-3">
-                <label className="form-label">From Date</label>
-                <input 
-                  type="date" 
-                  className="form-control" 
-                  value={reportForm.fromDate}
-                  onChange={(e) => setReportForm({...reportForm, fromDate: e.target.value})}
-                />
-              </div>
-              <div className="col-md-3">
-                <label className="form-label">To Date</label>
-                <input 
-                  type="date" 
-                  className="form-control" 
-                  value={reportForm.toDate}
-                  onChange={(e) => setReportForm({...reportForm, toDate: e.target.value})}
-                />
-              </div>
-              <div className="col-md-3">
-                <label className="form-label">Request Type</label>
-                <select 
-                  className="form-select"
-                  value={reportForm.requestType}
-                  onChange={(e) => setReportForm({...reportForm, requestType: e.target.value})}
-                >
-                  <option value="">All Types</option>
-                  <option value="missing">Missing Punch</option>
-                  <option value="incorrect">Incorrect Time</option>
-                  <option value="forgot">Forgot Punch</option>
-                  <option value="wfh">WFH</option>
-                  <option value="on_duty">On-Duty</option>
-                </select>
-              </div>
-              <div className="col-md-3">
-                <label className="form-label">Format</label>
-                <select 
-                  className="form-select"
-                  value={reportForm.format}
-                  onChange={(e) => setReportForm({...reportForm, format: e.target.value})}
-                >
-                  <option value="pdf">PDF</option>
-                  <option value="excel">Excel</option>
-                  <option value="csv">CSV</option>
-                </select>
-              </div>
-            </div>
-            <button 
-              className="btn btn-primary"
-              onClick={handleGenerateReport}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 20px'
-              }}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">To Date</label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+              value={reportForm.toDate}
+              onChange={(e) => setReportForm({...reportForm, toDate: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Request Type</label>
+            <select
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm bg-white"
+              value={reportForm.requestType}
+              onChange={(e) => setReportForm({...reportForm, requestType: e.target.value})}
             >
-              <Download size={18} />
-              <span>Generate Report</span>
-            </button>
-            
-            {reports.length > 0 && (
-              <div className="mt-4">
-                <h6 className="mb-3 fw-bold">Generated Reports</h6>
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Date Range</th>
-                        <th>Type</th>
-                        <th>Format</th>
-                        <th>Generated At</th>
-                        <th>File Name</th>
-                        <th>Total Records</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reports.slice().reverse().map((report) => (
-                        <tr key={report.id}>
-                          <td>{report.fromDate} to {report.toDate}</td>
-                          <td>{report.requestType || "All Types"}</td>
-                          <td><span className="badge bg-info">{report.format.toUpperCase()}</span></td>
-                          <td>{new Date(report.generatedAt).toLocaleString()}</td>
-                          <td>{report.fileName}</td>
-                          <td>{report.summary.totalRecords || report.data?.length || 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+              <option value="">All Types</option>
+              <option value="missing">Missing Punch</option>
+              <option value="incorrect">Incorrect Time</option>
+              <option value="forgot">Forgot Punch</option>
+              <option value="wfh">WFH</option>
+              <option value="on_duty">On-Duty</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Format</label>
+            <select
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm bg-white"
+              value={reportForm.format}
+              onChange={(e) => setReportForm({...reportForm, format: e.target.value})}
+            >
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel</option>
+              <option value="csv">CSV</option>
+            </select>
           </div>
         </div>
+
+        <button
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/10"
+          onClick={handleGenerateReport}
+        >
+          <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
+          Generate Report
+        </button>
+
+        {reports.length > 0 && (
+          <div className="mt-4">
+            <h6 className="text-xs font-bold text-slate-800 mb-3">Generated Reports</h6>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="p-2 sm:p-3">Date Range</th>
+                    <th className="p-2 sm:p-3">Type</th>
+                    <th className="p-2 sm:p-3">Format</th>
+                    <th className="p-2 sm:p-3">Generated</th>
+                    <th className="p-2 sm:p-3">Records</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {reports.slice().reverse().map((report) => (
+                    <tr key={report.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-2 sm:p-3">{report.fromDate} to {report.toDate}</td>
+                      <td className="p-2 sm:p-3">{report.requestType || "All Types"}</td>
+                      <td className="p-2 sm:p-3">
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700 uppercase">
+                          {report.format}
+                        </span>
+                      </td>
+                      <td className="p-2 sm:p-3">{new Date(report.generatedAt).toLocaleString()}</td>
+                      <td className="p-2 sm:p-3">{report.summary?.totalRequests || report.data?.length || 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 
   return (
-    <div className="container-fluid py-4">
-      {/* HEADER - ONLY "Regularization Workflow" IN BOLD */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <i className="bi bi-clock-history" style={{ fontSize: '24px', color: '#1e293b' }}></i>
-            </div>
-            <div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e293b' }}>
-                Regularization Workflow
-              </div>
-              <div style={{ fontSize: '14px', color: '#64748b' }}>
-                Manage attendance regularization requests, approvals, and settings
-              </div>
-            </div>
-          </div>
+    <div className="w-full mx-auto max-w-7xl space-y-4 sm:space-y-6 md:px-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Icon icon="heroicons:clock" className="w-6 h-6 text-blue-600" />
+            Regularization Workflow
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Manage attendance regularization requests, approvals, and settings
+          </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <ul className="nav nav-tabs mb-4">
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "requests" ? "active" : ""}`}
-            onClick={() => setActiveTab("requests")}
-          >
-            <FileText size={16} className="me-2" />
-            <span className="fw-medium">Requests</span>
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "settings" ? "active" : ""}`}
-            onClick={() => setActiveTab("settings")}
-          >
-            <Settings size={16} className="me-2" />
-            <span className="fw-medium">Settings</span>
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "bulk" ? "active" : ""}`}
-            onClick={() => setActiveTab("bulk")}
-          >
-            <Upload size={16} className="me-2" />
-            <span className="fw-medium">Bulk Processing</span>
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "reports" ? "active" : ""}`}
-            onClick={() => setActiveTab("reports")}
-          >
-            <BarChart3 size={16} className="me-2" />
-            <span className="fw-medium">Reports</span>
-          </button>
-        </li>
-      </ul>
+      <div className="border border-slate-200 bg-white/50 backdrop-blur-sm shadow-sm rounded-2xl p-1.5 sm:p-2 overflow-x-auto">
+        <div className="flex flex-wrap gap-1 min-w-[420px]">
+          {[
+            { id: "requests", name: "Requests", icon: "heroicons:document-text" },
+            { id: "settings", name: "Settings", icon: "heroicons:cog-6-tooth" },
+            { id: "bulk", name: "Bulk Processing", icon: "heroicons:arrow-up-tray" },
+            { id: "reports", name: "Reports", icon: "heroicons:chart-bar" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <Icon icon={tab.icon} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              {tab.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {/* Tab Content */}
-      <div className="tab-content">
+      <div className="space-y-4 sm:space-y-6">
         {activeTab === "requests" && renderRequests()}
         {activeTab === "settings" && renderSettings()}
         {activeTab === "bulk" && renderBulkProcessing()}
         {activeTab === "reports" && renderReports()}
       </div>
 
-      {/* Request Modal - FORM PAGE CENTERED FOR DESKTOP */}
       {showRequestModal && (
-        <div
-          className="modal show d-block"
-          style={{ 
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100vh'
-          }}
-        >
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h6 className="modal-title d-flex align-items-center fw-bold">
-                  <Plus size={20} className="me-2" />
-                  New Regularization Request
-                </h6>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowRequestModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Request Type *</label>
-                    <select
-                      className="form-select"
-                      value={requestForm.requestType}
-                      onChange={(e) => {
-                        setRequestType(e.target.value);
-                        setRequestForm({ ...requestForm, requestType: e.target.value });
-                      }}
-                    >
-                      <option value="missing">Missing Punch</option>
-                      <option value="incorrect">Incorrect Time</option>
-                      <option value="forgot">Forgot Punch</option>
-                      <option value="wfh">WFH Regularization</option>
-                      <option value="on_duty">On-Duty</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Employee *</label>
-                    <select
-                      className="form-select"
-                      value={requestForm.employeeId}
-                      onChange={(e) =>
-                        setRequestForm({ ...requestForm, employeeId: e.target.value })
-                      }
-                    >
-                      <option value="">Select employee...</option>
-                      {initialEmployees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {requestType === "missing" && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label">Date & Time *</label>
-                        <input
-                          type="datetime-local"
-                          className="form-control"
-                          value={requestForm.dateTime}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, dateTime: e.target.value })
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {requestType === "incorrect" && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label">Original Time *</label>
-                        <input
-                          type="datetime-local"
-                          className="form-control"
-                          value={requestForm.originalTime}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, originalTime: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Corrected Time *</label>
-                        <input
-                          type="datetime-local"
-                          className="form-control"
-                          value={requestForm.correctedTime}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, correctedTime: e.target.value })
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {requestType === "forgot" && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label">Date *</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={requestForm.date}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, date: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">Punch Type</label>
-                        <select
-                          className="form-select"
-                          value={requestForm.punchType}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, punchType: e.target.value })
-                          }
-                        >
-                          <option value="IN">IN</option>
-                          <option value="OUT">OUT</option>
-                        </select>
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">Approx Time *</label>
-                        <input
-                          type="time"
-                          className="form-control"
-                          value={requestForm.approxTime}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, approxTime: e.target.value })
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {requestType === "wfh" && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label">Date *</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={requestForm.date}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, date: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Location *</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={requestForm.location}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, location: e.target.value })
-                          }
-                          placeholder="Work location"
-                        />
-                      </div>
-                      <div className="col-12">
-                        <label className="form-label">Work Summary *</label>
-                        <textarea
-                          className="form-control"
-                          rows="3"
-                          value={requestForm.summary}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, summary: e.target.value })
-                          }
-                          placeholder="Enter work summary"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {requestType === "on_duty" && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label">Date *</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={requestForm.date}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, date: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">From Time *</label>
-                        <input
-                          type="time"
-                          className="form-control"
-                          value={requestForm.fromTime}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, fromTime: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">To Time *</label>
-                        <input
-                          type="time"
-                          className="form-control"
-                          value={requestForm.toTime}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, toTime: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Duty Type *</label>
-                        <select
-                          className="form-select"
-                          value={requestForm.dutyType}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, dutyType: e.target.value })
-                          }
-                        >
-                          <option value="">Select...</option>
-                          <option value="client_visit">Client Visit</option>
-                          <option value="training">Training</option>
-                          <option value="business_travel">Business Travel</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Purpose/Location *</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={requestForm.purpose}
-                          onChange={(e) =>
-                            setRequestForm({ ...requestForm, purpose: e.target.value })
-                          }
-                          placeholder="Enter purpose/location"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  <div className="col-12">
-                    <label className="form-label">Reason *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={requestForm.reason}
-                      onChange={(e) =>
-                        setRequestForm({ ...requestForm, reason: e.target.value })
-                      }
-                      placeholder="Enter reason"
-                      required
-                    />
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Remarks *</label>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      value={requestForm.remarks}
-                      onChange={(e) =>
-                        setRequestForm({ ...requestForm, remarks: e.target.value })
-                      }
-                      placeholder="Enter remarks"
-                      required
-                    />
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Attachment (Travel bills, Client emails, etc.)</label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      onChange={(e) =>
-                        setRequestForm({
-                          ...requestForm,
-                          attachment: e.target.files[0],
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowRequestModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary d-inline-flex align-items-center"
-                  onClick={handleSubmitRequest}
-                >
-                  <Send size={16} />
-                  <span className="ms-2">Submit Request</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RegularizationRequestModal
+          isOpen={showRequestModal}
+          onClose={() => setShowRequestModal(false)}
+          requestForm={requestForm}
+          setRequestForm={setRequestForm}
+          requestType={requestType}
+          setRequestType={setRequestType}
+          handleSubmitRequest={handleSubmitRequest}
+          employees={initialEmployees}
+        />
       )}
 
-      {/* Approval Modal */}
       {showApprovalModal && selectedRequest && (
-        <div
-          className="modal show d-block"
-          style={{ 
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100vh'
+        <RegularizationApprovalModal
+          isOpen={showApprovalModal}
+          onClose={() => {
+            setShowApprovalModal(false);
+            setSelectedRequest(null);
+            setApprovalForm({ action: "", remarks: "" });
           }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h6 className="modal-title d-flex align-items-center fw-bold">
-                  <Eye size={20} className="me-2" />
-                  Request Details & Approval
-                </h6>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowApprovalModal(false);
-                    setSelectedRequest(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <strong>Employee:</strong> {selectedRequest.employeeName}
-                </div>
-                <div className="mb-3">
-                  <strong>Type:</strong> {selectedRequest.requestType}
-                </div>
-                <div className="mb-3">
-                  <strong>Reason:</strong> {selectedRequest.reason}
-                </div>
-                <div className="mb-3">
-                  <strong>Remarks:</strong> {selectedRequest.remarks}
-                </div>
-                {selectedRequest.status === "pending" && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label">Action *</label>
-                      <select
-                        className="form-select"
-                        value={approvalForm.action}
-                        onChange={(e) =>
-                          setApprovalForm({ ...approvalForm, action: e.target.value })
-                        }
-                      >
-                        <option value="">Select action...</option>
-                        <option value="approve">Approve</option>
-                        <option value="reject">Reject</option>
-                        <option value="request_changes">Request Changes</option>
-                      </select>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label">Remarks</label>
-                      <textarea
-                        className="form-control"
-                        rows="3"
-                        value={approvalForm.remarks}
-                        onChange={(e) =>
-                          setApprovalForm({ ...approvalForm, remarks: e.target.value })
-                        }
-                        placeholder="Enter approval remarks"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setShowApprovalModal(false);
-                    setSelectedRequest(null);
-                  }}
-                >
-                  Close
-                </button>
-                {selectedRequest.status === "pending" && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-success d-inline-flex align-items-center"
-                      onClick={() => handleApproveRequest(selectedRequest.id, true)}
-                    >
-                      <Check size={16} className="me-2" />
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger d-inline-flex align-items-center"
-                      onClick={() => handleApproveRequest(selectedRequest.id, false)}
-                    >
-                      <X size={16} className="me-2" />
-                      Reject
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+          selectedRequest={selectedRequest}
+          approvalForm={approvalForm}
+          setApprovalForm={setApprovalForm}
+          handleApproveRequest={handleApproveRequest}
+        />
       )}
 
-      {/* Bulk Processing Modal */}
       {showBulkModal && (
-        <div
-          className="modal show d-block"
-          style={{ 
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100vh'
-          }}
-        >
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h6 className="modal-title d-flex align-items-center fw-bold">
-                  <Upload size={20} className="me-2" />
-                  Bulk Regularization Processing
-                </h6>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowBulkModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">From Date *</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={bulkForm.fromDate}
-                      onChange={(e) =>
-                        setBulkForm({ ...bulkForm, fromDate: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">To Date *</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={bulkForm.toDate}
-                      onChange={(e) =>
-                        setBulkForm({ ...bulkForm, toDate: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Issue Type *</label>
-                    <select
-                      className="form-select"
-                      value={bulkForm.issueType}
-                      onChange={(e) =>
-                        setBulkForm({ ...bulkForm, issueType: e.target.value })
-                      }
-                    >
-                      <option value="">Select issue type...</option>
-                      <option value="system">System Failure</option>
-                      <option value="device">Device Malfunction</option>
-                      <option value="sync">Sync Error</option>
-                      <option value="network">Network Failure</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Upload Employee List (CSV/Excel)</label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      accept=".csv,.xlsx,.xls"
-                      onChange={(e) =>
-                        setBulkForm({ ...bulkForm, file: e.target.files[0] })
-                      }
-                    />
-                    <small className="text-muted">
-                      Upload file with employee IDs or process all employees for the date range
-                    </small>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowBulkModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary d-inline-flex align-items-center"
-                  onClick={handleBulkProcess}
-                >
-                  <Upload size={16} className="me-2" />
-                  Process Bulk
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RegularizationBulkModal
+          isOpen={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+          bulkForm={bulkForm}
+          setBulkForm={setBulkForm}
+          handleBulkProcess={handleBulkProcess}
+        />
       )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        className="text-xs"
+      />
     </div>
   );
 };

@@ -1,54 +1,20 @@
 import React, { useState, useEffect, useReducer } from "react";
-import {
-  Calendar,
-  Plus,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-  Eye,
-  Settings,
-  CheckSquare,
-  AlertCircle,
-  Search,
-  Filter,
-  Download,
-  Printer,
-  Menu,
-  Grid,
-  List,
-  Building,
-  Users,
-  ArrowLeftRight,
-  RefreshCw,
-  MapPin,
-  Gift,
-  FileText,
-  BarChart3,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import HolidayAddModal from "../modal/HolidayAddModal";
+import HolidayEditModal from "../modal/HolidayEditModal";
+import HolidayOptionalModal from "../modal/HolidayOptionalModal";
+import HolidayStatusModal from "../modal/HolidayStatusModal";
+import HolidayCalendarModal from "../modal/HolidayCalendarModal";
+import HolidaySwapModal from "../modal/HolidaySwapModal";
+import HolidayCarryForwardModal from "../modal/HolidayCarryForwardModal";
+import HolidayConfirmModal from "../modal/HolidayConfirmModal";
 
 const daysShort = ["S", "M", "T", "W", "T", "F", "S"];
+const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const monthNames = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-// ==================== REDUCER FOR STATE MANAGEMENT ====================
 const holidayReducer = (state, action) => {
   switch (action.type) {
     case "SET_HOLIDAYS":
@@ -85,6 +51,18 @@ const holidayReducer = (state, action) => {
       return { ...state, calendars: action.payload };
     case "ADD_CALENDAR":
       return { ...state, calendars: [...state.calendars, action.payload] };
+    case "UPDATE_CALENDAR":
+      return {
+        ...state,
+        calendars: state.calendars.map((c) =>
+          c.id === action.payload.id ? action.payload : c
+        ),
+      };
+    case "DELETE_CALENDAR":
+      return {
+        ...state,
+        calendars: state.calendars.filter((c) => c.id !== action.payload),
+      };
     case "SET_SWAP_REQUESTS":
       return { ...state, swapRequests: action.payload };
     case "ADD_SWAP_REQUEST":
@@ -101,25 +79,14 @@ const holidayReducer = (state, action) => {
       };
     case "SET_CARRY_FORWARD":
       return { ...state, carryForward: action.payload };
-
-    case "UPDATE_CALENDAR":
-      return {
-        ...state,
-        calendars: state.calendars.map((c) =>
-          c.id === action.payload.id ? action.payload : c
-        ),
-      };
-
     default:
       return state;
   }
 };
 
-
 const HolidayCalendar = () => {
   const today = new Date();
 
-  // Load from localStorage
   const loadFromStorage = (key, defaultValue) => {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : defaultValue;
@@ -128,144 +95,40 @@ const HolidayCalendar = () => {
   const initialState = {
     holidays: loadFromStorage("holidays", []),
     optionalApplications: loadFromStorage("optionalApplications", []),
-    calendars: loadFromStorage("holidayCalendars", [
-      {
-        id: 1,
-        name: "India - National Calendar",
-        location: "All",
-        employeeGroups: ["all"],
-        isDefault: true,
-      },
-    ]),
+    calendars: loadFromStorage("holidayCalendars", []),
     swapRequests: loadFromStorage("holidaySwapRequests", []),
     carryForward: loadFromStorage("holidayCarryForward", []),
   };
 
   const [state, dispatch] = useReducer(holidayReducer, initialState);
-  const {
-    holidays,
-    optionalApplications,
-    calendars,
-    swapRequests,
-    carryForward,
-  } = state;
+  const { holidays, optionalApplications, calendars, swapRequests, carryForward } = state;
 
-  // Save to localStorage
   useEffect(() => {
     localStorage.setItem("holidays", JSON.stringify(holidays));
-    localStorage.setItem(
-      "optionalApplications",
-      JSON.stringify(optionalApplications)
-    );
+    localStorage.setItem("optionalApplications", JSON.stringify(optionalApplications));
     localStorage.setItem("holidayCalendars", JSON.stringify(calendars));
     localStorage.setItem("holidaySwapRequests", JSON.stringify(swapRequests));
     localStorage.setItem("holidayCarryForward", JSON.stringify(carryForward));
   }, [state]);
 
-  // -------------------------------
-  // VIEW STATE
-  // -------------------------------
-  const [viewMode, setViewMode] = useState("month"); // "month" or "list"
+  const [viewMode, setViewMode] = useState("month");
   const [isMobileView, setIsMobileView] = useState(false);
-  /*Edit Holiday Calendar*/
-  const [isEditCalendar, setIsEditCalendar] = useState(false);
-  const [editingCalendarId, setEditingCalendarId] = useState(null);
 
-  // -------------------------------
-  // NOTIFICATION STATE
-  // -------------------------------
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "info",
-  });
-
-  // -------------------------------
-  // SEARCH & FILTER STATES
-  // -------------------------------
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All");
-  const [typeFilter, setTypeFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-
-  // Check screen size
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobileView(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setViewMode("list"); // Default to list view on mobile
-      }
-    };
-
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
-
-  // -------------------------------
-  // SHOW NOTIFICATION
-  // -------------------------------
-  const showNotification = (message, type = "info") => {
-    setNotification({
-      show: true,
-      message,
-      type,
-    });
-
-    setTimeout(() => {
-      setNotification({
-        show: false,
-        message: "",
-        type: "info",
-      });
-    }, 3000);
-  };
-
-  // -------------------------------
-  // SAVE TO LOCALSTORAGE
-  // -------------------------------
-  useEffect(() => {
-    localStorage.setItem("holidays", JSON.stringify(holidays));
-  }, [holidays]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "optionalApplications",
-      JSON.stringify(optionalApplications)
-    );
-  }, [optionalApplications]);
-
-  // -------------------------------
-  // MODAL STATES
-  // -------------------------------
   const [showHolidayModal, setShowHolidayModal] = useState(false);
-  const [showOptionalModal, setShowOptionalModal] = useState(false);
   const [showEditHolidayModal, setShowEditHolidayModal] = useState(false);
+  const [showOptionalModal, setShowOptionalModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showCarryForwardModal, setShowCarryForwardModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState({
-    title: "",
-    message: "",
-    onConfirm: () => {},
-    onCancel: () => {},
-  });
 
-  // -------------------------------
-  // ACTIVE TAB STATE
-  // -------------------------------
-  const [activeTab, setActiveTab] = useState("holidayMaster");
-  const [activeSubTab, setActiveSubTab] = useState("master"); // master, calendars, swap, carryForward
-
-  // -------------------------------
-  // NEW HOLIDAY FORM FIELDS
-  // -------------------------------
   const [newHoliday, setNewHoliday] = useState({
     name: "",
     date: "",
     location: "All",
     category: "",
-    holidayType: "gazetted", // gazetted, restricted, festival
+    holidayType: "gazetted",
     optional: false,
     applicableCalendars: ["all"],
     applicableGroups: ["all"],
@@ -289,8 +152,6 @@ const HolidayCalendar = () => {
     carryForwardLimit: 0,
   });
 
-  // Calendar management
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [calendarForm, setCalendarForm] = useState({
     name: "",
     location: "",
@@ -298,8 +159,6 @@ const HolidayCalendar = () => {
     isDefault: false,
   });
 
-  // Holiday swap
-  const [showSwapModal, setShowSwapModal] = useState(false);
   const [swapForm, setSwapForm] = useState({
     employeeId: "",
     holidayDate: "",
@@ -307,8 +166,6 @@ const HolidayCalendar = () => {
     reason: "",
   });
 
-  // Carry forward
-  const [showCarryForwardModal, setShowCarryForwardModal] = useState(false);
   const [carryForwardForm, setCarryForwardForm] = useState({
     employeeId: "",
     fromYear: new Date().getFullYear() - 1,
@@ -319,93 +176,70 @@ const HolidayCalendar = () => {
   const [optionalReason, setOptionalReason] = useState("");
   const [selectedOptionalHoliday, setSelectedOptionalHoliday] = useState("");
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [editingCalendarId, setEditingCalendarId] = useState(null);
+  const [isEditCalendar, setIsEditCalendar] = useState(false);
 
-  // -------------------------------
-  // DROPDOWN MENU STATE
-  // -------------------------------
-  const [openDropdown, setOpenDropdown] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [activeTab, setActiveTab] = useState("holidayMaster");
 
-  // -------------------------------
-  // CALENDAR STATE
-  // -------------------------------
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // -------------------------------
-  // STATISTICS
-  // -------------------------------
+  const [confirmAction, setConfirmAction] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => { },
+    onCancel: () => { },
+  });
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobileView(window.innerWidth < 768);
+      if (window.innerWidth < 768) setViewMode("list");
+    };
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
   const stats = {
     totalHolidays: holidays.length,
     optionalHolidays: holidays.filter((h) => h.optional).length,
     totalApplications: optionalApplications.length,
-    pendingApplications: optionalApplications.filter(
-      (app) => app.status === "Pending"
-    ).length,
-    approvedApplications: optionalApplications.filter(
-      (app) => app.status === "Approved"
-    ).length,
-    rejectedApplications: optionalApplications.filter(
-      (app) => app.status === "Rejected"
-    ).length,
+    pendingApplications: optionalApplications.filter((app) => app.status === "Pending").length,
+    approvedApplications: optionalApplications.filter((app) => app.status === "Approved").length,
+    rejectedApplications: optionalApplications.filter((app) => app.status === "Rejected").length,
   };
 
-  // -------------------------------
-  // FILTERED DATA
-  // -------------------------------
   const filteredHolidays = holidays.filter((holiday) => {
     const matchesSearch =
-      holiday.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      holiday.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "All" || holiday.category === categoryFilter;
+      holiday.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      holiday.category?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === "All" || holiday.category === categoryFilter;
     const matchesType =
       typeFilter === "All" ||
       (typeFilter === "optional" && holiday.optional) ||
       (typeFilter === "mandatory" && !holiday.optional);
-
     return matchesSearch && matchesCategory && matchesType;
   });
 
   const filteredApplications = optionalApplications.filter((app) => {
     const matchesSearch =
-      app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.reason?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || app.status === statusFilter;
-
     return matchesSearch && matchesStatus;
   });
 
-  // -------------------------------
-  // CALENDAR FUNCTIONS (From reference code)
-  // -------------------------------
-  const monthStart = new Date(currentYear, currentMonth, 1);
-  const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-  const startDay = monthStart.getDay();
-  const daysInMonth = monthEnd.getDate();
-
-  // Create holiday map for quick lookup
-  const holidayMap = holidays.reduce((acc, h) => {
-    acc[h.date] = h;
-    return acc;
-  }, {});
-
-  // Check if a date is today
   const isToday = (d) =>
     d === today.getDate() &&
     currentMonth === today.getMonth() &&
     currentYear === today.getFullYear();
 
-  // Check if date has holiday
-  const isHoliday = (d) => {
-    const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(
-      2,
-      "0"
-    )}-${String(d).padStart(2, "0")}`;
-    return holidayMap[dateKey];
-  };
-
-  // Navigate to previous month
   const prevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -415,7 +249,6 @@ const HolidayCalendar = () => {
     }
   };
 
-  // Navigate to next month
   const nextMonth = () => {
     if (currentMonth === 11) {
       setCurrentMonth(0);
@@ -425,22 +258,15 @@ const HolidayCalendar = () => {
     }
   };
 
-  // Get month name
-  const monthName = monthNames[currentMonth];
-
-  // Go to today
   const goToToday = () => {
     setCurrentMonth(today.getMonth());
     setCurrentYear(today.getFullYear());
     setSelectedDate(today.getDate());
   };
 
-  // -------------------------------
-  // DATA MANIPULATION FUNCTIONS
-  // -------------------------------
   const saveHoliday = () => {
     if (!newHoliday.name || !newHoliday.date || !newHoliday.category) {
-      showNotification("Please fill all required fields", "warning");
+      toast.warning("Please fill all required fields");
       return;
     }
 
@@ -453,7 +279,6 @@ const HolidayCalendar = () => {
 
     dispatch({ type: "ADD_HOLIDAY", payload: newHolidayWithId });
     setShowHolidayModal(false);
-
     setNewHoliday({
       name: "",
       date: "",
@@ -467,32 +292,12 @@ const HolidayCalendar = () => {
       allowCarryForward: false,
       carryForwardLimit: 0,
     });
-
-    showNotification("Holiday added successfully!", "success");
-  };
-
-  const openEditCalendarModal = (calendar) => {
-    setCalendarForm({
-      name: calendar.name,
-      location: calendar.location,
-      employeeGroups: calendar.employeeGroups || ["all"],
-      isDefault: calendar.isDefault || false,
-    });
-
-    setEditingCalendarId(calendar.id);
-    setIsEditCalendar(true);
-    setShowCalendarModal(true);
-  };
-
-  const openEditModal = (holiday) => {
-    setEditHoliday({ ...holiday });
-    setShowEditHolidayModal(true);
-    setOpenDropdown(null);
+    toast.success("Holiday added successfully!");
   };
 
   const updateHoliday = () => {
     if (!editHoliday.name || !editHoliday.date || !editHoliday.category) {
-      showNotification("Please fill all required fields", "warning");
+      toast.warning("Please fill all required fields");
       return;
     }
 
@@ -512,48 +317,48 @@ const HolidayCalendar = () => {
       allowCarryForward: false,
       carryForwardLimit: 0,
     });
+    toast.success("Holiday updated successfully!");
+  };
 
-    showNotification("Holiday updated successfully!", "success");
+  const openEditModal = (holiday) => {
+    setEditHoliday({ ...holiday });
+    setShowEditHolidayModal(true);
+  };
+
+  const performDelete = (id) => {
+    dispatch({ type: "DELETE_HOLIDAY", payload: id });
+    setShowConfirmModal(false);
+    toast.success("Holiday deleted successfully");
   };
 
   const applyOptionalHoliday = () => {
     if (!selectedOptionalHoliday) {
-      showNotification("Please select an optional holiday", "warning");
+      toast.warning("Please select an optional holiday");
       return;
     }
 
-    const selectedHoliday = holidays.find(
-      (h) => h.name === selectedOptionalHoliday
-    );
-
+    const selectedHoliday = holidays.find((h) => h.name === selectedOptionalHoliday);
     if (!selectedHoliday) {
-      showNotification("Selected holiday not found", "error");
+      toast.error("Selected holiday not found");
       return;
     }
 
-    // Check advance booking requirement
     const holidayDate = new Date(selectedHoliday.date);
-    const today = new Date();
-    const daysDiff = Math.ceil((holidayDate - today) / (1000 * 60 * 60 * 24));
+    const todayDate = new Date();
+    const daysDiff = Math.ceil((holidayDate - todayDate) / (1000 * 60 * 60 * 24));
 
-    if (
-      selectedHoliday.advanceBookingDays > 0 &&
-      daysDiff < selectedHoliday.advanceBookingDays
-    ) {
-      showNotification(
-        `This holiday requires ${selectedHoliday.advanceBookingDays} days advance booking`,
-        "warning"
-      );
+    if (selectedHoliday.advanceBookingDays > 0 && daysDiff < selectedHoliday.advanceBookingDays) {
+      toast.warning(`This holiday requires ${selectedHoliday.advanceBookingDays} days advance booking`);
       return;
     }
 
     const newApplication = {
       id: Date.now(),
       name: selectedOptionalHoliday,
-      date: selectedHoliday?.date || "",
+      date: selectedHoliday.date,
       holidayId: selectedHoliday.id,
-      employeeId: "EMP001", // In real app, get from auth
-      employeeName: "Khuswanth Rao",
+      employeeId: "",
+      employeeName: "",
       status: "Pending",
       approvalRequired: true,
       reason: optionalReason,
@@ -569,19 +374,33 @@ const HolidayCalendar = () => {
     setShowOptionalModal(false);
     setSelectedOptionalHoliday("");
     setOptionalReason("");
-
-    showNotification("Optional holiday application submitted!", "success");
+    toast.success("Optional holiday application submitted!");
   };
 
-  // Holiday swap function
+  const updateApplicationStatus = (newStatus) => {
+    if (!selectedApplication) return;
+
+    const updatedApplication = {
+      ...selectedApplication,
+      status: newStatus,
+      [newStatus === "Approved" ? "approvedAt" : newStatus === "Rejected" ? "rejectedAt" : "updatedAt"]: new Date().toISOString(),
+      [newStatus === "Approved" ? "approvedBy" : newStatus === "Rejected" ? "rejectedBy" : "updatedBy"]: "Manager",
+    };
+
+    dispatch({ type: "UPDATE_APPLICATION", payload: updatedApplication });
+    setShowStatusModal(false);
+    setSelectedApplication(null);
+    toast.success(`Application status updated to ${newStatus}`);
+  };
+
+  const openStatusModal = (application) => {
+    setSelectedApplication(application);
+    setShowStatusModal(true);
+  };
+
   const handleHolidaySwap = () => {
-    if (
-      !swapForm.employeeId ||
-      !swapForm.holidayDate ||
-      !swapForm.workDate ||
-      !swapForm.reason
-    ) {
-      showNotification("Please fill all required fields", "warning");
+    if (!swapForm.employeeId || !swapForm.holidayDate || !swapForm.workDate || !swapForm.reason) {
+      toast.warning("Please fill all required fields");
       return;
     }
 
@@ -598,110 +417,10 @@ const HolidayCalendar = () => {
 
     dispatch({ type: "ADD_SWAP_REQUEST", payload: swapRequest });
     setShowSwapModal(false);
-    setSwapForm({
-      employeeId: "",
-      holidayDate: "",
-      workDate: "",
-      reason: "",
-    });
-
-    showNotification("Holiday swap request submitted!", "success");
+    setSwapForm({ employeeId: "", holidayDate: "", workDate: "", reason: "" });
+    toast.success("Holiday swap request submitted!");
   };
 
-  // Process carry forward
-  const handleCarryForward = () => {
-    if (
-      !carryForwardForm.employeeId ||
-      carryForwardForm.holidays.length === 0
-    ) {
-      showNotification(
-        "Please select employee and holidays to carry forward",
-        "warning"
-      );
-      return;
-    }
-
-    const carryForwardRecord = {
-      id: Date.now(),
-      ...carryForwardForm,
-      status: "processed",
-      processedAt: new Date().toISOString(),
-      processedBy: "HR Admin",
-    };
-
-    dispatch({
-      type: "SET_CARRY_FORWARD",
-      payload: [...carryForward, carryForwardRecord],
-    });
-    setShowCarryForwardModal(false);
-    setCarryForwardForm({
-      employeeId: "",
-      fromYear: new Date().getFullYear() - 1,
-      toYear: new Date().getFullYear(),
-      holidays: [],
-    });
-
-    showNotification("Holiday carry forward processed!", "success");
-  };
-
-  const openStatusModal = (application) => {
-    setSelectedApplication(application);
-    setShowStatusModal(true);
-    setOpenDropdown(null);
-  };
-
-  const updateApplicationStatus = (newStatus) => {
-    if (!selectedApplication) return;
-
-    const updatedApplication = {
-      ...selectedApplication,
-      status: newStatus,
-      [newStatus === "Approved"
-        ? "approvedAt"
-        : newStatus === "Rejected"
-        ? "rejectedAt"
-        : "updatedAt"]: new Date().toISOString(),
-      [newStatus === "Approved"
-        ? "approvedBy"
-        : newStatus === "Rejected"
-        ? "rejectedBy"
-        : "updatedBy"]: "Manager",
-    };
-
-    dispatch({ type: "UPDATE_APPLICATION", payload: updatedApplication });
-
-    setShowStatusModal(false);
-    setSelectedApplication(null);
-
-    showNotification(`Application status updated to ${newStatus}`, "success");
-  };
-
-  const confirmDelete = (type, id, name) => {
-    setConfirmAction({
-      title: `Delete ${type === "holiday" ? "Holiday" : "Application"}`,
-      message: `Are you sure you want to delete "${name}"?`,
-      onConfirm: () => performDelete(type, id),
-      onCancel: () => setShowConfirmModal(false),
-    });
-    setShowConfirmModal(true);
-    setOpenDropdown(null);
-  };
-
-  const performDelete = (type, id) => {
-    if (type === "holiday") {
-      dispatch({ type: "DELETE_HOLIDAY", payload: id });
-      showNotification("Holiday deleted successfully", "success");
-    } else {
-      dispatch({
-        type: "SET_APPLICATIONS",
-        payload: optionalApplications.filter((a) => a.id !== id),
-      });
-      showNotification("Application deleted successfully", "success");
-    }
-    setShowConfirmModal(false);
-  };
-
-  // Approve/Reject swap request
   const handleSwapApproval = (swapId, approved) => {
     const swap = swapRequests.find((s) => s.id === swapId);
     if (!swap) return;
@@ -714,2804 +433,944 @@ const HolidayCalendar = () => {
     };
 
     dispatch({ type: "UPDATE_SWAP_REQUEST", payload: updatedSwap });
-    showNotification(
-      `Swap request ${approved ? "approved" : "rejected"}`,
-      "success"
-    );
+    toast.success(`Swap request ${approved ? "approved" : "rejected"}`);
   };
 
-  // -------------------------------
-  // EXPORT & PRINT FUNCTIONS
-  // -------------------------------
+  const handleCarryForward = () => {
+    if (!carryForwardForm.employeeId || carryForwardForm.holidays.length === 0) {
+      toast.warning("Please select employee and holidays to carry forward");
+      return;
+    }
+
+    const carryForwardRecord = {
+      id: Date.now(),
+      ...carryForwardForm,
+      status: "processed",
+      processedAt: new Date().toISOString(),
+      processedBy: "HR Admin",
+    };
+
+    dispatch({ type: "SET_CARRY_FORWARD", payload: [...carryForward, carryForwardRecord] });
+    setShowCarryForwardModal(false);
+    setCarryForwardForm({
+      employeeId: "",
+      fromYear: new Date().getFullYear() - 1,
+      toYear: new Date().getFullYear(),
+      holidays: [],
+    });
+    toast.success("Holiday carry forward processed!");
+  };
+
   const exportToCSV = () => {
-    const data =
-      activeTab === "holidayMaster" ? filteredHolidays : filteredApplications;
-    const headers =
-      activeTab === "holidayMaster"
-        ? ["Holiday Name", "Date", "Category", "Type", "Location"]
-        : ["Holiday", "Date", "Applied On", "Status", "Reason"];
+    const data = activeTab === "holidayMaster" ? filteredHolidays : filteredApplications;
+
+    if (data.length === 0) {
+      toast.warning("No data to export");
+      return;
+    }
+
+    const headers = activeTab === "holidayMaster"
+      ? ["Holiday Name", "Date", "Category", "Type", "Location"]
+      : ["Holiday", "Date", "Applied On", "Status", "Reason"];
 
     const csvData = data.map((item) => {
       if (activeTab === "holidayMaster") {
-        return [
-          item.name,
-          item.date,
-          item.category,
-          item.optional ? "Optional" : "Mandatory",
-          item.location || "India",
-        ];
+        return [item.name, item.date, item.category, item.optional ? "Optional" : "Mandatory", item.location || "N/A"];
       } else {
-        return [
-          item.name,
-          item.date,
-          item.appliedDate || "",
-          item.status,
-          item.reason || "",
-        ];
+        return [item.name, item.date, item.appliedDate || "", item.status, item.reason || ""];
       }
     });
 
     const csv = [headers, ...csvData].map((row) => row.join(",")).join("\n");
-
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `holiday-calendar-${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    a.download = `holiday-calendar-${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-
-    showNotification(`Data exported successfully!`, "success");
+    toast.success("Data exported successfully!");
   };
 
   const printData = () => {
-    const data =
-      activeTab === "holidayMaster" ? filteredHolidays : filteredApplications;
-    const title =
-      activeTab === "holidayMaster" ? "Holidays List" : "Optional Applications";
+    const data = activeTab === "holidayMaster" ? filteredHolidays : filteredApplications;
+    const title = activeTab === "holidayMaster" ? "Holidays List" : "Optional Applications";
+
+    if (data.length === 0) {
+      toast.warning("No data to print");
+      return;
+    }
 
     const printContent = `
-      <html>
-        <head>
-          <title>${title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #333; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; }
-            .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-            .badge-success { background-color: #d4edda; color: #155724; }
-            .badge-warning { background-color: #fff3cd; color: #856404; }
-            .badge-danger { background-color: #f8d7da; color: #721c24; }
-            .badge-info { background-color: #d1ecf1; color: #0c5460; }
-          </style>
-        </head>
-        <body>
-          <h1>${title}</h1>
-          <p>Generated on: ${new Date().toLocaleDateString()}</p>
-          <table>
-            <thead>
-              ${
-                activeTab === "holidayMaster"
-                  ? "<tr><th>Holiday Name</th><th>Date</th><th>Category</th><th>Type</th><th>Location</th></tr>"
-                  : "<tr><th>Holiday</th><th>Date</th><th>Applied On</th><th>Status</th><th>Reason</th></tr>"
-              }
-            </thead>
-            <tbody>
-              ${data
-                .map(
-                  (item) => `
-                <tr>
-                  ${
-                    activeTab === "holidayMaster"
-                      ? `<td>${item.name}</td>
-                       <td>${item.date}</td>
-                       <td><span class="badge badge-info">${
-                         item.category
-                       }</span></td>
-                       <td><span class="badge ${
-                         item.optional ? "badge-success" : ""
-                       }">${
-                          item.optional ? "Optional" : "Mandatory"
-                        }</span></td>
-                       <td>${item.location || "India"}</td>`
-                      : `<td>${item.name}</td>
-                       <td>${item.date}</td>
-                       <td>${item.appliedDate || ""}</td>
-                       <td><span class="badge ${
-                         item.status === "Approved"
-                           ? "badge-success"
-                           : item.status === "Rejected"
-                           ? "badge-danger"
-                           : "badge-warning"
-                       }">${item.status}</span></td>
-                       <td>${item.reason || "-"}</td>`
-                  }
-                </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
+      <html><head><title>${title}</title>
+      <style>body{font-family:Arial,sans-serif;margin:20px;}h1{color:#333;}table{width:100%;border-collapse:collapse;margin-top:20px;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f5f5f5;}.badge{padding:4px 8px;border-radius:4px;font-size:12px;}.badge-success{background:#d4edda;color:#155724;}.badge-warning{background:#fff3cd;color:#856404;}.badge-danger{background:#f8d7da;color:#721c24;}.badge-info{background:#d1ecf1;color:#0c5460;}</style></head>
+      <body><h1>${title}</h1><p>Generated on: ${new Date().toLocaleDateString()}</p>
+      <table><thead>${activeTab === "holidayMaster" ? "<tr><th>Holiday Name</th><th>Date</th><th>Category</th><th>Type</th><th>Location</th></tr>" : "<tr><th>Holiday</th><th>Date</th><th>Applied On</th><th>Status</th><th>Reason</th></tr>"}</thead>
+      <tbody>${data.map((item) => `<tr>${activeTab === "holidayMaster" ? `<td>${item.name}</td><td>${item.date}</td><td><span class="badge badge-info">${item.category}</span></td><td><span class="badge ${item.optional ? "badge-success" : ""}">${item.optional ? "Optional" : "Mandatory"}</span></td><td>${item.location || "N/A"}</td>` : `<td>${item.name}</td><td>${item.date}</td><td>${item.appliedDate || ""}</td><td><span class="badge ${item.status === "Approved" ? "badge-success" : item.status === "Rejected" ? "badge-danger" : "badge-warning"}">${item.status}</span></td><td>${item.reason || "-"}</td>`}</tr>`).join("")}</tbody></table></body></html>`;
 
     const printWindow = window.open("", "_blank");
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
   };
 
-  // -------------------------------
-  // CALENDAR RENDERING (From reference code)
-  // -------------------------------
+  const getStatusBadge = (status) => {
+    const config = {
+      Pending: { label: 'Pending', color: 'yellow' },
+      Approved: { label: 'Approved', color: 'green' },
+      Rejected: { label: 'Rejected', color: 'red' },
+      active: { label: 'Active', color: 'green' },
+    };
+    const { label, color } = config[status] || { label: status, color: 'gray' };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-50 text-${color}-700 border border-${color}-100`}>
+        {label}
+      </span>
+    );
+  };
+
+  const getHolidayTypeBadge = (type) => {
+    const config = {
+      gazetted: { label: 'Gazetted', color: 'blue' },
+      restricted: { label: 'Restricted', color: 'amber' },
+      festival: { label: 'Festival', color: 'purple' },
+    };
+    const { label, color } = config[type] || { label: type, color: 'gray' };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-50 text-${color}-700 border border-${color}-100`}>
+        {label}
+      </span>
+    );
+  };
+
   const renderCalendar = () => {
-    let calendarCells = [];
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+    const startDay = monthStart.getDay();
+    const daysInMonth = monthEnd.getDate();
 
-    // Add empty cells for days before the first day of the month
+    const holidayMap = holidays.reduce((acc, h) => {
+      acc[h.date] = h;
+      return acc;
+    }, {});
+
+    const weeks = [];
+    let days = [];
+
     for (let i = 0; i < startDay; i++) {
-      calendarCells.push(
-        <div
-          key={`empty-${i}`}
-          className="text-center p-2"
-          style={{ opacity: 0.3 }}
-        >
-          {""}
-        </div>
-      );
+      days.push(null);
     }
 
-    // Add cells for each day of the month
     for (let d = 1; d <= daysInMonth; d++) {
-      const holiday = isHoliday(d);
-
-      calendarCells.push(
-        <div
-          key={d}
-          className={`text-center p-2 rounded ${
-            isToday(d) ? "bg-primary text-white" : ""
-          } ${holiday ? "text-danger fw-bold" : ""} ${
-            selectedDate === d ? "border border-primary" : ""
-          }`}
-          onClick={() => setSelectedDate(d)}
-          style={{
-            cursor: "pointer",
-            aspectRatio: "1",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {d}
-        </div>
-      );
+      days.push(d);
     }
 
-    // Add empty cells to complete the last row (if needed)
-    const totalCells = calendarCells.length;
-    const remainingCells = 42 - totalCells; // 6 rows × 7 days = 42 cells max
-    for (let i = 0; i < remainingCells; i++) {
-      calendarCells.push(
-        <div
-          key={`empty-end-${i}`}
-          className="text-center p-2"
-          style={{ opacity: 0.3 }}
-        >
-          {""}
-        </div>
-      );
+    for (let i = 0; i < days.length; i += 7) {
+      weeks.push(days.slice(i, i + 7));
     }
 
-    return calendarCells;
+    const lastWeek = weeks[weeks.length - 1];
+    if (lastWeek && lastWeek.length < 7) {
+      while (lastWeek.length < 7) {
+        lastWeek.push(null);
+      }
+    }
+
+    return (
+      <div className="space-y-1">
+        {weeks.map((week, weekIndex) => (
+          <div key={weekIndex} className="grid grid-cols-7 gap-1">
+            {week.map((dateNum, dayIndex) => {
+              if (dateNum === null) {
+                return <div key={`${weekIndex}-${dayIndex}`} className="p-1 sm:p-2" />;
+              }
+
+              const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(dateNum).padStart(2, "0")}`;
+              const holiday = holidayMap[dateKey];
+              const isTodayDate =
+                dateNum === today.getDate() &&
+                currentMonth === today.getMonth() &&
+                currentYear === today.getFullYear();
+
+              return (
+                <div
+                  key={dateNum}
+                  className={`p-1 sm:p-2 text-center rounded-lg cursor-pointer transition-all ${isTodayDate ? 'bg-blue-600 text-white' : ''
+                    } ${holiday ? 'text-rose-600 font-bold' : ''} ${selectedDate === dateNum ? 'ring-2 ring-blue-500' : ''
+                    } hover:bg-slate-50`}
+                  onClick={() => setSelectedDate(dateNum)}
+                >
+                  <span className="text-xs sm:text-sm">{dateNum}</span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
   };
 
-  // -------------------------------
-  // RENDER UI
-  // -------------------------------
   return (
-    <div className="container-fluid py-3 py-md-4">
-      {/* NOTIFICATION */}
-      {notification.show && (
-        <div
-          className={`alert alert-${notification.type} alert-dismissible fade show position-fixed top-0 end-0 m-2 m-md-3`}
-          style={{ zIndex: 1060, minWidth: "280px", maxWidth: "90vw" }}
-          role="alert"
-        >
-          <div className="d-flex align-items-center">
-            {notification.type === "success" && (
-              <CheckCircle size={16} className="me-2" />
-            )}
-            {notification.type === "warning" && (
-              <AlertCircle size={16} className="me-2" />
-            )}
-            {notification.type === "danger" && (
-              <XCircle size={16} className="me-2" />
-            )}
-            <span style={{ fontSize: "0.9rem" }}>{notification.message}</span>
-          </div>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setNotification({ ...notification, show: false })}
-          ></button>
+    <div className="w-full mx-auto max-w-7xl space-y-4 sm:space-y-6 md:px-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Icon icon="heroicons:calendar" className="w-6 h-6 text-blue-600" />
+            Holiday Calendar
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Manage holidays, applications, swap requests and calendars
+          </p>
         </div>
-      )}
+      </div>
 
-      {/* PAGE HEADER - WITH LARGE ICON AND TITLE */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {/* Calendar Icon Container */}
-            <div
-              style={{
-                width: "44px",
-                height: "44px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+      <div className="border border-slate-200 bg-white rounded-xl shadow-sm p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex gap-2">
+            <button
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all ${viewMode === "month" ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              onClick={() => setViewMode("month")}
             >
-              <Calendar size={28} style={{ color: "#1e293b" }} />
-            </div>
+              <Icon icon="heroicons:calendar" className="w-4 h-4 inline mr-1" />
+              <span className="hidden xs:inline">Calendar</span>
+            </button>
+          </div>
 
-            {/* Title and Description */}
-            <div>
-              <h7
-                style={{
-                  fontSize: "24px",
-                  fontWeight: "bold",
-                  color: "#1e293b",
-                  marginBottom: "4px",
-                }}
-              >
-                Holiday Calendar
-              </h7>
-              <div style={{ fontSize: "14px", color: "#64748b" }}>
-                Manage holidays, applications, swap requests and calendars
+          <div className="flex-1 flex flex-wrap gap-2">
+            <div className="flex-1 min-w-[120px]">
+              <div className="relative">
+                <Icon icon="heroicons:magnifying-glass" className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  className="w-full pl-9 pr-3 py-1.5 sm:py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
+
+            {activeTab === "holidayMaster" ? (
+              <>
+                <select
+                  className="px-2 py-1.5 sm:py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <option value="All">All Categories</option>
+                  <option value="Public Holiday">Public Holiday</option>
+                  <option value="National Holiday">National Holiday</option>
+                  <option value="Festival">Festival</option>
+                  <option value="State Holiday">State Holiday</option>
+                  <option value="Company Holiday">Company Holiday</option>
+                  <option value="Restricted Holiday">Restricted Holiday</option>
+                </select>
+                <select
+                  className="px-2 py-1.5 sm:py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="All">All Types</option>
+                  <option value="mandatory">Mandatory</option>
+                  <option value="optional">Optional</option>
+                </select>
+              </>
+            ) : (
+              <select
+                className="px-2 py-1.5 sm:py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="All">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            )}
+
+            <button
+              className="px-3 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+              onClick={exportToCSV}
+            >
+              <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
+              <span className="hidden xs:inline">Export</span>
+            </button>
+            <button
+              className="px-3 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+              onClick={printData}
+            >
+              <Icon icon="heroicons:printer" className="w-4 h-4" />
+              <span className="hidden xs:inline">Print</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* VIEW TOGGLE & SEARCH BAR - FIXED SECTION */}
-      <div className="card border shadow-none mb-3 mb-md-4">
-        <div className="card-body p-2 p-md-3">
-          <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 gap-sm-3">
-            {/* View Toggle */}
-            <div className="btn-group" role="group">
-              <button
-                type="button"
-                className={`btn btn-sm ${
-                  viewMode === "month" ? "btn-primary" : "btn-outline-primary"
-                }`}
-                onClick={() => setViewMode("month")}
-              >
-                <Grid size={14} className="me-sm-1" />
-                <span className="d-none d-sm-inline">Calendar</span>
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${
-                  viewMode === "list" ? "btn-primary" : "btn-outline-primary"
-                }`}
-                onClick={() => setViewMode("list")}
-              >
-                <List size={14} className="me-sm-1" />
-                <span className="d-none d-sm-inline">List</span>
-              </button>
-            </div>
-
-            {/* Search and Filters - Main content area */}
-            <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center flex-grow-1 gap-2">
-              {/* Search Input */}
-              <div className="flex-grow-1 min-width-0">
-                <div className="input-group input-group-sm">
-                  <span className="input-group-text bg-white border-end-0">
-                    <Search size={14} />
-                  </span>
-                  <input
-                    className="form-control border-start-0"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ fontSize: "0.9rem" }}
-                  />
-                </div>
-              </div>
-
-              {/* Filters and Actions - Now properly aligned */}
-              <div className="d-flex flex-wrap gap-2 align-items-center">
-                {activeTab === "holidayMaster" ? (
-                  <>
-                    {/* Mobile: Stacked, Desktop: Inline */}
-                    <div className="d-flex flex-column flex-sm-row gap-2">
-                      <select
-                        className="form-select form-select-sm"
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        style={{
-                          fontSize: "0.9rem",
-                          minWidth: "140px",
-                        }}
-                      >
-                        <option value="All">All Categories</option>
-                        <option value="Public Holiday">Public Holiday</option>
-                        <option value="National Holiday">
-                          National Holiday
-                        </option>
-                        <option value="Festival">Festival</option>
-                        <option value="State Holiday">State Holiday</option>
-                        <option value="Regional Holiday">
-                          Regional Holiday
-                        </option>
-                        <option value="Local Holiday">Local Holiday</option>
-                        <option value="Company Holiday">Company Holiday</option>
-                        <option value="Restricted Holiday">
-                          Restricted Holiday
-                        </option>
-                      </select>
-
-                      <select
-                        className="form-select form-select-sm"
-                        value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value)}
-                        style={{
-                          fontSize: "0.9rem",
-                          minWidth: "120px",
-                        }}
-                      >
-                        <option value="All">All Types</option>
-                        <option value="mandatory">Mandatory</option>
-                        <option value="optional">Optional</option>
-                      </select>
-                    </div>
-                  </>
-                ) : activeTab === "optionalApplications" && (
-                  <select
-                    className="form-select form-select-sm"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    style={{
-                      fontSize: "0.9rem",
-                      minWidth: "120px",
-                    }}
-                  >
-                    <option value="All">All Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
-                )}
-
-                {/* Export & Print Buttons - Always in same line */}
-                <div className="d-flex gap-2">
-                  {/* Mobile: Icon-only */}
-                  <div className="d-sm-none d-flex gap-1">
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={exportToCSV}
-                      title="Export to CSV"
-                    >
-                      <Download size={14} />
-                    </button>
-                    <button
-                      className="btn btn-dark btn-sm"
-                      onClick={printData}
-                      title="Print"
-                    >
-                      <Printer size={14} />
-                    </button>
-                  </div>
-
-                  {/* Desktop: Full buttons */}
-                  <div className="d-none d-sm-flex gap-2">
-                    <button
-                      className="btn btn-success btn-sm d-flex align-items-center"
-                      onClick={exportToCSV}
-                      title="Export to CSV"
-                      style={{ minWidth: "80px" }}
-                    >
-                      <Download size={14} className="me-1 me-md-2" />
-                      <span className="d-none d-md-inline">Export</span>
-                    </button>
-                    <button
-                      className="btn btn-dark btn-sm d-flex align-items-center"
-                      onClick={printData}
-                      title="Print"
-                      style={{ minWidth: "80px" }}
-                    >
-                      <Printer size={14} className="me-1 me-md-2" />
-                      <span className="d-none d-md-inline">Print</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* MAIN CONTENT AREA */}
       {viewMode === "month" ? (
-        <div className="row g-3">
-          {/* CALENDAR COLUMN - Using reference code layout */}
-          <div className="col-xl-3 col-lg-4 col-md-6 col-12">
-            <div className="card shadow-sm h-100">
-              <div className="card-body">
-                {/* Calendar Header */}
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <button
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={prevMonth}
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-                  <h5 className="fw-bold mb-0 text-center">
-                    {monthName} {currentYear}
-                  </h5>
-                  <button
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={nextMonth}
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-
-                {/* Days of Week Header */}
-                <div className="row mb-2">
-                  {daysShort.map((d) => (
-                    <div
-                      key={d}
-                      className="col text-center fw-bold small text-muted"
-                      style={{ padding: "4px 0" }}
-                    >
-                      {d}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Calendar Grid - 6 rows × 7 columns */}
-                {(() => {
-                  const totalCells = 42; // 6 rows × 7 days
-                  let allCells = [];
-
-                  // Create array with empty cells + date cells + trailing empty cells
-                  for (let i = 0; i < totalCells; i++) {
-                    if (i < startDay || i >= startDay + daysInMonth) {
-                      // Empty cell (before or after month)
-                      allCells.push(null);
-                    } else {
-                      // Date cell
-                      const dateNum = i - startDay + 1;
-                      allCells.push(dateNum);
-                    }
-                  }
-
-                  // Split into 6 rows (weeks) with 7 columns (days) each
-                  const weeks = [];
-                  for (let week = 0; week < 6; week++) {
-                    const weekCells = allCells.slice(week * 7, (week + 1) * 7);
-
-                    weeks.push(
-                      <div key={`week-${week}`} className="row g-1">
-                        {weekCells.map((dateNum, dayIndex) => {
-                          const dayOfWeek = daysShort[dayIndex];
-
-                          if (dateNum === null) {
-                            return (
-                              <div
-                                key={`${week}-${dayIndex}`}
-                                className="col p-0"
-                              >
-                                <div
-                                  className="text-center p-2"
-                                  style={{ opacity: 0.3 }}
-                                >
-                                  {/* Empty cell */}
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          const holiday = isHoliday(dateNum);
-                          return (
-                            <div key={dateNum} className="col p-0">
-                              <div
-                                className={`text-center p-2 rounded ${
-                                  isToday(dateNum)
-                                    ? "bg-primary text-white"
-                                    : ""
-                                } ${holiday ? "text-danger fw-bold" : ""} ${
-                                  selectedDate === dateNum
-                                    ? "border border-primary"
-                                    : ""
-                                }`}
-                                onClick={() => setSelectedDate(dateNum)}
-                                style={{
-                                  cursor: "pointer",
-                                  aspectRatio: "1",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                                data-weekday={dayOfWeek}
-                              >
-                                {dateNum}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  }
-
-                  return <div>{weeks}</div>;
-                })()}
-
-                {/* Selected Date Info */}
-                {selectedDate && (
-                  <div className="mt-4 p-3 border rounded bg-light">
-                    <h6 className="fw-bold mb-2">Selected Date:</h6>
-                    <p className="mb-1">
-                      {monthName} {selectedDate}, {currentYear}
-                    </p>
-                    {(() => {
-                      const dateKey = `${currentYear}-${String(
-                        currentMonth + 1
-                      ).padStart(2, "0")}-${String(selectedDate).padStart(
-                        2,
-                        "0"
-                      )}`;
-                      return holidayMap[dateKey] ? (
-                        <div className="alert alert-danger p-2 mb-0">
-                          <strong>{holidayMap[dateKey].name}</strong>
-                          <div className="small">
-                            {holidayMap[dateKey].category}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="alert alert-secondary p-2 mb-0">
-                          No Holiday
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-1 border border-slate-200 rounded-2xl bg-white p-4 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors" onClick={prevMonth}>
+                <Icon icon="heroicons:chevron-left" className="w-5 h-5" />
+              </button>
+              <h5 className="font-bold text-slate-800">{monthNames[currentMonth]} {currentYear}</h5>
+              <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors" onClick={nextMonth}>
+                <Icon icon="heroicons:chevron-right" className="w-5 h-5" />
+              </button>
             </div>
+
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {daysShort.map((d) => (
+                <div key={d} className="text-center text-xs font-bold text-slate-400">{d}</div>
+              ))}
+            </div>
+
+            {renderCalendar()}
+
+            {selectedDate && (
+              <div className="mt-4 p-3 bg-slate-50 rounded-xl">
+                <p className="text-xs font-bold text-slate-700 mb-1">Selected Date:</p>
+                <p className="text-sm text-slate-600">{monthNames[currentMonth]} {selectedDate}, {currentYear}</p>
+                {(() => {
+                  const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(selectedDate).padStart(2, "0")}`;
+                  const holiday = holidays.find(h => h.date === dateKey);
+                  return holiday ? (
+                    <div className="mt-2 p-2 bg-rose-50 border border-rose-200 rounded-lg">
+                      <p className="text-sm font-bold text-rose-700">{holiday.name}</p>
+                      <p className="text-xs text-rose-600">{holiday.category}</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 p-2 bg-slate-100 rounded-lg">
+                      <p className="text-sm text-slate-500">No Holiday</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
 
-          {/* DATA COLUMN */}
-          <div className="col-12 col-lg-7 col-xl-8">
-            {/* TAB SWITCHER */}
-            <div className="card border shadow-none mb-3">
-              <div className="card-body p-1 p-md-2">
-                <div className="d-flex flex-wrap gap-2">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="border border-slate-200 rounded-2xl bg-white p-2 shadow-sm overflow-x-auto">
+              <div className="flex gap-1 min-w-[400px]">
+                {[
+                  { id: "holidayMaster", name: "Holiday Master", icon: "heroicons:calendar", count: stats.totalHolidays },
+                  { id: "optionalApplications", name: "Optional Apps", icon: "heroicons:check-square", count: stats.totalApplications },
+                  { id: "calendars", name: "Calendars", icon: "heroicons:building-office", count: calendars.length },
+                  { id: "swap", name: "Holiday Swap", icon: "heroicons:arrows-right-left", count: swapRequests.length },
+                  { id: "carryForward", name: "Carry Forward", icon: "heroicons:arrow-path", count: carryForward.length },
+                ].map((tab) => (
                   <button
-                    className={`btn flex-grow-1 d-flex align-items-center justify-content-center ${
-                      activeTab === "holidayMaster"
-                        ? "btn-primary"
-                        : "btn-outline-primary"
-                    }`}
-                    onClick={() => setActiveTab("holidayMaster")}
-                    style={{
-                      padding: isMobileView ? "0.5rem" : "0.75rem",
-                      fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                    }}
+                    key={tab.id}
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab.id ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    onClick={() => setActiveTab(tab.id)}
                   >
-                    <Calendar
-                      size={isMobileView ? 14 : 18}
-                      className="me-1 me-md-2"
-                    />
-                    <div className="text-start">
-                      <div className="fw-bold">Holiday Master</div>
-                      <div className="small">
-                        {stats.totalHolidays} Holidays
-                      </div>
-                    </div>
+                    <Icon icon={tab.icon} className="w-4 h-4 inline mr-1" />
+                    <span className="hidden xs:inline">{tab.name}</span>
+                    <span className="xs:hidden">{tab.name.split(" ")[0]}</span>
+                    <span className="ml-1 text-[8px] opacity-70">({tab.count})</span>
                   </button>
-                  <button
-                    className={`btn flex-grow-1 d-flex align-items-center justify-content-center ${
-                      activeTab === "optionalApplications"
-                        ? "btn-success"
-                        : "btn-outline-success"
-                    }`}
-                    onClick={() => setActiveTab("optionalApplications")}
-                    style={{
-                      padding: isMobileView ? "0.5rem" : "0.75rem",
-                      fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                    }}
-                  >
-                    <CheckSquare
-                      size={isMobileView ? 14 : 18}
-                      className="me-1 me-md-2"
-                    />
-                    <div className="text-start">
-                      <div className="fw-bold">Optional Apps</div>
-                      <div className="small">
-                        {stats.totalApplications} Apps
-                      </div>
-                    </div>
-                  </button>
-                  <button
-                    className={`btn flex-grow-1 d-flex align-items-center justify-content-center ${
-                      activeTab === "calendars"
-                        ? "btn-info"
-                        : "btn-outline-info"
-                    }`}
-                    onClick={() => setActiveTab("calendars")}
-                    style={{
-                      padding: isMobileView ? "0.5rem" : "0.75rem",
-                      fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                    }}
-                  >
-                    <Building
-                      size={isMobileView ? 14 : 18}
-                      className="me-1 me-md-2"
-                    />
-                    <div className="text-start">
-                      <div className="fw-bold">Calendars</div>
-                      <div className="small">{calendars.length} Calendars</div>
-                    </div>
-                  </button>
-                  <button
-                    className={`btn flex-grow-1 d-flex align-items-center justify-content-center ${
-                      activeTab === "swap"
-                        ? "btn-warning"
-                        : "btn-outline-warning"
-                    }`}
-                    onClick={() => setActiveTab("swap")}
-                    style={{
-                      padding: isMobileView ? "0.5rem" : "0.75rem",
-                      fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                    }}
-                  >
-                    <ArrowLeftRight
-                      size={isMobileView ? 14 : 18}
-                      className="me-1 me-md-2"
-                    />
-                    <div className="text-start">
-                      <div className="fw-bold">Holiday Swap</div>
-                      <div className="small">
-                        {swapRequests.length} Requests
-                      </div>
-                    </div>
-                  </button>
-                  <button
-                    className={`btn flex-grow-1 d-flex align-items-center justify-content-center ${
-                      activeTab === "carryForward"
-                        ? "btn-secondary"
-                        : "btn-outline-secondary"
-                    }`}
-                    onClick={() => setActiveTab("carryForward")}
-                    style={{
-                      padding: isMobileView ? "0.5rem" : "0.75rem",
-                      fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                    }}
-                  >
-                    <RefreshCw
-                      size={isMobileView ? 14 : 18}
-                      className="me-1 me-md-2"
-                    />
-                    <div className="text-start">
-                      <div className="fw-bold">Carry Forward</div>
-                      <div className="small">{carryForward.length} Records</div>
-                    </div>
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* TAB CONTENT */}
-            {activeTab === "calendars" ? (
-              <div className="card border shadow-none">
-                <div className="card-header bg-white border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center py-2 py-md-3">
-                  <h5 className="fw-bold mb-2 mb-md-0 d-flex align-items-center">
-                    <Building
-                      size={isMobileView ? 16 : 18}
-                      className="me-2 text-info"
-                    />
+            {activeTab === "calendars" && (
+              <div className="border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <Icon icon="heroicons:building-office" className="w-4 h-4 text-blue-600" />
                     Holiday Calendars
                   </h5>
                   <button
-                    className="btn btn-info btn-sm d-flex align-items-center"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
                     onClick={() => {
-                      setIsEditCalendar(false); // ✅ RESET EDIT MODE
-                      setEditingCalendarId(null); // ✅ CLEAR ID
-                      setCalendarForm({
-                        name: "",
-                        location: "",
-                        employeeGroups: [],
-                        isDefault: false,
-                      });
+                      setIsEditCalendar(false);
+                      setEditingCalendarId(null);
+                      setCalendarForm({ name: "", location: "", employeeGroups: [], isDefault: false });
                       setShowCalendarModal(true);
                     }}
                   >
-                    <Plus size={isMobileView ? 12 : 16} className="me-1" />
-                    {!isMobileView && "Add Calendar"}
+                    <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+                    <span className="hidden xs:inline">Add Calendar</span>
                   </button>
                 </div>
-                <div className="card-body">
-                  <div className="table-responsive">
-                    <table className="table table-hover">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Calendar Name</th>
-                          <th>Location</th>
-                          <th>Employee Groups</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {calendars.length === 0 ? (
-                          <tr>
-                            <td colSpan="5" className="text-center py-4">
-                              <p className="text-muted">
-                                No calendars configured
-                              </p>
+                <div className="p-3 sm:p-4 overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-2 sm:p-3">Calendar Name</th>
+                        <th className="p-2 sm:p-3 hidden sm:table-cell">Location</th>
+                        <th className="p-2 sm:p-3 hidden md:table-cell">Employee Groups</th>
+                        <th className="p-2 sm:p-3">Status</th>
+                        <th className="p-2 sm:p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {calendars.length === 0 ? (
+                        <tr><td colSpan="5" className="p-4 text-center text-slate-400">No calendars configured</td></tr>
+                      ) : (
+                        calendars.map((cal) => (
+                          <tr key={cal.id} className="hover:bg-slate-50/50">
+                            <td className="p-2 sm:p-3 font-medium">
+                              {cal.name}
+                              {cal.isDefault && <span className="ml-2 text-[8px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Default</span>}
                             </td>
-                          </tr>
-                        ) : (
-                          calendars.map((cal) => (
-                            <tr key={cal.id}>
-                              <td>
-                                <div className="fw-medium">{cal.name}</div>
-                                {cal.isDefault && (
-                                  <small className="badge bg-primary">
-                                    Default
-                                  </small>
-                                )}
-                              </td>
-                              <td>{cal.location}</td>
-                              <td>
-                                <small>
-                                  {cal.employeeGroups.includes("all")
-                                    ? "All Groups"
-                                    : cal.employeeGroups.join(", ")}
-                                </small>
-                              </td>
-                              <td>
-                                <span className="badge bg-success">Active</span>
-                              </td>
-                              <td>
-                                <div className="d-flex gap-1 justify-content-center">
-                                  {/* Edit */}
-                                  <button
-                                    className="btn btn-sm btn-outline-primary"
-                                    onClick={() => openEditCalendarModal(cal)}
-                                    title="Edit Calendar"
-                                  >
-                                    <Edit size={14} />
-                                  </button>
-
-                                  {/* Delete */}
-                                  <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    title="Delete Calendar"
-                                    onClick={() =>
-                                      setConfirmAction({
-                                        title: "Delete Holiday Calendar",
-                                        message: `Are you sure you want to delete "${cal.name}"?`,
-                                        onConfirm: () => {
-                                          dispatch({
-                                            type: "SET_CALENDARS",
-                                            payload: calendars.filter(
-                                              (c) => c.id !== cal.id
-                                            ),
-                                          });
-                                          setShowConfirmModal(false);
-                                          showNotification(
-                                            "Calendar deleted successfully!",
-                                            "success"
-                                          );
-                                        },
-                                        onCancel: () =>
-                                          setShowConfirmModal(false),
-                                      }) || setShowConfirmModal(true)
-                                    }
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            ) : activeTab === "swap" ? (
-              <div className="card border shadow-none">
-                <div className="card-header bg-white border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center py-2 py-md-3">
-                  <h5 className="fw-bold mb-2 mb-md-0 d-flex align-items-center">
-                    <ArrowLeftRight
-                      size={isMobileView ? 16 : 18}
-                      className="me-2 text-warning"
-                    />
-                    Holiday Swap Requests
-                  </h5>
-                  <button
-                    className="btn btn-warning btn-sm d-flex align-items-center"
-                    onClick={() => setShowSwapModal(true)}
-                  >
-                    <Plus size={isMobileView ? 12 : 16} className="me-1" />
-                    {!isMobileView && "New Swap Request"}
-                  </button>
-                </div>
-                <div className="card-body">
-                  <div className="table-responsive">
-                    <table className="table table-hover">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Employee</th>
-                          <th>Holiday Date</th>
-                          <th>Work Date</th>
-                          <th>Reason</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {swapRequests.length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="text-center py-4">
-                              <p className="text-muted">No swap requests</p>
+                            <td className="p-2 sm:p-3 hidden sm:table-cell">{cal.location}</td>
+                            <td className="p-2 sm:p-3 hidden md:table-cell">
+                              <span className="text-xs">{cal.employeeGroups?.includes("all") ? "All Groups" : cal.employeeGroups?.join(", ")}</span>
                             </td>
-                          </tr>
-                        ) : (
-                          swapRequests.map((swap) => {
-                            const employee = initialEmployees.find(
-                              (e) => e.id === swap.employeeId
-                            );
-                            return (
-                              <tr key={swap.id}>
-                                <td>{employee?.name || swap.employeeId}</td>
-                                <td>{swap.holidayDate}</td>
-                                <td>{swap.workDate}</td>
-                                <td>
-                                  <small>{swap.reason}</small>
-                                </td>
-                                <td>
-                                  <span
-                                    className={`badge bg-${
-                                      swap.status === "approved"
-                                        ? "success"
-                                        : swap.status === "rejected"
-                                        ? "danger"
-                                        : "warning"
-                                    }`}
-                                  >
-                                    {swap.status}
-                                  </span>
-                                </td>
-                                <td>
-                                  {swap.status === "pending" && (
-                                    <div className="d-flex gap-1">
-                                      <button
-                                        className="btn btn-sm btn-outline-success"
-                                        onClick={() =>
-                                          handleSwapApproval(swap.id, true)
-                                        }
-                                      >
-                                        <CheckCircle size={14} />
-                                      </button>
-                                      <button
-                                        className="btn btn-sm btn-outline-danger"
-                                        onClick={() =>
-                                          handleSwapApproval(swap.id, false)
-                                        }
-                                      >
-                                        <XCircle size={14} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            ) : activeTab === "carryForward" ? (
-              <div className="card border shadow-none">
-                <div className="card-header bg-white border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center py-2 py-md-3">
-                  <h5 className="fw-bold mb-2 mb-md-0 d-flex align-items-center">
-                    <RefreshCw
-                      size={isMobileView ? 16 : 18}
-                      className="me-2 text-secondary"
-                    />
-                    Holiday Carry Forward
-                  </h5>
-                  <button
-                    className="btn btn-secondary btn-sm d-flex align-items-center"
-                    onClick={() => setShowCarryForwardModal(true)}
-                  >
-                    <Plus size={isMobileView ? 12 : 16} className="me-1" />
-                    {!isMobileView && "Process Carry Forward"}
-                  </button>
-                </div>
-                <div className="card-body">
-                  <div className="table-responsive">
-                    <table className="table table-hover">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Employee</th>
-                          <th>From Year</th>
-                          <th>To Year</th>
-                          <th>Holidays</th>
-                          <th>Status</th>
-                          <th>Processed By</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {carryForward.length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="text-center py-4">
-                              <p className="text-muted">
-                                No carry forward records
-                              </p>
-                            </td>
-                          </tr>
-                        ) : (
-                          carryForward.map((cf) => {
-                            const employee = initialEmployees.find(
-                              (e) => e.id === cf.employeeId
-                            );
-                            return (
-                              <tr key={cf.id}>
-                                <td>{employee?.name || cf.employeeId}</td>
-                                <td>{cf.fromYear}</td>
-                                <td>{cf.toYear}</td>
-                                <td>{cf.holidays.length} holidays</td>
-                                <td>
-                                  <span className="badge bg-success">
-                                    {cf.status}
-                                  </span>
-                                </td>
-                                <td>{cf.processedBy}</td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            ) : activeTab === "holidayMaster" ? (
-              <div className="card border shadow-none">
-                <div className="card-header bg-white border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center py-2 py-md-3">
-                  <h5
-                    className="fw-bold mb-2 mb-md-0 d-flex align-items-center"
-                    style={{ fontSize: isMobileView ? "0.9rem" : "1rem" }}
-                  >
-                    <Calendar
-                      size={isMobileView ? 16 : 18}
-                      className="me-2 text-primary"
-                    />
-                    Holiday Master
-                  </h5>
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-primary btn-sm d-flex align-items-center"
-                      onClick={() => setShowHolidayModal(true)}
-                      style={{ fontSize: isMobileView ? "0.75rem" : "0.85rem" }}
-                    >
-                      <Plus size={isMobileView ? 12 : 16} className="me-1" />
-                      {!isMobileView && "Add Holiday"}
-                    </button>
-                  </div>
-                </div>
-                <div className="card-body">
-                  <div
-                    className="table-responsive"
-                    style={{ maxHeight: isMobileView ? "300px" : "400px" }}
-                  >
-                    <table className="table table-hover align-middle mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            HOLIDAY NAME
-                          </th>
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            DATE
-                          </th>
-                          {!isMobileView && (
-                            <th
-                              style={{
-                                fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                              }}
-                            >
-                              CATEGORY
-                            </th>
-                          )}
-                          {!isMobileView && (
-                            <th
-                              style={{
-                                fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                              }}
-                            >
-                              HOLIDAY TYPE
-                            </th>
-                          )}
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            TYPE
-                          </th>
-                          {!isMobileView && (
-                            <th
-                              style={{
-                                fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                              }}
-                            >
-                              LOCATION
-                            </th>
-                          )}
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            ACTIONS
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredHolidays.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={isMobileView ? 4 : 6}
-                              className="text-center text-muted py-4"
-                            >
-                              <Calendar
-                                size={isMobileView ? 24 : 32}
-                                className="mb-2 opacity-50"
-                              />
-                              <div
-                                style={{
-                                  fontSize: isMobileView ? "0.85rem" : "0.9rem",
-                                }}
-                              >
-                                {searchTerm
-                                  ? "No matching holidays found"
-                                  : "No holidays added yet"}
+                            <td className="p-2 sm:p-3">{getStatusBadge("active")}</td>
+                            <td className="p-2 sm:p-3 text-right">
+                              <div className="flex justify-end gap-1.5">
+                                <button
+                                  className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                                  onClick={() => {
+                                    setIsEditCalendar(true);
+                                    setEditingCalendarId(cal.id);
+                                    setCalendarForm({
+                                      name: cal.name,
+                                      location: cal.location,
+                                      employeeGroups: cal.employeeGroups || ["all"],
+                                      isDefault: cal.isDefault || false,
+                                    });
+                                    setShowCalendarModal(true);
+                                  }}
+                                >
+                                  <Icon icon="heroicons:pencil" className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  className="p-1.5 text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100"
+                                  onClick={() => {
+                                    dispatch({ type: "DELETE_CALENDAR", payload: cal.id });
+                                    toast.success("Calendar deleted successfully!");
+                                  }}
+                                >
+                                  <Icon icon="heroicons:trash" className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </td>
                           </tr>
-                        ) : (
-                          filteredHolidays.map((h) => (
-                            <tr key={h.id}>
-                              <td
-                                className="fw-medium"
-                                style={{
-                                  fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                                }}
-                              >
-                                {isMobileView && h.name.length > 15
-                                  ? `${h.name.substring(0, 15)}...`
-                                  : h.name}
-                                {!isMobileView && h.name}
-                              </td>
-                              <td
-                                className="text-danger fw-bold"
-                                style={{
-                                  fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                                }}
-                              >
-                                {h.date}
-                              </td>
-                              {!isMobileView && (
-                                <td>
-                                  <span
-                                    className="badge bg-info"
-                                    style={{
-                                      fontSize: isMobileView
-                                        ? "0.7rem"
-                                        : "0.75rem",
-                                    }}
-                                  >
-                                    {h.category}
-                                  </span>
-                                </td>
-                              )}
-                              {!isMobileView && (
-                                <td>
-                                  <span
-                                    className={`badge ${
-                                      h.holidayType === "gazetted"
-                                        ? "bg-primary"
-                                        : h.holidayType === "restricted"
-                                        ? "bg-warning"
-                                        : "bg-success"
-                                    }`}
-                                    style={{
-                                      fontSize: isMobileView
-                                        ? "0.7rem"
-                                        : "0.75rem",
-                                    }}
-                                  >
-                                    {h.holidayType || "gazetted"}
-                                  </span>
-                                </td>
-                              )}
-                              <td className="text-center">
-                                {h.optional ? (
-                                  <span
-                                    className="badge bg-success d-flex align-items-center justify-content-center"
-                                    style={{
-                                      fontSize: isMobileView
-                                        ? "0.7rem"
-                                        : "0.75rem",
-                                    }}
-                                  >
-                                    {!isMobileView && (
-                                      <CheckSquare size={10} className="me-1" />
-                                    )}
-                                    Optional
-                                  </span>
-                                ) : (
-                                  <span
-                                    className="badge bg-secondary"
-                                    style={{
-                                      fontSize: isMobileView
-                                        ? "0.7rem"
-                                        : "0.75rem",
-                                    }}
-                                  >
-                                    Mandatory
-                                  </span>
-                                )}
-                              </td>
-                              {!isMobileView && (
-                                <td>
-                                  <small className="text-muted">
-                                    {h.location || "India"}
-                                  </small>
-                                </td>
-                              )}
-                              <td className="text-center">
-                                <div className="d-flex gap-1 justify-content-center">
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-icon btn-light"
-                                    onClick={() => openEditModal(h)}
-                                    title="Edit"
-                                    style={{
-                                      padding: isMobileView
-                                        ? "0.25rem"
-                                        : "0.375rem",
-                                    }}
-                                  >
-                                    <Edit size={isMobileView ? 12 : 16} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-icon btn-light text-danger"
-                                    onClick={() =>
-                                      confirmDelete("holiday", h.id, h.name)
-                                    }
-                                    title="Delete"
-                                    style={{
-                                      padding: isMobileView
-                                        ? "0.25rem"
-                                        : "0.375rem",
-                                    }}
-                                  >
-                                    <Trash2 size={isMobileView ? 12 : 16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="card border shadow-none">
-                <div className="card-header bg-white border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center py-2 py-md-3">
-                  <h5
-                    className="fw-bold mb-2 mb-md-0 d-flex align-items-center"
-                    style={{ fontSize: isMobileView ? "0.9rem" : "1rem" }}
-                  >
-                    <CheckSquare
-                      size={isMobileView ? 16 : 18}
-                      className="me-2 text-success"
-                    />
-                    Optional Applications
-                  </h5>
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-success btn-sm d-flex align-items-center"
-                      onClick={() => {
-                        if (stats.optionalHolidays === 0) {
-                          showNotification(
-                            "No optional holidays available. Add optional holidays first.",
-                            "warning"
-                          );
-                          return;
-                        }
-                        setShowOptionalModal(true);
-                      }}
-                      style={{ fontSize: isMobileView ? "0.75rem" : "0.85rem" }}
-                    >
-                      <Plus size={isMobileView ? 12 : 16} className="me-1" />
-                      {!isMobileView && "Apply Holiday"}
-                    </button>
-                  </div>
-                </div>
-                <div className="card-body">
-                  <div
-                    className="table-responsive"
-                    style={{ maxHeight: isMobileView ? "300px" : "400px" }}
-                  >
-                    <table className="table table-hover align-middle mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            HOLIDAY
-                          </th>
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            DATE
-                          </th>
-                          {!isMobileView && (
-                            <th
-                              style={{
-                                fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                              }}
-                            >
-                              APPLIED ON
-                            </th>
-                          )}
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            STATUS
-                          </th>
-                          {!isMobileView && (
-                            <th
-                              style={{
-                                fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                              }}
-                            >
-                              REASON
-                            </th>
-                          )}
-                          <th
-                            style={{
-                              fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                            }}
-                          >
-                            ACTIONS
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredApplications.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={isMobileView ? 4 : 6}
-                              className="text-center text-muted py-4"
-                            >
-                              <CheckSquare
-                                size={isMobileView ? 24 : 32}
-                                className="mb-2 opacity-50"
-                              />
-                              <div
-                                style={{
-                                  fontSize: isMobileView ? "0.85rem" : "0.9rem",
-                                }}
-                              >
-                                {searchTerm
-                                  ? "No matching applications found"
-                                  : "No applications submitted yet"}
-                              </div>
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredApplications.map((app) => (
-                            <tr key={app.id}>
-                              <td
-                                className="fw-medium"
-                                style={{
-                                  fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                                }}
-                              >
-                                {isMobileView && app.name.length > 15
-                                  ? `${app.name.substring(0, 15)}...`
-                                  : app.name}
-                                {!isMobileView && app.name}
-                              </td>
-                              <td
-                                style={{
-                                  fontSize: isMobileView ? "0.8rem" : "0.9rem",
-                                }}
-                              >
-                                {app.date}
-                              </td>
-                              {!isMobileView && (
-                                <td
-                                  className="text-center"
-                                  style={{
-                                    fontSize: isMobileView
-                                      ? "0.8rem"
-                                      : "0.9rem",
-                                  }}
-                                >
-                                  {app.appliedDate || ""}
-                                </td>
-                              )}
-                              <td className="text-center">
-                                <span
-                                  className={`badge d-flex align-items-center justify-content-center ${
-                                    app.status === "Approved"
-                                      ? "bg-success"
-                                      : app.status === "Rejected"
-                                      ? "bg-danger"
-                                      : "bg-warning"
-                                  }`}
-                                  style={{
-                                    fontSize: isMobileView
-                                      ? "0.7rem"
-                                      : "0.75rem",
-                                  }}
-                                >
-                                  {!isMobileView && (
-                                    <>
-                                      {app.status === "Approved" && (
-                                        <CheckCircle
-                                          size={10}
-                                          className="me-1"
-                                        />
-                                      )}
-                                      {app.status === "Rejected" && (
-                                        <XCircle size={10} className="me-1" />
-                                      )}
-                                      {app.status === "Pending" && (
-                                        <Clock size={10} className="me-1" />
-                                      )}
-                                    </>
-                                  )}
-                                  {app.status}
-                                </span>
-                              </td>
-                              {!isMobileView && (
-                                <td className="text-center">
-                                  <small className="text-muted">
-                                    {app.reason || "-"}
-                                  </small>
-                                </td>
-                              )}
-                              <td className="text-center">
-                                <div className="d-flex gap-1 justify-content-center">
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-icon btn-light"
-                                    onClick={() => openStatusModal(app)}
-                                    title="Update Status"
-                                    style={{
-                                      padding: isMobileView
-                                        ? "0.25rem"
-                                        : "0.375rem",
-                                    }}
-                                  >
-                                    <Settings size={isMobileView ? 12 : 16} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-icon btn-light text-danger"
-                                    onClick={() =>
-                                      confirmDelete(
-                                        "application",
-                                        app.id,
-                                        app.name
-                                      )
-                                    }
-                                    title="Delete"
-                                    style={{
-                                      padding: isMobileView
-                                        ? "0.25rem"
-                                        : "0.375rem",
-                                    }}
-                                  >
-                                    <Trash2 size={isMobileView ? 12 : 16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
 
-            {/* QUICK ACTIONS */}
-            <div className="card border shadow-none mt-3">
-              <div className="card-body">
-                <h6
-                  className="fw-bold mb-3 d-flex align-items-center"
-                  style={{ fontSize: isMobileView ? "0.85rem" : "0.95rem" }}
-                >
-                  <AlertCircle
-                    size={isMobileView ? 14 : 18}
-                    className="me-2 text-primary"
-                  />
-                  Quick Actions
-                </h6>
-                <div className="row g-2">
-                  <div className="col-4">
-                    <button
-                      className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center"
-                      onClick={() => setShowHolidayModal(true)}
-                      style={{
-                        fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                        padding: isMobileView ? "0.375rem" : "0.5rem",
-                      }}
-                    >
-                      <Plus size={isMobileView ? 12 : 16} className="me-1" />
-                      Add
-                    </button>
-                  </div>
-                  <div className="col-4">
-                    <button
-                      className="btn btn-outline-success w-100 d-flex align-items-center justify-content-center"
-                      onClick={() => {
-                        if (stats.optionalHolidays === 0) {
-                          showNotification(
-                            "No optional holidays available",
-                            "warning"
-                          );
-                          return;
-                        }
-                        setShowOptionalModal(true);
-                      }}
-                      style={{
-                        fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                        padding: isMobileView ? "0.375rem" : "0.5rem",
-                      }}
-                    >
-                      <CheckSquare
-                        size={isMobileView ? 12 : 16}
-                        className="me-1"
-                      />
-                      Apply
-                    </button>
-                  </div>
-                  <div className="col-4">
-                    <button
-                      className="btn btn-outline-info w-100 d-flex align-items-center justify-content-center"
-                      onClick={goToToday}
-                      style={{
-                        fontSize: isMobileView ? "0.75rem" : "0.85rem",
-                        padding: isMobileView ? "0.375rem" : "0.5rem",
-                      }}
-                    >
-                      <CalendarIcon
-                        size={isMobileView ? 12 : 16}
-                        className="me-1"
-                      />
-                      Today
-                    </button>
-                  </div>
+            {activeTab === "swap" && (
+              <div className="border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <Icon icon="heroicons:arrows-right-left" className="w-4 h-4 text-amber-500" />
+                    Holiday Swap Requests
+                  </h5>
+                  <button
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                    onClick={() => setShowSwapModal(true)}
+                  >
+                    <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+                    <span className="hidden xs:inline">New Swap Request</span>
+                  </button>
                 </div>
+                <div className="p-3 sm:p-4 overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-2 sm:p-3">Employee</th>
+                        <th className="p-2 sm:p-3">Holiday Date</th>
+                        <th className="p-2 sm:p-3">Work Date</th>
+                        <th className="p-2 sm:p-3 hidden sm:table-cell">Reason</th>
+                        <th className="p-2 sm:p-3">Status</th>
+                        <th className="p-2 sm:p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {swapRequests.length === 0 ? (
+                        <tr><td colSpan="6" className="p-4 text-center text-slate-400">No swap requests</td></tr>
+                      ) : (
+                        swapRequests.map((swap) => {
+                          return (
+                            <tr key={swap.id} className="hover:bg-slate-50/50">
+                              <td className="p-2 sm:p-3 font-medium">{swap.employeeId}</td>
+                              <td className="p-2 sm:p-3">{swap.holidayDate}</td>
+                              <td className="p-2 sm:p-3">{swap.workDate}</td>
+                              <td className="p-2 sm:p-3 hidden sm:table-cell text-slate-500">{swap.reason}</td>
+                              <td className="p-2 sm:p-3">{getStatusBadge(swap.status)}</td>
+                              <td className="p-2 sm:p-3 text-right">
+                                {swap.status === "pending" && (
+                                  <div className="flex justify-end gap-1.5">
+                                    <button
+                                      className="p-1.5 text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+                                      onClick={() => handleSwapApproval(swap.id, true)}
+                                    >
+                                      <Icon icon="heroicons:check" className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      className="p-1.5 text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100"
+                                      onClick={() => handleSwapApproval(swap.id, false)}
+                                    >
+                                      <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "carryForward" && (
+              <div className="border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <Icon icon="heroicons:arrow-path" className="w-4 h-4 text-slate-500" />
+                    Holiday Carry Forward
+                  </h5>
+                  <button
+                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                    onClick={() => setShowCarryForwardModal(true)}
+                  >
+                    <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+                    <span className="hidden xs:inline">Process Carry Forward</span>
+                  </button>
+                </div>
+                <div className="p-3 sm:p-4 overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-2 sm:p-3">Employee</th>
+                        <th className="p-2 sm:p-3">From Year</th>
+                        <th className="p-2 sm:p-3">To Year</th>
+                        <th className="p-2 sm:p-3">Holidays</th>
+                        <th className="p-2 sm:p-3">Status</th>
+                        <th className="p-2 sm:p-3">Processed By</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {carryForward.length === 0 ? (
+                        <tr><td colSpan="6" className="p-4 text-center text-slate-400">No carry forward records</td></tr>
+                      ) : (
+                        carryForward.map((cf) => {
+                          return (
+                            <tr key={cf.id} className="hover:bg-slate-50/50">
+                              <td className="p-2 sm:p-3 font-medium">{cf.employeeId}</td>
+                              <td className="p-2 sm:p-3">{cf.fromYear}</td>
+                              <td className="p-2 sm:p-3">{cf.toYear}</td>
+                              <td className="p-2 sm:p-3">{cf.holidays.length} holidays</td>
+                              <td className="p-2 sm:p-3">{getStatusBadge("active")}</td>
+                              <td className="p-2 sm:p-3">{cf.processedBy}</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "holidayMaster" && (
+              <div className="border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <Icon icon="heroicons:calendar" className="w-4 h-4 text-blue-600" />
+                    Holiday Master
+                  </h5>
+                  <button
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                    onClick={() => setShowHolidayModal(true)}
+                  >
+                    <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+                    <span className="hidden xs:inline">Add Holiday</span>
+                  </button>
+                </div>
+                <div className="p-3 sm:p-4 overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-2 sm:p-3">Holiday Name</th>
+                        <th className="p-2 sm:p-3">Date</th>
+                        <th className="p-2 sm:p-3 hidden sm:table-cell">Category</th>
+                        <th className="p-2 sm:p-3 hidden md:table-cell">Type</th>
+                        <th className="p-2 sm:p-3">Optional</th>
+                        <th className="p-2 sm:p-3 hidden lg:table-cell">Location</th>
+                        <th className="p-2 sm:p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredHolidays.length === 0 ? (
+                        <tr><td colSpan="7" className="p-4 text-center text-slate-400">No holidays found</td></tr>
+                      ) : (
+                        filteredHolidays.map((h) => (
+                          <tr key={h.id} className="hover:bg-slate-50/50">
+                            <td className="p-2 sm:p-3 font-medium">{h.name}</td>
+                            <td className="p-2 sm:p-3 text-rose-600 font-bold">{h.date}</td>
+                            <td className="p-2 sm:p-3 hidden sm:table-cell">
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700">{h.category}</span>
+                            </td>
+                            <td className="p-2 sm:p-3 hidden md:table-cell">{getHolidayTypeBadge(h.holidayType)}</td>
+                            <td className="p-2 sm:p-3">
+                              {h.optional ? (
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Optional</span>
+                              ) : (
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Mandatory</span>
+                              )}
+                            </td>
+                            <td className="p-2 sm:p-3 hidden lg:table-cell text-slate-500">{h.location || "N/A"}</td>
+                            <td className="p-2 sm:p-3 text-right">
+                              <div className="flex justify-end gap-1.5">
+                                <button
+                                  className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                                  onClick={() => openEditModal(h)}
+                                >
+                                  <Icon icon="heroicons:pencil" className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  className="p-1.5 text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100"
+                                  onClick={() => {
+                                    setConfirmAction({
+                                      title: "Delete Holiday",
+                                      message: `Are you sure you want to delete "${h.name}"?`,
+                                      onConfirm: () => performDelete(h.id),
+                                      onCancel: () => setShowConfirmModal(false),
+                                    });
+                                    setShowConfirmModal(true);
+                                  }}
+                                >
+                                  <Icon icon="heroicons:trash" className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "optionalApplications" && (
+              <div className="border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                  <h5 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <Icon icon="heroicons:check-square" className="w-4 h-4 text-emerald-600" />
+                    Optional Applications
+                  </h5>
+                  <button
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                    onClick={() => {
+                      if (stats.optionalHolidays === 0) {
+                        toast.warning("No optional holidays available");
+                        return;
+                      }
+                      setShowOptionalModal(true);
+                    }}
+                  >
+                    <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+                    <span className="hidden xs:inline">Apply Holiday</span>
+                  </button>
+                </div>
+                <div className="p-3 sm:p-4 overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-2 sm:p-3">Holiday</th>
+                        <th className="p-2 sm:p-3">Date</th>
+                        <th className="p-2 sm:p-3 hidden sm:table-cell">Applied On</th>
+                        <th className="p-2 sm:p-3">Status</th>
+                        <th className="p-2 sm:p-3 hidden md:table-cell">Reason</th>
+                        <th className="p-2 sm:p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredApplications.length === 0 ? (
+                        <tr><td colSpan="6" className="p-4 text-center text-slate-400">No applications found</td></tr>
+                      ) : (
+                        filteredApplications.map((app) => (
+                          <tr key={app.id} className="hover:bg-slate-50/50">
+                            <td className="p-2 sm:p-3 font-medium">{app.name}</td>
+                            <td className="p-2 sm:p-3">{app.date}</td>
+                            <td className="p-2 sm:p-3 hidden sm:table-cell">{app.appliedDate || ""}</td>
+                            <td className="p-2 sm:p-3">{getStatusBadge(app.status)}</td>
+                            <td className="p-2 sm:p-3 hidden md:table-cell text-slate-500">{app.reason || "-"}</td>
+                            <td className="p-2 sm:p-3 text-right">
+                              <div className="flex justify-end gap-1.5">
+                                <button
+                                  className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                                  onClick={() => openStatusModal(app)}
+                                >
+                                  <Icon icon="heroicons:cog-6-tooth" className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  className="p-1.5 text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100"
+                                  onClick={() => {
+                                    dispatch({ type: "SET_APPLICATIONS", payload: optionalApplications.filter((a) => a.id !== app.id) });
+                                    toast.success("Application deleted successfully");
+                                  }}
+                                >
+                                  <Icon icon="heroicons:trash" className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="border border-slate-200 rounded-2xl bg-white p-4 shadow-sm">
+              <h6 className="text-xs font-bold text-slate-800 flex items-center gap-2 mb-3">
+                <Icon icon="heroicons:bolt" className="w-4 h-4 text-amber-500" />
+                Quick Actions
+              </h6>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1"
+                  onClick={() => setShowHolidayModal(true)}
+                >
+                  <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+                  Add
+                </button>
+                <button
+                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1"
+                  onClick={() => {
+                    if (stats.optionalHolidays === 0) {
+                      toast.warning("No optional holidays available");
+                      return;
+                    }
+                    setShowOptionalModal(true);
+                  }}
+                >
+                  <Icon icon="heroicons:check-square" className="w-4 h-4" />
+                  Apply
+                </button>
+                <button
+                  className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1"
+                  onClick={goToToday}
+                >
+                  <Icon icon="heroicons:calendar" className="w-4 h-4" />
+                  Today
+                </button>
               </div>
             </div>
           </div>
         </div>
       ) : (
-        /* LIST VIEW */
-        <div className="card border shadow-none">
-          <div className="card-body">
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
-              <h5
-                className="fw-bold mb-2 mb-md-0"
-                style={{ fontSize: isMobileView ? "0.9rem" : "1.1rem" }}
+        /* List View */
+        <div className="border border-slate-200 rounded-2xl bg-white shadow-sm p-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+            <h5 className="text-sm font-bold text-slate-800">
+              {activeTab === "holidayMaster" ? "Holidays List" : "Applications List"}
+            </h5>
+            <div className="flex gap-2">
+              <button
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                onClick={() => activeTab === "holidayMaster" ? setShowHolidayModal(true) : setShowOptionalModal(true)}
               >
-                {activeTab === "holidayMaster"
-                  ? "Holidays List"
-                  : "Applications List"}
-              </h5>
-              <div className="d-flex gap-2">
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() =>
-                    activeTab === "holidayMaster"
-                      ? setShowHolidayModal(true)
-                      : setShowOptionalModal(true)
-                  }
-                >
-                  <Plus size={14} className="me-1" />
-                  {activeTab === "holidayMaster"
-                    ? "Add Holiday"
-                    : "Apply Holiday"}
-                </button>
-                <button
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={() => setViewMode("month")}
-                >
-                  <Grid size={14} className="me-1" />
-                  Switch to Calendar
-                </button>
-              </div>
-            </div>
-
-            {/* List Content */}
-            <div className="row g-3">
-              {(activeTab === "holidayMaster"
-                ? filteredHolidays
-                : filteredApplications
-              ).map((item) => (
-                <div key={item.id} className="col-12 col-md-6 col-lg-4">
-                  <div className="card border shadow-sm h-100">
-                    <div className="card-body">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <h6
-                          className="fw-bold mb-0"
-                          style={{
-                            fontSize: isMobileView ? "0.85rem" : "0.9rem",
-                          }}
-                        >
-                          {item.name}
-                        </h6>
-                        {activeTab === "holidayMaster" ? (
-                          <span
-                            className={`badge ${
-                              item.optional ? "bg-success" : "bg-secondary"
-                            }`}
-                          >
-                            {item.optional ? "Optional" : "Mandatory"}
-                          </span>
-                        ) : (
-                          <span
-                            className={`badge ${
-                              item.status === "Approved"
-                                ? "bg-success"
-                                : item.status === "Rejected"
-                                ? "bg-danger"
-                                : "bg-warning"
-                            }`}
-                          >
-                            {item.status}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mb-3">
-                        <div className="small text-muted mb-1">
-                          <Calendar size={12} className="me-1" />
-                          Date: {item.date}
-                        </div>
-                        {activeTab === "holidayMaster" ? (
-                          <>
-                            <div className="small">
-                              <span className="badge bg-info">
-                                {item.category}
-                              </span>
-                            </div>
-                            <div className="small text-muted mt-1">
-                              Location: {item.location || "India"}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="small text-muted mb-1">
-                              Applied: {item.appliedDate || "N/A"}
-                            </div>
-                            <div className="small text-muted">
-                              Reason: {item.reason || "No reason provided"}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      <div className="d-flex gap-2">
-                        {activeTab === "holidayMaster" ? (
-                          <>
-                            <button
-                              className="btn btn-outline-primary btn-sm flex-fill"
-                              onClick={() => openEditModal(item)}
-                            >
-                              <Edit size={12} className="me-1" />
-                              Edit
-                            </button>
-                            <button
-                              className="btn btn-outline-danger btn-sm"
-                              onClick={() =>
-                                confirmDelete("holiday", item.id, item.name)
-                              }
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              className="btn btn-outline-primary btn-sm flex-fill"
-                              onClick={() => openStatusModal(item)}
-                            >
-                              <Settings size={12} className="me-1" />
-                              Status
-                            </button>
-                            <button
-                              className="btn btn-outline-danger btn-sm"
-                              onClick={() =>
-                                confirmDelete("application", item.id, item.name)
-                              }
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {(activeTab === "holidayMaster"
-                ? filteredHolidays
-                : filteredApplications
-              ).length === 0 && (
-                <div className="col-12">
-                  <div className="text-center py-5">
-                    {activeTab === "holidayMaster" ? (
-                      <Calendar
-                        size={48}
-                        className="mb-3 text-muted opacity-50"
-                      />
-                    ) : (
-                      <CheckSquare
-                        size={48}
-                        className="mb-3 text-muted opacity-50"
-                      />
-                    )}
-                    <h6 className="text-muted">
-                      {searchTerm
-                        ? "No matching items found"
-                        : "No items available"}
-                    </h6>
-                    <button
-                      className="btn btn-primary btn-sm mt-3"
-                      onClick={() =>
-                        activeTab === "holidayMaster"
-                          ? setShowHolidayModal(true)
-                          : setShowOptionalModal(true)
-                      }
-                    >
-                      <Plus size={14} className="me-1" />
-                      Add{" "}
-                      {activeTab === "holidayMaster"
-                        ? "Holiday"
-                        : "Application"}
-                    </button>
-                  </div>
-                </div>
-              )}
+                <Icon icon="heroicons:plus-circle" className="w-4 h-4" />
+                {activeTab === "holidayMaster" ? "Add Holiday" : "Apply Holiday"}
+              </button>
+              <button
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-1"
+                onClick={() => setViewMode("month")}
+              >
+                <Icon icon="heroicons:calendar" className="w-4 h-4" />
+                Calendar
+              </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* MODALS - Keep existing modal code but update to include location */}
-      {/* Add Holiday Modal */}
-      {showHolidayModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-          tabIndex="-1"
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title d-flex align-items-center">
-                  <Plus size={18} className="me-2" />
-                  Add New Holiday
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowHolidayModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Holiday Name *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={newHoliday.name}
-                      onChange={(e) =>
-                        setNewHoliday({ ...newHoliday, name: e.target.value })
-                      }
-                      placeholder="Enter holiday name"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Date *</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={newHoliday.date}
-                      onChange={(e) =>
-                        setNewHoliday({ ...newHoliday, date: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Category *</label>
-                    <select
-                      className="form-select"
-                      value={newHoliday.category}
-                      onChange={(e) =>
-                        setNewHoliday({
-                          ...newHoliday,
-                          category: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Select Category</option>
-                      <option>Public Holiday</option>
-                      <option>National Holiday</option>
-                      <option>Festival</option>
-                      <option>State Holiday</option>
-                      <option>Regional Holiday</option>
-                      <option>Local Holiday</option>
-                      <option>Company Holiday</option>
-                      <option>Restricted Holiday</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Holiday Type *</label>
-                    <select
-                      className="form-select"
-                      value={newHoliday.holidayType}
-                      onChange={(e) =>
-                        setNewHoliday({
-                          ...newHoliday,
-                          holidayType: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="gazetted">Gazetted</option>
-                      <option value="restricted">Restricted</option>
-                      <option value="festival">Festival</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Location *</label>
-                    <select
-                      className="form-select"
-                      value={newHoliday.location}
-                      onChange={(e) =>
-                        setNewHoliday({
-                          ...newHoliday,
-                          location: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="All">All Locations</option>
-                      {initialLocations.map((loc) => (
-                        <option key={loc.id} value={loc.name}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Optional Holiday?</label>
-                    <select
-                      className="form-select"
-                      value={newHoliday.optional ? "Yes" : "No"}
-                      onChange={(e) =>
-                        setNewHoliday({
-                          ...newHoliday,
-                          optional: e.target.value === "Yes",
-                        })
-                      }
-                    >
-                      <option>No</option>
-                      <option>Yes</option>
-                    </select>
-                  </div>
-                  {newHoliday.optional && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label">
-                          Advance Booking (Days)
-                        </label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={newHoliday.advanceBookingDays}
-                          onChange={(e) =>
-                            setNewHoliday({
-                              ...newHoliday,
-                              advanceBookingDays: parseInt(e.target.value) || 0,
-                            })
-                          }
-                          min="0"
-                          placeholder="Days in advance"
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">
-                          Allow Carry Forward?
-                        </label>
-                        <select
-                          className="form-select"
-                          value={newHoliday.allowCarryForward ? "Yes" : "No"}
-                          onChange={(e) =>
-                            setNewHoliday({
-                              ...newHoliday,
-                              allowCarryForward: e.target.value === "Yes",
-                            })
-                          }
-                        >
-                          <option>No</option>
-                          <option>Yes</option>
-                        </select>
-                      </div>
-                      {newHoliday.allowCarryForward && (
-                        <div className="col-md-6">
-                          <label className="form-label">
-                            Carry Forward Limit (days)
-                          </label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            value={newHoliday.carryForwardLimit}
-                            onChange={(e) =>
-                              setNewHoliday({
-                                ...newHoliday,
-                                carryForwardLimit:
-                                  parseInt(e.target.value) || 0,
-                              })
-                            }
-                            min="0"
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                  <div className="col-md-6">
-                    <label className="form-label">
-                      Applicable Employee Group
-                    </label>
-                    <select
-                      className="form-select"
-                      value={newHoliday.applicableGroups[0] || "all"}
-                      onChange={(e) =>
-                        setNewHoliday({
-                          ...newHoliday,
-                          applicableGroups: [e.target.value],
-                        })
-                      }
-                    >
-                      <option value="all">All Groups</option>
-                      {initialEmployeeGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                    <small className="text-muted">
-                      Holiday will apply to the selected employee group
-                    </small>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowHolidayModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary d-flex align-items-center"
-                  onClick={saveHoliday}
-                >
-                  <CheckCircle size={16} className="me-1" />
-                  Save Holiday
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Holiday Modal */}
-      {showEditHolidayModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-          tabIndex="-1"
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title d-flex align-items-center">
-                  <Edit size={18} className="me-2" />
-                  Edit Holiday
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowEditHolidayModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Holiday Name *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={editHoliday.name}
-                      onChange={(e) =>
-                        setEditHoliday({ ...editHoliday, name: e.target.value })
-                      }
-                      placeholder="Enter holiday name"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Date *</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={editHoliday.date}
-                      onChange={(e) =>
-                        setEditHoliday({ ...editHoliday, date: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Category *</label>
-                    <select
-                      className="form-select"
-                      value={editHoliday.category}
-                      onChange={(e) =>
-                        setEditHoliday({
-                          ...editHoliday,
-                          category: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Select Category</option>
-                      <option>Public Holiday</option>
-                      <option>National Holiday</option>
-                      <option>Festival</option>
-                      <option>State Holiday</option>
-                      <option>Regional Holiday</option>
-                      <option>Local Holiday</option>
-                      <option>Company Holiday</option>
-                      <option>Restricted Holiday</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Holiday Type *</label>
-                    <select
-                      className="form-select"
-                      value={editHoliday.holidayType}
-                      onChange={(e) =>
-                        setEditHoliday({
-                          ...editHoliday,
-                          holidayType: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="gazetted">Gazetted</option>
-                      <option value="restricted">Restricted</option>
-                      <option value="festival">Festival</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Location *</label>
-                    <select
-                      className="form-select"
-                      value={editHoliday.location}
-                      onChange={(e) =>
-                        setEditHoliday({
-                          ...editHoliday,
-                          location: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="All">All Locations</option>
-                      {initialLocations.map((loc) => (
-                        <option key={loc.id} value={loc.name}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Optional Holiday?</label>
-                    <select
-                      className="form-select"
-                      value={editHoliday.optional ? "Yes" : "No"}
-                      onChange={(e) =>
-                        setEditHoliday({
-                          ...editHoliday,
-                          optional: e.target.value === "Yes",
-                        })
-                      }
-                    >
-                      <option>No</option>
-                      <option>Yes</option>
-                    </select>
-                  </div>
-                  {editHoliday.optional && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label">
-                          Advance Booking (Days)
-                        </label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={editHoliday.advanceBookingDays}
-                          onChange={(e) =>
-                            setEditHoliday({
-                              ...editHoliday,
-                              advanceBookingDays: parseInt(e.target.value) || 0,
-                            })
-                          }
-                          min="0"
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">
-                          Allow Carry Forward?
-                        </label>
-                        <select
-                          className="form-select"
-                          value={editHoliday.allowCarryForward ? "Yes" : "No"}
-                          onChange={(e) =>
-                            setEditHoliday({
-                              ...editHoliday,
-                              allowCarryForward: e.target.value === "Yes",
-                            })
-                          }
-                        >
-                          <option>No</option>
-                          <option>Yes</option>
-                        </select>
-                      </div>
-                      {editHoliday.allowCarryForward && (
-                        <div className="col-md-6">
-                          <label className="form-label">
-                            Carry Forward Limit (days)
-                          </label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            value={editHoliday.carryForwardLimit}
-                            onChange={(e) =>
-                              setEditHoliday({
-                                ...editHoliday,
-                                carryForwardLimit:
-                                  parseInt(e.target.value) || 0,
-                              })
-                            }
-                            min="0"
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                  <div className="col-md-6">
-                    <label className="form-label">
-                      Applicable Employee Group
-                    </label>
-                    <select
-                      className="form-select"
-                      value={editHoliday.applicableGroups?.[0] || "all"}
-                      onChange={(e) =>
-                        setEditHoliday({
-                          ...editHoliday,
-                          applicableGroups: [e.target.value],
-                        })
-                      }
-                    >
-                      <option value="all">All Groups</option>
-                      {initialEmployeeGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                    <small className="text-muted">
-                      Holiday will apply to the selected employee group
-                    </small>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowEditHolidayModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary d-flex align-items-center"
-                  onClick={updateHoliday}
-                >
-                  <CheckCircle size={16} className="me-1" />
-                  Update Holiday
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Apply Optional Holiday Modal */}
-      {showOptionalModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-          tabIndex="-1"
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title d-flex align-items-center">
-                  <CheckSquare size={18} className="me-2" />
-                  Apply Optional Holiday
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowOptionalModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Select Holiday *</label>
-                  <select
-                    className="form-select"
-                    value={selectedOptionalHoliday}
-                    onChange={(e) => setSelectedOptionalHoliday(e.target.value)}
-                  >
-                    <option value="">Select a holiday</option>
-                    {holidays
-                      .filter((h) => h.optional)
-                      .map((opt) => (
-                        <option key={opt.id} value={opt.name}>
-                          {opt.name} ({opt.date})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Reason (Optional)</label>
-                  <textarea
-                    className="form-control"
-                    rows="3"
-                    value={optionalReason}
-                    onChange={(e) => setOptionalReason(e.target.value)}
-                    placeholder="Enter reason for applying this optional holiday..."
-                  ></textarea>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowOptionalModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-success d-flex align-items-center"
-                  onClick={applyOptionalHoliday}
-                  disabled={!selectedOptionalHoliday}
-                >
-                  <CheckCircle size={16} className="me-1" />
-                  Submit Application
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Update Status Modal */}
-      {showStatusModal && selectedApplication && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-          tabIndex="-1"
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title d-flex align-items-center">
-                  <Settings size={18} className="me-2" />
-                  Update Application Status
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowStatusModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <p className="mb-2">
-                    <strong>Holiday:</strong> {selectedApplication.name}
-                  </p>
-                  <p className="mb-3">
-                    <strong>Current Status:</strong>{" "}
-                    <span
-                      className={`badge ${
-                        selectedApplication.status === "Approved"
-                          ? "bg-success"
-                          : selectedApplication.status === "Rejected"
-                          ? "bg-danger"
-                          : "bg-warning"
-                      }`}
-                    >
-                      {selectedApplication.status}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {(activeTab === "holidayMaster" ? filteredHolidays : filteredApplications).map((item) => (
+              <div key={item.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <h6 className="text-sm font-bold text-slate-800">{item.name}</h6>
+                  {activeTab === "holidayMaster" ? (
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.optional ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {item.optional ? "Optional" : "Mandatory"}
                     </span>
-                  </p>
-                  <label className="form-label mb-3">Update Status To:</label>
-                  <div className="d-flex gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-outline-warning flex-fill d-flex align-items-center justify-content-center"
-                      onClick={() => updateApplicationStatus("Pending")}
-                    >
-                      <Clock size={16} className="me-1" />
-                      Pending
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-success flex-fill d-flex align-items-center justify-content-center"
-                      onClick={() => updateApplicationStatus("Approved")}
-                    >
-                      <CheckCircle size={16} className="me-1" />
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger flex-fill d-flex align-items-center justify-content-center"
-                      onClick={() => updateApplicationStatus("Rejected")}
-                    >
-                      <XCircle size={16} className="me-1" />
-                      Reject
-                    </button>
-                  </div>
+                  ) : (
+                    getStatusBadge(item.status)
+                  )}
+                </div>
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-slate-600"><Icon icon="heroicons:calendar" className="w-3 h-3 inline mr-1" />Date: {item.date}</p>
+                  {activeTab === "holidayMaster" ? (
+                    <>
+                      <p className="text-xs text-slate-600"><span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700">{item.category}</span></p>
+                      <p className="text-xs text-slate-500">Location: {item.location || "N/A"}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-slate-500">Applied: {item.appliedDate || "N/A"}</p>
+                      <p className="text-xs text-slate-500">Reason: {item.reason || "No reason provided"}</p>
+                    </>
+                  )}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  {activeTab === "holidayMaster" ? (
+                    <>
+                      <button className="flex-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold" onClick={() => openEditModal(item)}>
+                        <Icon icon="heroicons:pencil" className="w-3 h-3 inline mr-1" />Edit
+                      </button>
+                      <button className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold" onClick={() => {
+                        setConfirmAction({
+                          title: "Delete Holiday",
+                          message: `Are you sure you want to delete "${item.name}"?`,
+                          onConfirm: () => performDelete(item.id),
+                          onCancel: () => setShowConfirmModal(false),
+                        });
+                        setShowConfirmModal(true);
+                      }}>
+                        <Icon icon="heroicons:trash" className="w-3 h-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="flex-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold" onClick={() => openStatusModal(item)}>
+                        <Icon icon="heroicons:cog-6-tooth" className="w-3 h-3 inline mr-1" />Status
+                      </button>
+                      <button className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold" onClick={() => {
+                        dispatch({ type: "SET_APPLICATIONS", payload: optionalApplications.filter((a) => a.id !== item.id) });
+                        toast.success("Application deleted successfully");
+                      }}>
+                        <Icon icon="heroicons:trash" className="w-3 h-3" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="modal-footer">
+            ))}
+            {(activeTab === "holidayMaster" ? filteredHolidays : filteredApplications).length === 0 && (
+              <div className="col-span-full text-center py-8">
+                <Icon icon="heroicons:inbox" className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">No items found</p>
                 <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowStatusModal(false)}
+                  className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold"
+                  onClick={() => activeTab === "holidayMaster" ? setShowHolidayModal(true) : setShowOptionalModal(true)}
                 >
-                  Cancel
+                  <Icon icon="heroicons:plus-circle" className="w-4 h-4 inline mr-1" />
+                  Add {activeTab === "holidayMaster" ? "Holiday" : "Application"}
                 </button>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
-      {showConfirmModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-          tabIndex="-1"
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title d-flex align-items-center">
-                  <Trash2 size={18} className="me-2 text-danger" />
-                  {confirmAction.title}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowConfirmModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <p>{confirmAction.message}</p>
-                <p className="text-muted small">
-                  This action cannot be undone.
-                </p>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowConfirmModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger d-flex align-items-center"
-                  onClick={confirmAction.onConfirm}
-                >
-                  <Trash2 size={16} className="me-1" />
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {showHolidayModal && (
+        <HolidayAddModal
+          isOpen={showHolidayModal}
+          onClose={() => setShowHolidayModal(false)}
+          newHoliday={newHoliday}
+          setNewHoliday={setNewHoliday}
+          saveHoliday={saveHoliday}
+          locations={[]}
+          employeeGroups={[]}
+        />
       )}
 
-      {/* Calendar Management Modal */}
+      {showEditHolidayModal && (
+        <HolidayEditModal
+          isOpen={showEditHolidayModal}
+          onClose={() => setShowEditHolidayModal(false)}
+          editHoliday={editHoliday}
+          setEditHoliday={setEditHoliday}
+          updateHoliday={updateHoliday}
+          locations={[]}
+          employeeGroups={[]}
+        />
+      )}
+
+      {showOptionalModal && (
+        <HolidayOptionalModal
+          isOpen={showOptionalModal}
+          onClose={() => setShowOptionalModal(false)}
+          holidays={holidays}
+          selectedOptionalHoliday={selectedOptionalHoliday}
+          setSelectedOptionalHoliday={setSelectedOptionalHoliday}
+          optionalReason={optionalReason}
+          setOptionalReason={setOptionalReason}
+          applyOptionalHoliday={applyOptionalHoliday}
+        />
+      )}
+
+      {showStatusModal && selectedApplication && (
+        <HolidayStatusModal
+          isOpen={showStatusModal}
+          onClose={() => setShowStatusModal(false)}
+          selectedApplication={selectedApplication}
+          updateApplicationStatus={updateApplicationStatus}
+        />
+      )}
+
       {showCalendarModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  {isEditCalendar
-                    ? "Edit Holiday Calendar"
-                    : "Add Holiday Calendar"}
-                </h5>
-
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowCalendarModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className="form-label">Calendar Name *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={calendarForm.name}
-                      onChange={(e) =>
-                        setCalendarForm({
-                          ...calendarForm,
-                          name: e.target.value,
-                        })
-                      }
-                      placeholder="e.g., Bangalore Office Calendar"
-                    />
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Location *</label>
-                    <select
-                      className="form-select"
-                      value={calendarForm.location}
-                      onChange={(e) =>
-                        setCalendarForm({
-                          ...calendarForm,
-                          location: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Select location...</option>
-                      {initialLocations.map((loc) => (
-                        <option key={loc.id} value={loc.name}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Employee Group</label>
-                    <select
-                      className="form-select"
-                      value={calendarForm.employeeGroups?.[0] || "all"}
-                      onChange={(e) =>
-                        setCalendarForm({
-                          ...calendarForm,
-                          employeeGroups: [e.target.value],
-                        })
-                      }
-                    >
-                      <option value="all">All Groups</option>
-                      {initialEmployeeGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                    <small className="text-muted">
-                      Calendar will apply to the selected employee group
-                    </small>
-                  </div>
-
-                  <div className="col-12">
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={calendarForm.isDefault}
-                        onChange={(e) =>
-                          setCalendarForm({
-                            ...calendarForm,
-                            isDefault: e.target.checked,
-                          })
-                        }
-                      />
-                      <label className="form-check-label">
-                        Set as Default Calendar
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowCalendarModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    if (!calendarForm.name || !calendarForm.location) {
-                      showNotification(
-                        "Please fill all required fields",
-                        "warning"
-                      );
-                      return;
-                    }
-
-                    if (isEditCalendar) {
-                      dispatch({
-                        type: "UPDATE_CALENDAR",
-                        payload: {
-                          id: editingCalendarId,
-                          ...calendarForm,
-                        },
-                      });
-
-                      showNotification(
-                        "Calendar updated successfully!",
-                        "success"
-                      );
-                    } else {
-                      dispatch({
-                        type: "ADD_CALENDAR",
-                        payload: {
-                          id: Date.now(),
-                          ...calendarForm,
-                        },
-                      });
-
-                      showNotification(
-                        "Calendar added successfully!",
-                        "success"
-                      );
-                    }
-
-                    setShowCalendarModal(false);
-                    setIsEditCalendar(false);
-                    setEditingCalendarId(null);
-                    setCalendarForm({
-                      name: "",
-                      location: "",
-                      employeeGroups: [],
-                      isDefault: false,
-                    });
-                  }}
-                >
-                  {isEditCalendar ? "Update Calendar" : "Save Calendar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HolidayCalendarModal
+          isOpen={showCalendarModal}
+          onClose={() => setShowCalendarModal(false)}
+          calendarForm={calendarForm}
+          setCalendarForm={setCalendarForm}
+          isEditCalendar={isEditCalendar}
+          editingCalendarId={editingCalendarId}
+          dispatch={dispatch}
+          locations={[]}
+          employeeGroups={[]}
+          showNotification={toast.success}
+        />
       )}
 
-      {/* Holiday Swap Modal */}
       {showSwapModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title d-flex align-items-center">
-                  <ArrowLeftRight size={18} className="me-2" />
-                  Holiday Swap Request
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowSwapModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className="form-label">Employee *</label>
-                    <select
-                      className="form-select"
-                      value={swapForm.employeeId}
-                      onChange={(e) =>
-                        setSwapForm({ ...swapForm, employeeId: e.target.value })
-                      }
-                    >
-                      <option value="">Select employee...</option>
-                      {initialEmployees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Holiday Date *</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={swapForm.holidayDate}
-                      onChange={(e) =>
-                        setSwapForm({
-                          ...swapForm,
-                          holidayDate: e.target.value,
-                        })
-                      }
-                    />
-                    <small className="text-muted">Date you want to work</small>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Work Date *</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={swapForm.workDate}
-                      onChange={(e) =>
-                        setSwapForm({ ...swapForm, workDate: e.target.value })
-                      }
-                    />
-                    <small className="text-muted">
-                      Date you want to take off
-                    </small>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Reason *</label>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      value={swapForm.reason}
-                      onChange={(e) =>
-                        setSwapForm({ ...swapForm, reason: e.target.value })
-                      }
-                      placeholder="Enter reason for holiday swap"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowSwapModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-warning"
-                  onClick={handleHolidaySwap}
-                >
-                  Submit Swap Request
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HolidaySwapModal
+          isOpen={showSwapModal}
+          onClose={() => setShowSwapModal(false)}
+          swapForm={swapForm}
+          setSwapForm={setSwapForm}
+          handleHolidaySwap={handleHolidaySwap}
+          employees={[]}
+        />
       )}
 
-      {/* Carry Forward Modal */}
       {showCarryForwardModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-        >
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title d-flex align-items-center">
-                  <RefreshCw size={18} className="me-2" />
-                  Process Holiday Carry Forward
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowCarryForwardModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Employee *</label>
-                    <select
-                      className="form-select"
-                      value={carryForwardForm.employeeId}
-                      onChange={(e) =>
-                        setCarryForwardForm({
-                          ...carryForwardForm,
-                          employeeId: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Select employee...</option>
-                      {initialEmployees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">From Year</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={carryForwardForm.fromYear}
-                      onChange={(e) =>
-                        setCarryForwardForm({
-                          ...carryForwardForm,
-                          fromYear: parseInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">To Year</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={carryForwardForm.toYear}
-                      onChange={(e) =>
-                        setCarryForwardForm({
-                          ...carryForwardForm,
-                          toYear: parseInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">
-                      Select Unused Optional Holidays
-                    </label>
-                    <div
-                      style={{
-                        maxHeight: "200px",
-                        overflowY: "auto",
-                        border: "1px solid #dee2e6",
-                        borderRadius: "0.375rem",
-                        padding: "0.5rem",
-                      }}
-                    >
-                      {holidays
-                        .filter((h) => h.optional && h.allowCarryForward)
-                        .map((holiday) => (
-                          <div key={holiday.id} className="form-check">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              checked={carryForwardForm.holidays.includes(
-                                holiday.id
-                              )}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setCarryForwardForm({
-                                    ...carryForwardForm,
-                                    holidays: [
-                                      ...carryForwardForm.holidays,
-                                      holiday.id,
-                                    ],
-                                  });
-                                } else {
-                                  setCarryForwardForm({
-                                    ...carryForwardForm,
-                                    holidays: carryForwardForm.holidays.filter(
-                                      (id) => id !== holiday.id
-                                    ),
-                                  });
-                                }
-                              }}
-                            />
-                            <label className="form-check-label">
-                              {holiday.name} ({holiday.date})
-                            </label>
-                          </div>
-                        ))}
-                    </div>
-                    {holidays.filter((h) => h.optional && h.allowCarryForward)
-                      .length === 0 && (
-                      <p className="text-muted mt-2">
-                        No optional holidays with carry forward enabled
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowCarryForwardModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleCarryForward}
-                >
-                  Process Carry Forward
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HolidayCarryForwardModal
+          isOpen={showCarryForwardModal}
+          onClose={() => setShowCarryForwardModal(false)}
+          carryForwardForm={carryForwardForm}
+          setCarryForwardForm={setCarryForwardForm}
+          handleCarryForward={handleCarryForward}
+          holidays={holidays}
+          employees={[]}
+        />
       )}
+
+      {showConfirmModal && (
+        <HolidayConfirmModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          confirmAction={confirmAction}
+        />
+      )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        className="text-xs"
+      />
     </div>
   );
 };
