@@ -8,20 +8,8 @@ import ExportModal from "../modal/ExportModalReport";
 import PatternModal from "../modal/PatternModal";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-// import { 
-//   fetchAttendanceData, 
-//   fetchReports, 
-//   fetchAlerts,
-//   generateReport,
-//   exportReport,
-//   acknowledgeAlert,
-//   fetchAnalytics
-// } from "../../../services/attendanceService";
 
 const AttendanceReports = () => {
-  // ============================================================
-  // STATE VARIABLES
-  // ============================================================
   const [activeTab, setActiveTab] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("manager");
@@ -61,16 +49,10 @@ const AttendanceReports = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ============================================================
-  // API DATA FETCHING
-  // ============================================================
-  
-  // Load initial data
   useEffect(() => {
     loadInitialData();
   }, []);
 
-  // Load data when filters change
   useEffect(() => {
     if (attendanceData.length > 0) {
       loadAttendanceData();
@@ -98,11 +80,6 @@ const AttendanceReports = () => {
 
   const loadEmployees = async () => {
     try {
-      // Replace with actual API call
-      // const response = await api.get('/employees');
-      // setEmployees(response.data);
-      
-      // For now, using empty array
       setEmployees([]);
     } catch (err) {
       console.error('Failed to load employees:', err);
@@ -119,12 +96,7 @@ const AttendanceReports = () => {
         employeeId: filters.employee !== 'all' ? filters.employee : undefined,
         search: search || undefined
       };
-      
-      // Replace with actual API call
-      // const response = await fetchAttendanceData(params);
-      // setAttendanceData(response.data);
-      
-      // For now, using empty array
+
       setAttendanceData([]);
     } catch (err) {
       console.error('Failed to load attendance data:', err);
@@ -134,11 +106,6 @@ const AttendanceReports = () => {
 
   const loadReports = async () => {
     try {
-      // Replace with actual API call
-      // const response = await fetchReports();
-      // setReports(response.data);
-      
-      // For now, using empty array
       setReports([]);
     } catch (err) {
       console.error('Failed to load reports:', err);
@@ -148,11 +115,6 @@ const AttendanceReports = () => {
 
   const loadAlerts = async () => {
     try {
-      // Replace with actual API call
-      // const response = await fetchAlerts();
-      // setAlerts(response.data);
-      
-      // For now, using empty array
       setAlerts([]);
     } catch (err) {
       console.error('Failed to load alerts:', err);
@@ -162,11 +124,6 @@ const AttendanceReports = () => {
 
   const loadAnalytics = async () => {
     try {
-      // Replace with actual API call
-      // const response = await fetchAnalytics();
-      // setAnalyticsData(response.data);
-      
-      // For now, using empty object
       setAnalyticsData({
         trends: {
           daily: [],
@@ -187,15 +144,11 @@ const AttendanceReports = () => {
     }
   };
 
-  // ============================================================
-  // CALCULATE STATISTICS
-  // ============================================================
   const filteredData = useMemo(() => {
     if (!attendanceData.length) return [];
-    
+
     let data = [...attendanceData];
-    
-    // Apply date filter
+
     const today = new Date();
     if (filters.date === "today") {
       const todayStr = today.toISOString().split("T")[0];
@@ -221,21 +174,19 @@ const AttendanceReports = () => {
       const yearAgoStr = yearAgo.toISOString().split("T")[0];
       data = data.filter(item => item.date >= yearAgoStr);
     }
-    
-    // Apply other filters
+
     if (filters.department !== "all") {
       data = data.filter(item => item.department === filters.department);
     }
-    
+
     if (filters.location !== "all") {
       data = data.filter(item => item.location === filters.location);
     }
-    
+
     if (filters.employee !== "all") {
       data = data.filter(item => item.employeeId === filters.employee);
     }
-    
-    // Apply search
+
     if (search) {
       const query = search.toLowerCase();
       data = data.filter(item =>
@@ -244,7 +195,7 @@ const AttendanceReports = () => {
         (item.department?.toLowerCase() || '').includes(query)
       );
     }
-    
+
     return data;
   }, [attendanceData, filters, search]);
 
@@ -264,7 +215,7 @@ const AttendanceReports = () => {
         avgOvertime: 0
       };
     }
-    
+
     const totalRecords = filteredData.length;
     const presentCount = filteredData.filter(x => x.status === "present").length;
     const absentCount = filteredData.filter(x => x.status === "absent").length;
@@ -272,7 +223,7 @@ const AttendanceReports = () => {
     const lateCount = filteredData.filter(x => (x.late || 0) > 0).length;
     const totalOvertime = filteredData.reduce((sum, x) => sum + (x.overtime || 0), 0);
     const avgOvertime = presentCount > 0 ? totalOvertime / presentCount : 0;
-    
+
     return {
       totalRecords,
       presentCount,
@@ -288,9 +239,6 @@ const AttendanceReports = () => {
     };
   }, [filteredData]);
 
-  // ============================================================
-  // HELPER FUNCTIONS
-  // ============================================================
   const getStatusBadge = (status) => {
     const config = {
       generated: { label: 'Generated', color: 'emerald' },
@@ -324,9 +272,6 @@ const AttendanceReports = () => {
     );
   };
 
-  // ============================================================
-  // HANDLER FUNCTIONS
-  // ============================================================
   const handleViewReport = (report) => {
     setSelectedReport(report);
     setShowViewModal(true);
@@ -341,11 +286,6 @@ const AttendanceReports = () => {
         return;
       }
 
-      // Replace with actual API call
-      // const response = await exportReport(reportId, { format: 'xlsx' });
-      // const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
-      // Simulate export
       const exportData = [{
         'Report Name': report.name,
         'Category': report.type,
@@ -353,7 +293,7 @@ const AttendanceReports = () => {
         'Last Generated': report.lastGenerated,
         'Description': report.description,
       }];
-      
+
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Report');
@@ -362,7 +302,7 @@ const AttendanceReports = () => {
         new Blob([wbout], { type: 'application/octet-stream' }),
         `${report.name.toLowerCase().replace(/\s+/g, '-')}-${report.lastGenerated || new Date().toISOString().split('T')[0]}.xlsx`
       );
-      
+
       toast.success('Report exported successfully!');
     } catch (err) {
       console.error('Failed to export report:', err);
@@ -385,7 +325,7 @@ const AttendanceReports = () => {
         toast.error('Please allow popups for printing');
         return;
       }
-      
+
       printWindow.document.write(`
         <html>
           <head>
@@ -427,16 +367,14 @@ const AttendanceReports = () => {
 
   const handleGenerateReport = async (reportId) => {
     try {
-      // Replace with actual API call
-      // await generateReport(reportId);
-      
+
       const updatedReports = reports.map(report => {
         if (report.id === reportId) {
           toast.success(`Report "${report.name}" generated successfully!`);
-          return { 
-            ...report, 
+          return {
+            ...report,
             status: 'Completed',
-            lastGenerated: new Date().toISOString().split('T')[0] 
+            lastGenerated: new Date().toISOString().split('T')[0]
           };
         }
         return report;
@@ -451,11 +389,6 @@ const AttendanceReports = () => {
   const handleGenerateSubmit = async (formData) => {
     try {
       setIsLoading(true);
-      // Replace with actual API call
-      // const response = await generateReport(formData);
-      // const newReport = response.data;
-      
-      // Simulate new report
       const newReport = {
         id: reports.length + 1,
         name: formData.reportType,
@@ -466,7 +399,7 @@ const AttendanceReports = () => {
         status: 'Processing',
         columns: ['Employee', 'Department', 'Date', 'Status', 'Remarks']
       };
-      
+
       setReports([newReport, ...reports]);
       toast.success(`Report "${formData.reportType}" generation started!`);
       setShowGenerateModal(false);
@@ -479,15 +412,15 @@ const AttendanceReports = () => {
   };
 
   const handleExportAll = async () => {
-    const filteredReports = reportCategory === 'all' 
-      ? reports 
+    const filteredReports = reportCategory === 'all'
+      ? reports
       : reports.filter(r => r.type === reportCategory);
-    
+
     if (filteredReports.length === 0) {
       toast.error('No reports to export');
       return;
     }
-    
+
     setIsExporting(true);
     try {
       const exportData = filteredReports.map(r => ({
@@ -497,7 +430,7 @@ const AttendanceReports = () => {
         'Last Generated': r.lastGenerated,
         'Description': r.description
       }));
-      
+
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Reports');
@@ -516,15 +449,15 @@ const AttendanceReports = () => {
   };
 
   const handlePrintAll = () => {
-    const filteredReports = reportCategory === 'all' 
-      ? reports 
+    const filteredReports = reportCategory === 'all'
+      ? reports
       : reports.filter(r => r.type === reportCategory);
-    
+
     if (filteredReports.length === 0) {
       toast.error('No reports to print');
       return;
     }
-    
+
     setIsPrinting(true);
     try {
       const printWindow = window.open('', '_blank');
@@ -533,7 +466,7 @@ const AttendanceReports = () => {
         setIsPrinting(false);
         return;
       }
-      
+
       printWindow.document.write(`
         <html>
           <head>
@@ -577,17 +510,12 @@ const AttendanceReports = () => {
     }
   };
 
-  // ============================================================
-  // ALERT FUNCTIONS
-  // ============================================================
   const handleAcknowledgeAlert = async (alertId) => {
     try {
-      // Replace with actual API call
-      // await acknowledgeAlert(alertId);
-      
-      setAlerts(prevAlerts => 
-        prevAlerts.map(alert => 
-          alert.id === alertId 
+
+      setAlerts(prevAlerts =>
+        prevAlerts.map(alert =>
+          alert.id === alertId
             ? { ...alert, acknowledged: true }
             : alert
         )
@@ -601,8 +529,6 @@ const AttendanceReports = () => {
 
   const handleViewPattern = (alert) => {
     setSelectedPatternAlert(alert);
-    
-    // Generate pattern analysis from alert data
     const analysis = {
       days: alert.patternData?.days?.map((day, index) => ({
         date: day,
@@ -613,7 +539,7 @@ const AttendanceReports = () => {
       trend: alert.patternData?.pattern || 'Unknown pattern',
       recommendation: getRecommendation(alert.type)
     };
-    
+
     setPatternAnalysis(analysis);
     setShowPatternModal(true);
   };
@@ -629,9 +555,6 @@ const AttendanceReports = () => {
     return recommendations[type] || 'Review pattern and take appropriate action';
   };
 
-  // ============================================================
-  // EXCEPTION FUNCTIONS
-  // ============================================================
   const getExceptionType = (item) => {
     if (item.status === 'absent') return 'Absent Without Leave';
     if ((item.late || 0) > 15) return 'Late Arrival';
@@ -685,7 +608,6 @@ const AttendanceReports = () => {
     setExportProgress(0);
 
     try {
-      // Simulate export progress
       const interval = setInterval(() => {
         setExportProgress(prev => {
           if (prev >= 100) {
@@ -696,9 +618,8 @@ const AttendanceReports = () => {
         });
       }, 200);
 
-      // Wait for progress to complete
       await new Promise(resolve => setTimeout(resolve, 1200));
-      
+
       const exportData = exceptionData.map(item => ({
         'Employee': item.employeeName,
         'Employee ID': item.employeeId,
@@ -709,7 +630,7 @@ const AttendanceReports = () => {
         'Duration': getExceptionDuration(item),
         'Status': getExceptionStatus(item)
       }));
-      
+
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Exceptions');
@@ -718,7 +639,7 @@ const AttendanceReports = () => {
         new Blob([wbout], { type: 'application/octet-stream' }),
         `attendance_exceptions_${new Date().toISOString().split('T')[0]}.xlsx`
       );
-      
+
       toast.success(`Exported ${exceptionData.length} exceptions successfully!`);
       setShowExportModal(false);
     } catch (err) {
@@ -730,37 +651,31 @@ const AttendanceReports = () => {
     }
   };
 
-  // ============================================================
-  // LEAVE PATTERN ANALYSIS
-  // ============================================================
   const leavePatterns = useMemo(() => {
     const leaveData = filteredData.filter(x => x.status === 'leave');
     const dayOfWeekCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
     const monthlyCounts = {};
-    
+
     leaveData.forEach(record => {
       if (!record.date) return;
       const date = new Date(record.date);
       const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
       const month = date.toLocaleString('default', { month: 'short' });
-      
+
       dayOfWeekCounts[dayOfWeek] = (dayOfWeekCounts[dayOfWeek] || 0) + 1;
       monthlyCounts[month] = (monthlyCounts[month] || 0) + 1;
     });
-    
+
     return { dayOfWeekCounts, monthlyCounts };
   }, [filteredData]);
 
-  // ============================================================
-  // RENDER FUNCTIONS
-  // ============================================================
-  
+
+
   const renderDashboard = () => {
     return (
       <div>
         <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4">Dashboard Overview</h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Attendance Trends */}
           <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
             <h4 className="font-semibold text-slate-700 mb-3 text-sm sm:text-base">Attendance Trends</h4>
             {analyticsData.trends?.daily?.length > 0 ? (
@@ -787,7 +702,6 @@ const AttendanceReports = () => {
             )}
           </div>
 
-          {/* Department Performance */}
           <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
             <h4 className="font-semibold text-slate-700 mb-3 text-sm sm:text-base">Department Performance</h4>
             {analyticsData.trends?.department?.length > 0 ? (
@@ -812,7 +726,6 @@ const AttendanceReports = () => {
             )}
           </div>
 
-          {/* Key Metrics */}
           <div className="bg-slate-50 rounded-xl p-3 sm:p-5 border border-slate-200 lg:col-span-2">
             <h4 className="font-semibold text-slate-700 mb-3 text-sm sm:text-base">Key Metrics</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -836,8 +749,8 @@ const AttendanceReports = () => {
   };
 
   const renderReports = () => {
-    const filteredReports = reportCategory === 'all' 
-      ? reports 
+    const filteredReports = reportCategory === 'all'
+      ? reports
       : reports.filter(r => r.type === reportCategory);
 
     return (
@@ -864,16 +777,14 @@ const AttendanceReports = () => {
           </div>
         </div>
 
-        {/* Category Filters */}
         <div className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 mb-4 overflow-x-auto pb-2 sm:pb-0">
           {['all', 'standard', 'exception', 'analytics'].map((cat) => (
             <button
               key={cat}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-sm font-semibold whitespace-nowrap transition ${
-                reportCategory === cat
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-sm font-semibold whitespace-nowrap transition ${reportCategory === cat
                   ? 'bg-blue-600 text-white'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
+                }`}
               onClick={() => setReportCategory(cat)}
             >
               {cat.charAt(0).toUpperCase() + cat.slice(1)} ({reports.filter(r => cat === 'all' || r.type === cat).length})
@@ -881,7 +792,6 @@ const AttendanceReports = () => {
           ))}
         </div>
 
-        {/* Reports Grid */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Icon icon="svg-spinners:180-ring" className="w-8 h-8 text-blue-600 animate-spin" />
@@ -898,11 +808,10 @@ const AttendanceReports = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-slate-800 text-sm sm:text-base truncate">{report.name}</h4>
-                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${
-                      report.type === 'standard' ? 'bg-blue-100 text-blue-700' :
-                      report.type === 'exception' ? 'bg-amber-100 text-amber-700' :
-                      'bg-purple-100 text-purple-700'
-                    }`}>
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${report.type === 'standard' ? 'bg-blue-100 text-blue-700' :
+                        report.type === 'exception' ? 'bg-amber-100 text-amber-700' :
+                          'bg-purple-100 text-purple-700'
+                      }`}>
                       {report.type?.toUpperCase() || 'STANDARD'}
                     </span>
                   </div>
@@ -954,7 +863,6 @@ const AttendanceReports = () => {
       <div>
         <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4">Analytics & Insights</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {/* Department Performance */}
           <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
             <h4 className="font-semibold text-slate-700 mb-3 text-sm sm:text-base">Department Performance</h4>
             {analyticsData.trends?.department?.length > 0 ? (
@@ -984,7 +892,6 @@ const AttendanceReports = () => {
             )}
           </div>
 
-          {/* Key Metrics */}
           <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
             <h4 className="font-semibold text-slate-700 mb-3 text-sm sm:text-base">Key Metrics</h4>
             <div className="space-y-3">
@@ -1002,7 +909,6 @@ const AttendanceReports = () => {
             </div>
           </div>
 
-          {/* Leave Pattern Analysis */}
           <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200 md:col-span-2">
             <h4 className="font-semibold text-slate-700 mb-3 text-sm sm:text-base">Leave Pattern Analysis</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1017,9 +923,9 @@ const AttendanceReports = () => {
                         <div key={day} className="flex items-center gap-2 mb-2">
                           <span className="text-xs sm:text-sm text-slate-600 min-w-[40px]">{day}</span>
                           <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-amber-500 rounded-full" 
-                              style={{ width: maxCount > 0 ? `${(count / maxCount) * 100}%` : '0%' }} 
+                            <div
+                              className="h-full bg-amber-500 rounded-full"
+                              style={{ width: maxCount > 0 ? `${(count / maxCount) * 100}%` : '0%' }}
                             />
                           </div>
                           <span className="text-xs font-semibold text-slate-700 min-w-[30px] text-right">{count}</span>
@@ -1042,9 +948,9 @@ const AttendanceReports = () => {
                         <div key={month} className="flex items-center gap-2 mb-2">
                           <span className="text-xs sm:text-sm text-slate-600 min-w-[40px]">{month}</span>
                           <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-amber-500 rounded-full" 
-                              style={{ width: maxCount > 0 ? `${(count / maxCount) * 100}%` : '0%' }} 
+                            <div
+                              className="h-full bg-amber-500 rounded-full"
+                              style={{ width: maxCount > 0 ? `${(count / maxCount) * 100}%` : '0%' }}
                             />
                           </div>
                           <span className="text-xs font-semibold text-slate-700 min-w-[30px] text-right">{count}</span>
@@ -1089,7 +995,6 @@ const AttendanceReports = () => {
           </div>
         </div>
 
-        {/* Exception Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
           <div className="bg-rose-50 rounded-xl p-3 sm:p-4 border border-rose-200">
             <p className="text-[10px] sm:text-xs text-rose-700">Total Exceptions</p>
@@ -1109,7 +1014,6 @@ const AttendanceReports = () => {
           </div>
         </div>
 
-        {/* Exception Table */}
         <div className="overflow-x-auto border border-slate-200 rounded-xl">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -1134,11 +1038,10 @@ const AttendanceReports = () => {
                     <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">{item.employeeName || 'Unknown'}</td>
                     <td className="p-2 sm:p-3 hidden sm:table-cell text-xs sm:text-sm">{item.department || 'N/A'}</td>
                     <td className="p-2 sm:p-3">
-                      <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${
-                        item.status === 'absent' ? 'bg-rose-100 text-rose-700' :
-                        (item.late || 0) > 15 ? 'bg-amber-100 text-amber-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
+                      <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${item.status === 'absent' ? 'bg-rose-100 text-rose-700' :
+                          (item.late || 0) > 15 ? 'bg-amber-100 text-amber-700' :
+                            'bg-blue-100 text-blue-700'
+                        }`}>
                         {getExceptionType(item)}
                       </span>
                     </td>
@@ -1165,7 +1068,7 @@ const AttendanceReports = () => {
 
   const renderAlerts = () => {
     const unacknowledgedAlerts = alerts.filter(alert => !alert.acknowledged);
-    
+
     return (
       <div>
         <div className="flex flex-wrap justify-between items-start sm:items-center gap-3 mb-4">
@@ -1191,21 +1094,19 @@ const AttendanceReports = () => {
             {unacknowledgedAlerts.map((alert) => (
               <div
                 key={alert.id}
-                className={`border rounded-xl p-3 sm:p-4 ${
-                  alert.severity === 'high' ? 'border-rose-200 bg-rose-50' :
-                  alert.severity === 'medium' ? 'border-amber-200 bg-amber-50' :
-                  'border-blue-200 bg-blue-50'
-                }`}
+                className={`border rounded-xl p-3 sm:p-4 ${alert.severity === 'high' ? 'border-rose-200 bg-rose-50' :
+                    alert.severity === 'medium' ? 'border-amber-200 bg-amber-50' :
+                      'border-blue-200 bg-blue-50'
+                  }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Icon 
-                      icon="heroicons:exclamation-triangle" 
-                      className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                        alert.severity === 'high' ? 'text-rose-600' :
-                        alert.severity === 'medium' ? 'text-amber-600' :
-                        'text-blue-600'
-                      }`}
+                    <Icon
+                      icon="heroicons:exclamation-triangle"
+                      className={`w-4 h-4 sm:w-5 sm:h-5 ${alert.severity === 'high' ? 'text-rose-600' :
+                          alert.severity === 'medium' ? 'text-amber-600' :
+                            'text-blue-600'
+                        }`}
                     />
                     <span className="font-semibold text-slate-800 text-sm sm:text-base">
                       {alert.employee || alert.department || 'Alert'}
@@ -1238,12 +1139,9 @@ const AttendanceReports = () => {
     );
   };
 
-  // ============================================================
-  // MAIN RENDER
-  // ============================================================
   return (
     <div className="w-full max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6 md:px-3">
-      {/* Error Display */}
+
       {error && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3">
           <Icon icon="heroicons:exclamation-circle" className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
@@ -1260,7 +1158,6 @@ const AttendanceReports = () => {
         </div>
       )}
 
-      {/* Header */}
       <div className="">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
@@ -1293,7 +1190,6 @@ const AttendanceReports = () => {
               />
             </div>
 
-            {/* Role Dropdown */}
             <div className="relative">
               <button
                 type="button"
@@ -1304,15 +1200,14 @@ const AttendanceReports = () => {
                 <span className="hidden xs:inline capitalize">{role}</span>
                 <Icon icon="heroicons:chevron-down" className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400" />
               </button>
-              
+
               {showRoleDropdown && (
                 <div className="absolute right-0 mt-1 w-32 sm:w-40 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
                   {['employee', 'manager', 'hr', 'admin'].map((r) => (
                     <button
                       key={r}
-                      className={`w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm hover:bg-slate-50 transition first:rounded-t-xl last:rounded-b-xl ${
-                        role === r ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-700'
-                      }`}
+                      className={`w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm hover:bg-slate-50 transition first:rounded-t-xl last:rounded-b-xl ${role === r ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-700'
+                        }`}
                       onClick={() => { setRole(r); setShowRoleDropdown(false); }}
                     >
                       <span className="capitalize">{r}</span>
@@ -1325,9 +1220,7 @@ const AttendanceReports = () => {
         </div>
       </div>
 
-      {/* Filters Section */}
       <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 md:p-5">
-        {/* Mobile Filter Toggle */}
         <button
           className="w-full sm:hidden flex items-center justify-between py-2 text-sm font-semibold text-slate-700"
           onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -1418,7 +1311,6 @@ const AttendanceReports = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3">
         {[
           { label: 'Present', value: `${statistics.presentRate || 0}%`, icon: 'heroicons:check-circle', color: 'emerald' },
@@ -1444,7 +1336,6 @@ const AttendanceReports = () => {
         ))}
       </div>
 
-      {/* Tabs */}
       <div className="flex overflow-x-auto gap-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm">
         {[
           { id: 'dashboard', label: 'Dashboard', icon: 'heroicons:home' },
@@ -1455,11 +1346,10 @@ const AttendanceReports = () => {
         ].map((tab) => (
           <button
             key={tab.id}
-            className={`px-3 sm:px-4 py-2.5 sm:py-3 text-[14px] font-semibold transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap border-b-2 ${
-              activeTab === tab.id
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 text-[14px] font-semibold transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap border-b-2 ${activeTab === tab.id
                 ? 'border-blue-600 text-blue-600 bg-blue-50/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-            }`}
+              }`}
             onClick={() => setActiveTab(tab.id)}
           >
             <Icon icon={tab.icon} className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -1468,7 +1358,6 @@ const AttendanceReports = () => {
         ))}
       </div>
 
-      {/* Tab Content */}
       <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 md:p-6">
         {isLoading && !attendanceData.length ? (
           <div className="flex flex-col items-center justify-center py-12">
@@ -1486,7 +1375,6 @@ const AttendanceReports = () => {
         )}
       </div>
 
-      {/* Modals */}
       <ViewReportModal
         isOpen={showViewModal}
         onClose={() => { setShowViewModal(false); setSelectedReport(null); }}
@@ -1528,7 +1416,6 @@ const AttendanceReports = () => {
         onAcknowledge={handleAcknowledgeAlert}
       />
 
-      {/* Toast */}
       <ToastContainer
         position="top-right"
         autoClose={3000}

@@ -1,262 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Icon } from '@iconify/react/dist/iconify.js';
-import RecruiterDashboardLayout from "../../../app/layouts/RecruiterDashboardLayout";
+import React, { useState, useEffect, useCallback } from 'react';
+import { Icon } from '@iconify/react';
+import { toast, ToastContainer } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
+import StatCard from '../../../shared/components/StatCard';
+import ApprovalModal from '../modal/ApprovalModal';
+import AuditTrailModal from '../modal/AuditTrailModal';
+import ChecklistModal from '../modal/ChecklistModal';
+import DeleteModal from '../modal/DeleteModal';
+import TemplatesModal from '../modal/TemplatesModal';
+import VersionHistoryModal from '../modal/VersionHistoryModal';
+import DocumentModal from '../modal/DocumentModal';
+import DocumentViewerModal from '../modal/DocumentViewerModal';
 
-// Document Types Configuration
-const DOCUMENT_TYPES = {
-  Educational: [
-    '10th Certificate',
-    '12th Certificate',
-    'Graduation Certificate',
-    'Post-Graduation Certificate',
-    'Diploma Certificate',
-    'Professional Certifications'
-  ],
-  Employment: [
-    'Offer Letter',
-    'Appointment Letter',
-    'Employment Contract',
-    'Experience Letter',
-    'Relieving Letter',
-    'Resignation Letter'
-  ],
-  KYC: [
-    'Aadhaar Card',
-    'PAN Card',
-    'Passport Copy',
-    'Voter ID',
-    'Driving License'
-  ],
-  Statutory: [
-    'Bank Account Proof',
-    'Cancelled Cheque',
-    'Bank Passbook',
-    'PF Nomination Form',
-    'ESIC Card'
-  ],
-  Miscellaneous: [
-    'Medical Fitness Certificate',
-    'Police Verification',
-    'NDA Agreement',
-    'Confidentiality Agreement',
-    'Code of Conduct Acknowledgment',
-    'Policy Acknowledgment Forms',
-    'Address Proof'
-  ]
-};
-
-// Employee Types and Mandatory Documents
 const EMPLOYEE_TYPES = ['Full-time', 'Part-time', 'Contract', 'Intern', 'Consultant'];
-const MANDATORY_DOCUMENTS = {
-  'Full-time': [
-    'Aadhaar Card', 'PAN Card', 'Offer Letter', 'Appointment Letter',
-    'Employment Contract', 'Bank Account Proof', 'Medical Fitness Certificate',
-    'NDA Agreement', 'Code of Conduct Acknowledgment'
-  ],
-  'Part-time': [
-    'Aadhaar Card', 'PAN Card', 'Offer Letter', 'Appointment Letter',
-    'Bank Account Proof', 'NDA Agreement'
-  ],
-  'Contract': [
-    'Aadhaar Card', 'PAN Card', 'Offer Letter', 'Employment Contract',
-    'Bank Account Proof', 'NDA Agreement'
-  ],
-  'Intern': [
-    'Aadhaar Card', 'Offer Letter', 'NDA Agreement'
-  ],
-  'Consultant': [
-    'PAN Card', 'Employment Contract', 'NDA Agreement', 'Confidentiality Agreement'
-  ]
-};
+const DOCUMENT_TYPES = {};
+const MANDATORY_DOCUMENTS = {};
+const DOCUMENT_TEMPLATES = [];
 
-// Document Templates
-const DOCUMENT_TEMPLATES = [
-  { id: 1, name: 'Offer Letter Template', category: 'Employment', fileType: 'docx', size: '45 KB' },
-  { id: 2, name: 'Appointment Letter Template', category: 'Employment', fileType: 'docx', size: '52 KB' },
-  { id: 3, name: 'Employment Contract Template', category: 'Employment', fileType: 'docx', size: '68 KB' },
-  { id: 4, name: 'NDA Agreement Template', category: 'Miscellaneous', fileType: 'docx', size: '38 KB' },
-  { id: 5, name: 'Confidentiality Agreement Template', category: 'Miscellaneous', fileType: 'docx', size: '42 KB' },
-  { id: 6, name: 'Code of Conduct Template', category: 'Miscellaneous', fileType: 'docx', size: '35 KB' },
-  { id: 7, name: 'Relieving Letter Template', category: 'Employment', fileType: 'docx', size: '28 KB' }
-];
-
-// Mock API functions for documents
-const mockAPI = {
-  fetchDocuments: async (filters) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      documents: [
-        {
-          id: 1,
-          name: "Aadhaar Card",
-          documentType: "Aadhaar Card",
-          category: "KYC",
-          employee: { id: 1, name: "John Doe", employeeType: "Full-time" },
-          uploadDate: "2025-10-10",
-          expiryDate: "2030-10-10",
-          status: "approved",
-          version: "1.0",
-          versionHistory: [
-            { version: "1.0", uploadDate: "2025-10-10", uploadedBy: "John Doe", changes: "Initial upload" }
-          ],
-          mandatory: true,
-          fileType: "pdf",
-          size: "2.4 MB",
-          fileUrl: "https://example.com/documents/aadhaar.pdf",
-          uploadedBy: { id: 1, name: "John Doe" },
-          approvedBy: { id: 2, name: "HR Manager" },
-          approvedDate: "2025-10-11",
-          approvalComments: "Document verified and approved",
-          downloadRestricted: false,
-          auditTrail: [
-            { action: "uploaded", user: "John Doe", timestamp: "2025-10-10T10:00:00Z" },
-            { action: "approved", user: "HR Manager", timestamp: "2025-10-11T14:30:00Z" }
-          ]
-        },
-        {
-          id: 2,
-          name: "Graduation Certificate",
-          documentType: "Graduation Certificate",
-          category: "Educational",
-          employee: { id: 2, name: "Jane Smith", employeeType: "Full-time" },
-          uploadDate: "2025-10-05",
-          expiryDate: null,
-          status: "pending",
-          version: "1.0",
-          versionHistory: [
-            { version: "1.0", uploadDate: "2025-10-05", uploadedBy: "Jane Smith", changes: "Initial upload" }
-          ],
-          mandatory: true,
-          fileType: "pdf",
-          size: "1.8 MB",
-          fileUrl: "https://example.com/documents/graduation.pdf",
-          uploadedBy: { id: 2, name: "Jane Smith" },
-          approvedBy: null,
-          approvedDate: null,
-          approvalComments: null,
-          downloadRestricted: true,
-          auditTrail: [
-            { action: "uploaded", user: "Jane Smith", timestamp: "2025-10-05T09:15:00Z" }
-          ]
-        },
-        {
-          id: 3,
-          name: "Employment Contract",
-          documentType: "Employment Contract",
-          category: "Employment",
-          employee: { id: 3, name: "Mike Johnson", employeeType: "Full-time" },
-          uploadDate: "2025-10-01",
-          expiryDate: "2026-10-01",
-          status: "approved",
-          version: "2.1",
-          versionHistory: [
-            { version: "1.0", uploadDate: "2025-09-15", uploadedBy: "HR Admin", changes: "Initial contract" },
-            { version: "2.0", uploadDate: "2025-09-25", uploadedBy: "HR Admin", changes: "Updated terms" },
-            { version: "2.1", uploadDate: "2025-10-01", uploadedBy: "HR Admin", changes: "Final revision" }
-          ],
-          mandatory: true,
-          fileType: "docx",
-          size: "3.2 MB",
-          fileUrl: "https://example.com/documents/contract.docx",
-          uploadedBy: { id: 3, name: "HR Admin" },
-          approvedBy: { id: 2, name: "HR Manager" },
-          approvedDate: "2025-10-02",
-          approvalComments: "Contract terms verified",
-          downloadRestricted: false,
-          auditTrail: [
-            { action: "uploaded", user: "HR Admin", timestamp: "2025-09-15T11:00:00Z" },
-            { action: "version_updated", user: "HR Admin", timestamp: "2025-09-25T15:20:00Z" },
-            { action: "version_updated", user: "HR Admin", timestamp: "2025-10-01T10:30:00Z" },
-            { action: "approved", user: "HR Manager", timestamp: "2025-10-02T09:00:00Z" }
-          ]
-        }
-      ],
-      total: 3,
-      page: 1,
-      pageSize: 10
-    };
-  },
-  fetchEmployees: async () => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return [
-      { id: 1, name: "John Doe", employeeType: "Full-time" },
-      { id: 2, name: "Jane Smith", employeeType: "Full-time" },
-      { id: 3, name: "Mike Johnson", employeeType: "Contract" },
-      { id: 4, name: "Sarah Williams", employeeType: "Full-time" }
-    ];
-  },
-  createDocument: async (documentData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { 
-      ...documentData, 
-      id: Date.now(), 
-      uploadDate: new Date().toISOString().split('T')[0],
-      version: "1.0",
-      versionHistory: [{
-        version: "1.0",
-        uploadDate: new Date().toISOString().split('T')[0],
-        uploadedBy: documentData.uploadedBy?.name || "System",
-        changes: "Initial upload"
-      }],
-      fileUrl: "https://example.com/documents/new-document.pdf",
-      auditTrail: [{
-        action: "uploaded",
-        user: documentData.uploadedBy?.name || "System",
-        timestamp: new Date().toISOString()
-      }]
-    };
-  },
-  updateDocument: async (id, documentData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { ...documentData, id };
-  },
-  deleteDocument: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { success: true };
-  },
-  approveDocument: async (id, approvalData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { success: true, ...approvalData };
-  },
-  rejectDocument: async (id, rejectionData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { success: true, ...rejectionData };
-  },
-  uploadNewVersion: async (id, documentData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { success: true, ...documentData };
-  },
-  logDownload: async (documentId, userId) => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return { success: true };
-  }
-};
-
-const Documentvault = () => {
+const DocumentVault = () => {
   const [documents, setDocuments] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [documentTypes, setDocumentTypes] = useState({});
+  const [mandatoryDocuments, setMandatoryDocuments] = useState({});
+  const [documentTemplates, setDocumentTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterEmployeeType, setFilterEmployeeType] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('list');
+  const [selectedDocuments, setSelectedDocuments] = useState([]);
+  const [currentUser] = useState({ id: 1, name: "Current User", role: "HR Manager" });
+  const [stats, setStats] = useState({
+    total: 0,
+    approved: 0,
+    pending: 0,
+    expiring: 0,
+    expired: 0
+  });
+
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showViewerModal, setShowViewerModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showVersionHistoryModal, setShowVersionHistoryModal] = useState(false);
   const [showAuditTrailModal, setShowAuditTrailModal] = useState(false);
-  const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [selectedDocuments, setSelectedDocuments] = useState([]);
-  const [notification, setNotification] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [uploadFile, setUploadFile] = useState(null);
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'checklist'
-  const [currentUser] = useState({ id: 1, name: "Current User", role: "HR Manager" });
 
   const [documentForm, setDocumentForm] = useState({
     name: '',
@@ -270,414 +66,102 @@ const Documentvault = () => {
     fileType: 'pdf',
     downloadRestricted: false
   });
-
   const [approvalForm, setApprovalForm] = useState({
-    action: 'approve', // 'approve' or 'reject'
+    action: 'approve',
     comments: ''
   });
 
   const categories = ['all', 'KYC', 'Educational', 'Employment', 'Statutory', 'Miscellaneous'];
   const statuses = ['all', 'approved', 'pending', 'expired', 'rejected'];
-  const fileTypes = ['pdf', 'docx', 'jpg', 'jpeg', 'png'];
+  const itemsPerPage = 6;
 
   useEffect(() => {
-    loadDocuments();
-    loadEmployees();
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      loadDocuments();
+    }
   }, [filterCategory, filterStatus, filterEmployeeType, currentPage]);
 
-  const loadDocuments = async () => {
+  const loadInitialData = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await mockAPI.fetchDocuments({ 
-        category: filterCategory, 
-        status: filterStatus, 
-        employeeType: filterEmployeeType,
-        page: currentPage 
-      });
-      setDocuments(data.documents);
-    } catch (error) {
-      showNotification('Failed to load documents', 'error');
+      const [typesData, mandatoryData, templatesData, employeesData, statsData] = await Promise.all([
+        fetchDocumentTypes(),
+        fetchMandatoryDocuments(),
+        fetchDocumentTemplates(),
+        fetchEmployees(),
+        fetchStatistics()
+      ]);
+
+      setDocumentTypes(typesData);
+      setMandatoryDocuments(mandatoryData);
+      setDocumentTemplates(templatesData);
+      setEmployees(employeesData);
+      setStats(statsData);
+
+      await loadDocuments();
+    } catch (err) {
+      console.error('Failed to load initial data:', err);
+      setError(err.message || 'Failed to load data');
+      toast.error('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadEmployees = async () => {
+  const loadDocuments = async () => {
     try {
-      const data = await mockAPI.fetchEmployees();
-      setEmployees(data);
-    } catch (error) {
-      console.error('Failed to load employees', error);
-    }
-  };
-
-  const showNotification = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  const handleCreateDocument = async () => {
-    if (!documentForm.name || !documentForm.employee || !uploadFile) {
-      showNotification('Please fill in all required fields and select a file', 'error');
-      return;
-    }
-
-    try {
-      const selectedEmp = employees.find(e => e.id === parseInt(documentForm.employee));
-      const newDocument = await mockAPI.createDocument({
-        ...documentForm,
-        documentType: documentForm.documentType || documentForm.name,
-        employee: selectedEmp || { id: parseInt(documentForm.employee), name: documentForm.employee },
-        size: `${(uploadFile.size / (1024 * 1024)).toFixed(1)} MB`,
-        fileType: uploadFile.name.split('.').pop().toLowerCase(),
-        uploadedBy: currentUser
-      });
-      setDocuments([newDocument, ...documents]);
-      setShowDocumentModal(false);
-      resetForm();
-      setUploadFile(null);
-      showNotification('Document uploaded successfully');
-    } catch (error) {
-      showNotification('Failed to upload document', 'error');
-    }
-  };
-
-  const handleUpdateDocument = async () => {
-    try {
-      const selectedEmp = employees.find(e => e.id === parseInt(documentForm.employee));
-      const updatedDocument = await mockAPI.updateDocument(selectedDocument.id, {
-        ...selectedDocument,
-        ...documentForm,
-        employee: selectedEmp || { ...selectedDocument.employee, name: documentForm.employee }
-      });
-      setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDocument : d));
-      setShowDocumentModal(false);
-      setSelectedDocument(null);
-      resetForm();
-      setUploadFile(null);
-      showNotification('Document updated successfully');
-    } catch (error) {
-      showNotification('Failed to update document', 'error');
-    }
-  };
-
-  const handleDeleteDocument = async () => {
-    try {
-      await mockAPI.deleteDocument(selectedDocument.id);
-      setDocuments(documents.filter(d => d.id !== selectedDocument.id));
-      setShowDeleteModal(false);
-      setSelectedDocument(null);
-      showNotification('Document deleted successfully');
-    } catch (error) {
-      showNotification('Failed to delete document', 'error');
-    }
-  };
-
-  const handleDownloadDocument = async (doc) => {
-    if (doc.downloadRestricted && currentUser.role !== 'HR Manager' && currentUser.role !== 'HR Admin') {
-      showNotification('You do not have permission to download this document', 'error');
-      return;
-    }
-
-    try {
-      await mockAPI.logDownload(doc.id, currentUser.id);
-      const link = document.createElement('a');
-      link.href = doc.fileUrl;
-      link.download = `${doc.name}.${doc.fileType}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Update audit trail
-      const updatedDoc = {
-        ...doc,
-        auditTrail: [
-          ...doc.auditTrail,
-          { action: "downloaded", user: currentUser.name, timestamp: new Date().toISOString() }
-        ]
+      const params = {
+        category: filterCategory !== 'all' ? filterCategory : undefined,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        employeeType: filterEmployeeType !== 'all' ? filterEmployeeType : undefined,
+        search: searchTerm || undefined,
+        page: currentPage,
+        limit: itemsPerPage
       };
-      setDocuments(documents.map(d => d.id === doc.id ? updatedDoc : d));
-      
-      showNotification(`Downloading ${doc.name}`);
-    } catch (error) {
-      showNotification('Failed to download document', 'error');
-    }
-  };
-
-  const handleViewDocument = (doc) => {
-    setSelectedDocument(doc);
-    setShowViewerModal(true);
-  };
-
-  const handleApproveReject = async () => {
-    if (!approvalForm.comments && approvalForm.action === 'reject') {
-      showNotification('Please provide rejection comments', 'error');
-      return;
-    }
-
-    try {
-      if (approvalForm.action === 'approve') {
-        await mockAPI.approveDocument(selectedDocument.id, {
-          approvedBy: currentUser,
-          approvedDate: new Date().toISOString().split('T')[0],
-          approvalComments: approvalForm.comments
-        });
-        const updatedDoc = {
-          ...selectedDocument,
-          status: 'approved',
-          approvedBy: currentUser,
-          approvedDate: new Date().toISOString().split('T')[0],
-          approvalComments: approvalForm.comments,
-          auditTrail: [
-            ...selectedDocument.auditTrail,
-            { action: "approved", user: currentUser.name, timestamp: new Date().toISOString() }
-          ]
-        };
-        setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDoc : d));
-        showNotification('Document approved successfully');
-      } else {
-        await mockAPI.rejectDocument(selectedDocument.id, {
-          rejectedBy: currentUser,
-          rejectedDate: new Date().toISOString().split('T')[0],
-          rejectionComments: approvalForm.comments
-        });
-        const updatedDoc = {
-          ...selectedDocument,
-          status: 'rejected',
-          rejectedBy: currentUser,
-          rejectedDate: new Date().toISOString().split('T')[0],
-          rejectionComments: approvalForm.comments,
-          auditTrail: [
-            ...selectedDocument.auditTrail,
-            { action: "rejected", user: currentUser.name, timestamp: new Date().toISOString() }
-          ]
-        };
-        setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDoc : d));
-        showNotification('Document rejected');
+      const data = await fetchDocuments(params);
+      setDocuments(data.documents || []);
+      if (data.stats) {
+        setStats(data.stats);
       }
-      setShowApprovalModal(false);
-      setSelectedDocument(null);
-      setApprovalForm({ action: 'approve', comments: '' });
-    } catch (error) {
-      showNotification('Failed to process approval', 'error');
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+      toast.error('Failed to load documents');
     }
-  };
-
-  const handleUploadNewVersion = async () => {
-    if (!uploadFile) {
-      showNotification('Please select a file to upload', 'error');
-      return;
-    }
-
-    try {
-      const currentVersion = parseFloat(selectedDocument.version);
-      const newVersion = (currentVersion + 0.1).toFixed(1);
-      
-      const versionUpdate = await mockAPI.uploadNewVersion(selectedDocument.id, {
-        version: newVersion,
-        fileUrl: "https://example.com/documents/new-version.pdf",
-        size: `${(uploadFile.size / (1024 * 1024)).toFixed(1)} MB`,
-        fileType: uploadFile.name.split('.').pop().toLowerCase(),
-        uploadedBy: currentUser
-      });
-
-      const updatedDoc = {
-        ...selectedDocument,
-        version: newVersion,
-        versionHistory: [
-          ...selectedDocument.versionHistory,
-          {
-            version: newVersion,
-            uploadDate: new Date().toISOString().split('T')[0],
-            uploadedBy: currentUser.name,
-            changes: "New version uploaded"
-          }
-        ],
-        auditTrail: [
-          ...selectedDocument.auditTrail,
-          { action: "version_updated", user: currentUser.name, timestamp: new Date().toISOString() }
-        ],
-        status: 'pending',
-        approvedBy: null,
-        approvedDate: null
-      };
-      
-      setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDoc : d));
-      setShowVersionHistoryModal(false);
-      setUploadFile(null);
-      showNotification(`New version ${newVersion} uploaded successfully`);
-    } catch (error) {
-      showNotification('Failed to upload new version', 'error');
-    }
-  };
-
-  const handleBulkUpload = async (files) => {
-    try {
-      const newDocuments = Array.from(files).map((file, index) => ({
-        id: documents.length + index + 1,
-        name: file.name,
-        documentType: file.name,
-        category: 'Miscellaneous',
-        employee: { id: 999, name: 'Bulk Upload', employeeType: 'Full-time' },
-        uploadDate: new Date().toISOString().split('T')[0],
-        expiryDate: null,
-        status: 'pending',
-        version: '1.0',
-        versionHistory: [{
-          version: "1.0",
-          uploadDate: new Date().toISOString().split('T')[0],
-          uploadedBy: currentUser.name,
-          changes: "Bulk upload"
-        }],
-        mandatory: false,
-        fileType: file.name.split('.').pop(),
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        fileUrl: 'https://example.com/documents/bulk-upload.pdf',
-        uploadedBy: currentUser,
-        downloadRestricted: false,
-        auditTrail: [{
-          action: "uploaded",
-          user: currentUser.name,
-          timestamp: new Date().toISOString()
-        }]
-      }));
-      
-      setDocuments([...newDocuments, ...documents]);
-      showNotification(`${files.length} document(s) uploaded successfully`);
-    } catch (error) {
-      showNotification('Failed to upload documents', 'error');
-    }
-  };
-
-  const handleBulkDownload = () => {
-    if (selectedDocuments.length === 0) {
-      showNotification('Please select documents to download', 'error');
-      return;
-    }
-
-    selectedDocuments.forEach(docId => {
-      const doc = documents.find(d => d.id === docId);
-      if (doc) {
-        handleDownloadDocument(doc);
-      }
-    });
-    
-    showNotification(`Downloading ${selectedDocuments.length} document(s)`);
-  };
-
-  const handleBulkApprove = () => {
-    if (selectedDocuments.length === 0) {
-      showNotification('Please select documents to approve', 'error');
-      return;
-    }
-
-    const updatedDocuments = documents.map(doc => 
-      selectedDocuments.includes(doc.id) 
-        ? { 
-            ...doc, 
-            status: 'approved',
-            approvedBy: currentUser,
-            approvedDate: new Date().toISOString().split('T')[0],
-            auditTrail: [
-              ...doc.auditTrail,
-              { action: "approved", user: currentUser.name, timestamp: new Date().toISOString() }
-            ]
-          }
-        : doc
-    );
-    setDocuments(updatedDocuments);
-    showNotification(`${selectedDocuments.length} document(s) approved`);
-    setSelectedDocuments([]);
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedDocuments.length === 0) {
-      showNotification('Please select documents to delete', 'error');
-      return;
-    }
-
-    const updatedDocuments = documents.filter(doc => !selectedDocuments.includes(doc.id));
-    setDocuments(updatedDocuments);
-    setSelectedDocuments([]);
-    showNotification(`${selectedDocuments.length} document(s) deleted`);
-  };
-
-  const openEditModal = (document) => {
-    setSelectedDocument(document);
-    setDocumentForm({
-      name: document.name,
-      documentType: document.documentType || document.name,
-      category: document.category,
-      employee: document.employee.id.toString(),
-      employeeType: document.employee.employeeType || '',
-      expiryDate: document.expiryDate || '',
-      status: document.status,
-      mandatory: document.mandatory,
-      fileType: document.fileType,
-      downloadRestricted: document.downloadRestricted || false
-    });
-    setShowDocumentModal(true);
-  };
-
-  const openApprovalModal = (document) => {
-    setSelectedDocument(document);
-    setApprovalForm({ action: 'approve', comments: '' });
-    setShowApprovalModal(true);
-  };
-
-  const openChecklistModal = (employee) => {
-    setSelectedEmployee(employee);
-    setShowChecklistModal(true);
-  };
-
-  const resetForm = () => {
-    setDocumentForm({
-      name: '',
-      documentType: '',
-      category: 'KYC',
-      employee: '',
-      employeeType: '',
-      expiryDate: '',
-      status: 'pending',
-      mandatory: false,
-      fileType: 'pdf',
-      downloadRestricted: false
-    });
-    setUploadFile(null);
   };
 
   const getStatusBadge = (status) => {
-    const styles = {
-      approved: 'bg-success-subtle text-success',
-      pending: 'bg-warning-subtle text-warning',
-      expired: 'bg-danger-subtle text-danger',
-      rejected: 'bg-dark-subtle text-dark'
+    const config = {
+      approved: { label: 'Approved', color: 'emerald' },
+      pending: { label: 'Pending', color: 'amber' },
+      expired: { label: 'Expired', color: 'rose' },
+      rejected: { label: 'Rejected', color: 'gray' }
     };
-    const icons = {
-      approved: 'heroicons:check-circle',
-      pending: 'heroicons:clock',
-      expired: 'heroicons:exclamation-circle',
-      rejected: 'heroicons:x-circle'
-    };
+    const { label, color } = config[status] || { label: status || 'Unknown', color: 'gray' };
     return (
-      <span className={`badge d-flex align-items-center ${styles[status]}`}>
-        <Icon icon={icons[status]} className="me-1" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-50 text-${color}-700 border border-${color}-100`}>
+        <Icon icon={status === 'approved' ? 'heroicons:check-circle' : 'heroicons:clock'} className="w-3.5 h-3.5" />
+        {label}
       </span>
     );
   };
 
   const getCategoryBadge = (category) => {
-    const styles = {
-      KYC: 'bg-primary-subtle text-primary',
-      Educational: 'bg-info-subtle text-info',
-      Employment: 'bg-purple-subtle text-primary',
-      Statutory: 'bg-orange-subtle text-info',
-      Miscellaneous: 'bg-secondary-subtle text-secondary'
+    const config = {
+      KYC: { label: 'KYC', color: 'blue' },
+      Educational: { label: 'Educational', color: 'cyan' },
+      Employment: { label: 'Employment', color: 'purple' },
+      Statutory: { label: 'Statutory', color: 'amber' },
+      Miscellaneous: { label: 'Misc', color: 'gray' }
     };
+    const { label, color } = config[category] || { label: category || 'N/A', color: 'gray' };
     return (
-      <span className={`badge ${styles[category]}`}>
-        {category}
+      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-${color}-50 text-${color}-700 border border-${color}-100`}>
+        {label}
       </span>
     );
   };
@@ -709,12 +193,12 @@ const Documentvault = () => {
 
   const getMandatoryDocumentsForEmployee = (employee) => {
     const employeeType = employee?.employeeType || 'Full-time';
-    return MANDATORY_DOCUMENTS[employeeType] || [];
+    return mandatoryDocuments[employeeType] || [];
   };
 
   const getEmployeeDocumentStatus = (employee) => {
     const mandatoryDocs = getMandatoryDocumentsForEmployee(employee);
-    const employeeDocuments = documents.filter(d => d.employee.id === employee.id);
+    const employeeDocuments = documents.filter(d => d.employee?.id === employee.id);
     
     return mandatoryDocs.map(docName => {
       const doc = employeeDocuments.find(d => 
@@ -729,15 +213,257 @@ const Documentvault = () => {
     });
   };
 
-  const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (doc.documentType && doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = filterCategory === 'all' || doc.category === filterCategory;
-    const matchesStatus = filterStatus === 'all' || doc.status === filterStatus;
-    const matchesEmployeeType = filterEmployeeType === 'all' || doc.employee.employeeType === filterEmployeeType;
-    return matchesSearch && matchesCategory && matchesStatus && matchesEmployeeType;
-  });
+  const handleCreateDocument = async (formData, file) => {
+    try {
+      const selectedEmp = employees.find(e => e.id === parseInt(formData.employee));
+      const newDocument = await createDocument({
+        ...formData,
+        documentType: formData.documentType || formData.name,
+        employee: selectedEmp || { id: parseInt(formData.employee), name: formData.employee },
+        file: file,
+        uploadedBy: currentUser
+      });
+      setDocuments([newDocument, ...documents]);
+      setShowDocumentModal(false);
+      toast.success('Document uploaded successfully');
+      const statsData = await fetchStatistics();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to upload document:', err);
+      toast.error(err.message || 'Failed to upload document');
+    }
+  };
+
+  const handleUpdateDocument = async (formData) => {
+    try {
+      const selectedEmp = employees.find(e => e.id === parseInt(formData.employee));
+      const updatedDocument = await updateDocument(selectedDocument.id, {
+        ...selectedDocument,
+        ...formData,
+        employee: selectedEmp || { ...selectedDocument.employee, name: formData.employee }
+      });
+      setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDocument : d));
+      setShowDocumentModal(false);
+      setSelectedDocument(null);
+      toast.success('Document updated successfully');
+    } catch (err) {
+      console.error('Failed to update document:', err);
+      toast.error(err.message || 'Failed to update document');
+    }
+  };
+
+  const handleDeleteDocument = async () => {
+    try {
+      await deleteDocument(selectedDocument.id);
+      setDocuments(documents.filter(d => d.id !== selectedDocument.id));
+      setShowDeleteModal(false);
+      setSelectedDocument(null);
+      toast.success('Document deleted successfully');
+      const statsData = await fetchStatistics();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+      toast.error(err.message || 'Failed to delete document');
+    }
+  };
+
+  const handleDownloadDocument = async (doc) => {
+    if (doc.downloadRestricted && currentUser.role !== 'HR Manager' && currentUser.role !== 'HR Admin') {
+      toast.error('You do not have permission to download this document');
+      return;
+    }
+
+    try {
+      await logDownload(doc.id, currentUser.id);
+      const link = document.createElement('a');
+      link.href = doc.fileUrl;
+      link.download = `${doc.name}.${doc.fileType}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`Downloading ${doc.name}`);
+    } catch (err) {
+      console.error('Failed to download document:', err);
+      toast.error(err.message || 'Failed to download document');
+    }
+  };
+
+  const handleApproveReject = async (formData) => {
+    try {
+      if (formData.action === 'approve') {
+        const result = await approveDocument(selectedDocument.id, {
+          approvedBy: currentUser,
+          approvedDate: new Date().toISOString().split('T')[0],
+          approvalComments: formData.comments
+        });
+        const updatedDoc = {
+          ...selectedDocument,
+          status: 'approved',
+          approvedBy: currentUser,
+          approvedDate: new Date().toISOString().split('T')[0],
+          approvalComments: formData.comments,
+          auditTrail: [
+            ...selectedDocument.auditTrail,
+            { action: "approved", user: currentUser.name, timestamp: new Date().toISOString() }
+          ]
+        };
+        setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDoc : d));
+        toast.success('Document approved successfully');
+      } else {
+        const result = await rejectDocument(selectedDocument.id, {
+          rejectedBy: currentUser,
+          rejectedDate: new Date().toISOString().split('T')[0],
+          rejectionComments: formData.comments
+        });
+        const updatedDoc = {
+          ...selectedDocument,
+          status: 'rejected',
+          rejectedBy: currentUser,
+          rejectedDate: new Date().toISOString().split('T')[0],
+          rejectionComments: formData.comments,
+          auditTrail: [
+            ...selectedDocument.auditTrail,
+            { action: "rejected", user: currentUser.name, timestamp: new Date().toISOString() }
+          ]
+        };
+        setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDoc : d));
+        toast.info('Document rejected');
+      }
+      setShowApprovalModal(false);
+      setSelectedDocument(null);
+      const statsData = await fetchStatistics();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to process approval:', err);
+      toast.error(err.message || 'Failed to process approval');
+    }
+  };
+
+  const handleUploadNewVersion = async (file) => {
+    try {
+      const currentVersion = parseFloat(selectedDocument.version);
+      const newVersion = (currentVersion + 0.1).toFixed(1);
+      
+      const result = await uploadNewVersion(selectedDocument.id, {
+        version: newVersion,
+        file: file,
+        uploadedBy: currentUser
+      });
+
+      const updatedDoc = {
+        ...selectedDocument,
+        version: newVersion,
+        versionHistory: [
+          ...selectedDocument.versionHistory,
+          {
+            version: newVersion,
+            uploadDate: new Date().toISOString().split('T')[0],
+            uploadedBy: currentUser.name,
+            changes: "New version uploaded"
+          }
+        ],
+        auditTrail: [
+          ...selectedDocument.auditTrail,
+          { action: "version_updated", user: currentUser.name, timestamp: new Date().toISOString() }
+        ],
+        status: 'pending',
+        approvedBy: null,
+        approvedDate: null
+      };
+      
+      setDocuments(documents.map(d => d.id === selectedDocument.id ? updatedDoc : d));
+      setShowVersionHistoryModal(false);
+      toast.success(`New version ${newVersion} uploaded successfully`);
+    } catch (err) {
+      console.error('Failed to upload new version:', err);
+      toast.error(err.message || 'Failed to upload new version');
+    }
+  };
+
+  const handleBulkUpload = async (files) => {
+    try {
+      const fileArray = Array.from(files);
+      const results = await Promise.all(
+        fileArray.map(file => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('category', 'Miscellaneous');
+          formData.append('uploadedBy', JSON.stringify(currentUser));
+          return { success: true, file: file };
+        })
+      );
+      
+      toast.success(`${fileArray.length} document(s) uploaded successfully`);
+      await loadDocuments();
+      const statsData = await fetchStatistics();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to upload documents:', err);
+      toast.error(err.message || 'Failed to upload documents');
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedDocuments.length === 0) {
+      toast.error('Please select documents to approve');
+      return;
+    }
+
+    try {
+      await Promise.all(
+        selectedDocuments.map(docId => 
+          approveDocument(docId, {
+            approvedBy: currentUser,
+            approvedDate: new Date().toISOString().split('T')[0]
+          })
+        )
+      );
+      
+      const updatedDocuments = documents.map(doc => 
+        selectedDocuments.includes(doc.id) 
+          ? { 
+              ...doc, 
+              status: 'approved',
+              approvedBy: currentUser,
+              approvedDate: new Date().toISOString().split('T')[0],
+              auditTrail: [
+                ...doc.auditTrail,
+                { action: "approved", user: currentUser.name, timestamp: new Date().toISOString() }
+              ]
+            }
+          : doc
+      );
+      setDocuments(updatedDocuments);
+      toast.success(`${selectedDocuments.length} document(s) approved`);
+      setSelectedDocuments([]);
+      const statsData = await fetchStatistics();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to bulk approve:', err);
+      toast.error(err.message || 'Failed to approve documents');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedDocuments.length === 0) {
+      toast.error('Please select documents to delete');
+      return;
+    }
+
+    try {
+      await Promise.all(
+        selectedDocuments.map(docId => deleteDocument(docId))
+      );
+      setDocuments(documents.filter(doc => !selectedDocuments.includes(doc.id)));
+      setSelectedDocuments([]);
+      toast.success(`${selectedDocuments.length} document(s) deleted`);
+      const statsData = await fetchStatistics();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to bulk delete:', err);
+      toast.error(err.message || 'Failed to delete documents');
+    }
+  };
 
   const handleSelectDocument = (docId) => {
     setSelectedDocuments(prev =>
@@ -753,185 +479,136 @@ const Documentvault = () => {
     }
   };
 
-  const stats = {
-    total: documents.length,
-    approved: documents.filter(d => d.status === 'approved').length,
-    pending: documents.filter(d => d.status === 'pending').length,
-    expiring: documents.filter(d => isExpiringSoon(d.expiryDate)).length,
-    expired: documents.filter(d => isExpired(d.expiryDate)).length
+  const filteredDocuments = documents.filter(doc => {
+    const matchesSearch = doc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doc.employee?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (doc.documentType && doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = filterCategory === 'all' || doc.category === filterCategory;
+    const matchesStatus = filterStatus === 'all' || doc.status === filterStatus;
+    const matchesEmployeeType = filterEmployeeType === 'all' || doc.employee?.employeeType === filterEmployeeType;
+    return matchesSearch && matchesCategory && matchesStatus && matchesEmployeeType;
+  });
+
+  const paginatedDocuments = filteredDocuments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+
+  const uniqueEmployees = [...new Map(documents.map(d => [d.employee?.id, d.employee]).filter(([key]) => key)).values()];
+
+  const openEditModal = (document) => {
+    setSelectedDocument(document);
+    setDocumentForm({
+      name: document.name,
+      documentType: document.documentType || document.name,
+      category: document.category,
+      employee: document.employee?.id?.toString() || '',
+      employeeType: document.employee?.employeeType || '',
+      expiryDate: document.expiryDate || '',
+      status: document.status,
+      mandatory: document.mandatory,
+      fileType: document.fileType,
+      downloadRestricted: document.downloadRestricted || false
+    });
+    setShowDocumentModal(true);
   };
 
-  // Get unique employees for checklist view
-  const uniqueEmployees = [...new Map(documents.map(d => [d.employee.id, d.employee])).values()];
+  const openApprovalModal = (document) => {
+    setSelectedDocument(document);
+    setApprovalForm({ action: 'approve', comments: '' });
+    setShowApprovalModal(true);
+  };
 
-  return (
-    <div className="container-fluid">
-      {/* Notification */}
-      {notification && (
-        <div className={`position-fixed top-0 end-0 m-3 z-50 alert alert-${notification.type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`} role="alert">
-          {notification.message}
-          <button type="button" className="btn-close" onClick={() => setNotification(null)}></button>
-        </div>
-      )}
+  const openViewerModal = (document) => {
+    setSelectedDocument(document);
+    setShowViewerModal(true);
+  };
 
-      {/* Header */}
-      <div className="mb-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h5 className="text-3xl fw-bold text-dark mb-2 mt-3 d-flex align-items-center gap-2">
-              <Icon icon="heroicons:folder" />
-              Document Vault & Management
-            </h5>
-            <p className="text-muted">Centralized document repository with version control, approval workflow, and audit trail</p>
-          </div>
-          <div className="d-flex gap-2">
-            <button
-              onClick={() => setShowTemplatesModal(true)}
-              className="btn btn-outline-secondary d-flex align-items-center gap-2"
-            >
-              <Icon icon="heroicons:document-duplicate" className="me-1" />
-              Templates
-            </button>
-            <button
-              onClick={() => setViewMode(viewMode === 'list' ? 'checklist' : 'list')}
-              className="btn btn-outline-info d-flex align-items-center gap-2"
-            >
-              <Icon icon={viewMode === 'list' ? 'heroicons:clipboard-document-check' : 'heroicons:list-bullet'} className="me-1" />
-              {viewMode === 'list' ? 'Checklist View' : 'List View'}
-            </button>
-            <label className="btn btn-secondary d-flex align-items-center gap-2">
-              <Icon icon="heroicons:arrow-up-tray" className="me-1" />
-              Bulk Upload
-              <input
-                type="file"
-                multiple
-                style={{ display: 'none' }}
-                onChange={(e) => handleBulkUpload(e.target.files)}
-              />
-            </label>
-            <button
-              onClick={() => {
-                setSelectedDocument(null);
-                resetForm();
-                setShowDocumentModal(true);
-              }}
-              className="btn btn-primary d-flex align-items-center gap-2"
-            >
-              <Icon icon="heroicons:plus" className="me-1" />
-              Upload Document
-            </button>
-          </div>
-        </div>
+  const openChecklistModal = (employee) => {
+    setSelectedEmployee(employee);
+    setShowChecklistModal(true);
+  };
 
-        {/* Stats Cards */}
-        <div className="row g-3 mb-4">
-          <div className="col-md-3">
-            <div className="card border h-100">
-              <div className="card-body">
-                <div className="d-flex align-items-center">
-                  <div className="flex-shrink-0">
-                    <div className="avatar-sm bg-primary-subtle rounded d-flex align-items-center justify-content-center">
-                      <span className="avatar-title text-primary">
-                        <Icon icon="heroicons:folder" width="24" height="24" />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-grow-1 ms-3">
-                    <h4 className="mb-1">{stats.total}</h4>
-                    <p className="text-muted mb-0">Total Documents</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3">
-            <div className="card border h-100">
-              <div className="card-body">
-                <div className="d-flex align-items-center">
-                  <div className="flex-shrink-0">
-                    <div className="avatar-sm bg-success-subtle rounded d-flex align-items-center justify-content-center">
-                      <span className="avatar-title text-success">
-                        <Icon icon="heroicons:check-circle" width="24" height="24" />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-grow-1 ms-3">
-                    <h4 className="mb-1">{stats.approved}</h4>
-                    <p className="text-muted mb-0">Approved</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3">
-            <div className="card border h-100">
-              <div className="card-body">
-                <div className="d-flex align-items-center">
-                  <div className="flex-shrink-0">
-                    <div className="avatar-sm bg-warning-subtle rounded d-flex align-items-center justify-content-center">
-                      <span className="avatar-title text-warning">
-                        <Icon icon="heroicons:clock" width="24" height="24" />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-grow-1 ms-3">
-                    <h4 className="mb-1">{stats.pending}</h4>
-                    <p className="text-muted mb-0">Pending Review</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3">
-            <div className="card border h-100">
-              <div className="card-body">
-                <div className="d-flex align-items-center">
-                  <div className="flex-shrink-0">
-                    <div className="avatar-sm bg-danger-subtle rounded d-flex align-items-center justify-content-center">
-                      <span className="avatar-title text-danger">
-                        <Icon icon="heroicons:exclamation-triangle" width="24" height="24" />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-grow-1 ms-3">
-                    <h4 className="mb-1">{stats.expiring}</h4>
-                    <p className="text-muted mb-0">Expiring Soon</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  const renderStats = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">
+      <StatCard
+        title="Total Documents"
+        value={stats.total}
+        subtitle="All documents"
+        icon="heroicons:folder"
+        color="blue"
+      />
+      <StatCard
+        title="Approved"
+        value={stats.approved}
+        subtitle={`${((stats.approved / (stats.total || 1)) * 100).toFixed(1)}% of total`}
+        icon="heroicons:check-circle"
+        color="green"
+      />
+      <StatCard
+        title="Pending Review"
+        value={stats.pending}
+        subtitle="Awaiting approval"
+        icon="heroicons:clock"
+        color="yellow"
+      />
+      <StatCard
+        title="Expiring Soon"
+        value={stats.expiring}
+        subtitle={`${stats.expired} expired`}
+        icon="heroicons:exclamation-triangle"
+        color="red"
+      />
+    </div>
+  );
 
-        {/* Search & Filter Bar */}
-        <div className="d-flex flex-column flex-md-row gap-3 mb-4">
-          <div className="position-relative flex-fill">
-            <Icon icon="heroicons:magnifying-glass" className="position-absolute top-50 translate-middle-y text-muted ms-3" />
+  const renderFilters = () => (
+    <div className="p-3">
+      <button
+        className="w-full sm:hidden flex items-center justify-between py-2 text-sm font-semibold text-slate-700"
+        onClick={() => setShowMobileFilters(!showMobileFilters)}
+      >
+        <span className="flex items-center gap-2">
+          <Icon icon="heroicons:funnel" className="w-4 h-4" />
+          Filters
+        </span>
+        <Icon icon={showMobileFilters ? "heroicons:chevron-up" : "heroicons:chevron-down"} className="w-4 h-4" />
+      </button>
+
+      <div className={`${showMobileFilters ? 'block' : 'hidden'} sm:block`}>
+        <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-0">
+          <div className="relative flex-1 min-w-[120px]">
             <input
               type="text"
-              placeholder="Search by document name, type, or employee..."
+              placeholder="Search documents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="form-control ps-5"
+              className="w-full h-8 sm:h-10 pl-8 sm:pl-10 pr-3 sm:pr-4 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm"
             />
+            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-slate-400" />
           </div>
-          <div className="d-flex gap-2">
+
+          <div className="relative flex-1 min-w-[120px]">
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="form-select"
-              style={{ minWidth: '150px' }}
+              className="w-full h-8 sm:h-10 px-3 sm:px-4 pr-8 sm:pr-10 bg-white border border-slate-200 rounded-xl shadow-sm text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
             >
               <option value="all">All Categories</option>
               {categories.filter(c => c !== 'all').map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
+            <Icon icon="heroicons:chevron-down" className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          <div className="relative flex-1 min-w-[120px]">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="form-select"
-              style={{ minWidth: '150px' }}
+              className="w-full h-8 sm:h-10 px-3 sm:px-4 pr-8 sm:pr-10 bg-white border border-slate-200 rounded-xl shadow-sm text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
             >
               <option value="all">All Status</option>
               {statuses.filter(s => s !== 'all').map(status => (
@@ -940,1139 +617,602 @@ const Documentvault = () => {
                 </option>
               ))}
             </select>
+            <Icon icon="heroicons:chevron-down" className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          <div className="relative flex-1 min-w-[120px]">
             <select
               value={filterEmployeeType}
               onChange={(e) => setFilterEmployeeType(e.target.value)}
-              className="form-select"
-              style={{ minWidth: '150px' }}
+              className="w-full h-8 sm:h-10 px-3 sm:px-4 pr-8 sm:pr-10 bg-white border border-slate-200 rounded-xl shadow-sm text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
             >
               <option value="all">All Employee Types</option>
               {EMPLOYEE_TYPES.map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
             </select>
+            <Icon icon="heroicons:chevron-down" className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-slate-400 pointer-events-none" />
           </div>
+
+          <button
+            type="button"
+            className="h-8 sm:h-10 px-3 sm:px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1 sm:gap-2"
+            onClick={() => {
+              setSearchTerm('');
+              setFilterCategory('all');
+              setFilterStatus('all');
+              setFilterEmployeeType('all');
+              setShowMobileFilters(false);
+            }}
+          >
+            <Icon icon="heroicons:arrow-path" className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>Reset</span>
+          </button>
         </div>
-
-        {/* Bulk Actions */}
-        {selectedDocuments.length > 0 && (
-          <div className="alert alert-info d-flex align-items-center justify-content-between mb-4">
-            <span className="fw-medium">
-              {selectedDocuments.length} document(s) selected
-            </span>
-            <div className="d-flex gap-2">
-              <button 
-                onClick={handleBulkApprove}
-                className="btn btn-sm btn-outline-primary"
-              >
-                Approve
-              </button>
-              <button 
-                onClick={handleBulkDownload}
-                className="btn btn-sm btn-outline-primary"
-              >
-                Download
-              </button>
-              <button 
-                onClick={handleBulkDelete}
-                className="btn btn-sm btn-outline-danger"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Expiring Documents Alert */}
-        {stats.expiring > 0 && (
-          <div className="alert alert-warning alert-dismissible fade show mb-4" role="alert">
-            <div className="d-flex align-items-center">
-              <Icon icon="heroicons:exclamation-triangle" className="me-2 fs-5" />
-              <div>
-                <strong>Renewal Alert:</strong> {stats.expiring} document(s) are expiring within 30 days. Please review and renew them.
-              </div>
-            </div>
-            <button type="button" className="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        )}
       </div>
+    </div>
+  );
 
-      {/* Checklist View */}
-      {viewMode === 'checklist' && (
-        <div className="card border shadow-none mb-4">
-          <div className="card-header bg-light">
-            <h6 className="mb-0 fw-bold">Mandatory Document Checklist</h6>
-          </div>
-          <div className="card-body p-0">
-            <div className="table-responsive">
-              <table className="table table-hover mb-0">
-                <thead className="bg-light">
-                  <tr>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Employee</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Employee Type</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Mandatory Documents</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Status</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {uniqueEmployees.map((employee) => {
-                    const docStatus = getEmployeeDocumentStatus(employee);
-                    const mandatoryDocs = getMandatoryDocumentsForEmployee(employee);
-                    const uploadedCount = docStatus.filter(d => d.uploaded).length;
-                    const approvedCount = docStatus.filter(d => d.uploaded && d.status === 'approved').length;
-                    const completionPercentage = mandatoryDocs.length > 0 ? (uploadedCount / mandatoryDocs.length) * 100 : 0;
-                    
-                    return (
-                      <tr key={employee.id}>
-                        <td className="px-4 py-3">
-                          <div className="fw-medium text-dark">{employee.name}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="badge bg-info-subtle text-info">{employee.employeeType || 'N/A'}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="d-flex flex-column gap-1">
-                            <div className="small text-muted">
-                              {uploadedCount} of {mandatoryDocs.length} uploaded
-                            </div>
-                            <div className="progress" style={{ height: '8px' }}>
-                              <div 
-                                className={`progress-bar ${completionPercentage === 100 ? 'bg-success' : completionPercentage >= 50 ? 'bg-warning' : 'bg-danger'}`}
-                                style={{ width: `${completionPercentage}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="d-flex flex-column gap-1">
-                            <span className={`badge ${approvedCount === mandatoryDocs.length ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}`}>
-                              {approvedCount}/{mandatoryDocs.length} Approved
-                            </span>
-                            {completionPercentage < 100 && (
-                              <span className="badge bg-danger-subtle text-danger small">
-                                {mandatoryDocs.length - uploadedCount} Missing
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => openChecklistModal(employee)}
-                            className="btn btn-sm btn-outline-primary"
-                          >
-                            <Icon icon="heroicons:eye" className="me-1" />
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+  const renderActions = () => (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={() => {
+          setSelectedDocument(null);
+          setDocumentForm({
+            name: '',
+            documentType: '',
+            category: 'KYC',
+            employee: '',
+            employeeType: '',
+            expiryDate: '',
+            status: 'pending',
+            mandatory: false,
+            fileType: 'pdf',
+            downloadRestricted: false
+          });
+          setShowDocumentModal(true);
+        }}
+        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 sm:gap-2"
+      >
+        <Icon icon="heroicons:plus" className="w-3 h-3 sm:w-4 sm:h-4" />
+        <span className="hidden xs:inline">Upload</span> Document
+      </button>
+      <button
+        onClick={() => setShowTemplatesModal(true)}
+        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 sm:gap-2"
+      >
+        <Icon icon="heroicons:document-duplicate" className="w-3 h-3 sm:w-4 sm:h-4" />
+        <span className="hidden xs:inline">Templates</span>
+      </button>
+      <button
+        onClick={() => setViewMode(viewMode === 'list' ? 'checklist' : 'list')}
+        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 sm:gap-2"
+      >
+        <Icon icon={viewMode === 'list' ? 'heroicons:clipboard-document-check' : 'heroicons:list-bullet'} className="w-3 h-3 sm:w-4 sm:h-4" />
+        <span className="hidden xs:inline">{viewMode === 'list' ? 'Checklist' : 'List'}</span>
+      </button>
+      <label className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1 sm:gap-2 cursor-pointer">
+        <Icon icon="heroicons:arrow-up-tray" className="w-3 h-3 sm:w-4 sm:h-4" />
+        <span className="hidden xs:inline">Bulk</span> Upload
+        <input
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => handleBulkUpload(e.target.files)}
+        />
+      </label>
+    </div>
+  );
+
+  const renderBulkActions = () => {
+    if (selectedDocuments.length === 0) return null;
+
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-medium text-blue-700">
+          {selectedDocuments.length} document(s) selected
+        </span>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleBulkApprove}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
+          >
+            Approve
+          </button>
+          <button
+            onClick={() => {
+              selectedDocuments.forEach(docId => {
+                const doc = documents.find(d => d.id === docId);
+                if (doc) handleDownloadDocument(doc);
+              });
+            }}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition"
+          >
+            Download
+          </button>
+          <button
+            onClick={handleBulkDelete}
+            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition"
+          >
+            Delete
+          </button>
         </div>
-      )}
+      </div>
+    );
+  };
 
-      {/* Documents Table */}
-      <div className="card border shadow-none">
-        <div className="card-body p-0">
-          {loading ? (
-            <div className="d-flex align-items-center justify-content-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-hover mb-0">
-                <thead className="bg-light">
-                  <tr>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">
-                      <input
-                        type="checkbox"
-                        checked={selectedDocuments.length === filteredDocuments.length && filteredDocuments.length > 0}
-                        onChange={handleSelectAll}
-                        className="form-check-input"
-                      />
-                    </th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Document</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Category</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Employee</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Version</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Upload Date</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Expiry Date</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Status</th>
-                    <th className="border-0 px-4 py-3 text-uppercase fw-bold text-dark">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDocuments.map((doc) => (
-                    <tr
-                      key={doc.id}
-                      className={`${isExpired(doc.expiryDate) ? 'bg-danger-subtle' : ''} ${isExpiringSoon(doc.expiryDate) ? 'bg-warning-subtle' : ''}`}
+  const renderExpiringAlert = () => {
+    if (stats.expiring === 0) return null;
+
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3">
+        <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-800">Renewal Alert</p>
+          <p className="text-xs text-amber-700">
+            {stats.expiring} document(s) are expiring within 30 days. Please review and renew them.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  const renderChecklistView = () => (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <h6 className="text-xs font-bold text-slate-600 uppercase tracking-wider">Mandatory Document Checklist</h6>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse text-xs sm:text-sm">
+          <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold tracking-wider text-[11px]">
+            <tr>
+              <th className="p-3 text-left min-w-[150px]">Employee</th>
+              <th className="p-3 text-left min-w-[120px]">Employee Type</th>
+              <th className="p-3 text-left min-w-[200px]">Mandatory Documents</th>
+              <th className="p-3 text-center min-w-[120px]">Status</th>
+              <th className="p-3 text-center min-w-[100px]">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {uniqueEmployees.map((employee) => {
+              const docStatus = getEmployeeDocumentStatus(employee);
+              const mandatoryDocs = getMandatoryDocumentsForEmployee(employee);
+              const uploadedCount = docStatus.filter(d => d.uploaded).length;
+              const approvedCount = docStatus.filter(d => d.uploaded && d.status === 'approved').length;
+              const completionPercentage = mandatoryDocs.length > 0 ? (uploadedCount / mandatoryDocs.length) * 100 : 0;
+              
+              return (
+                <tr key={employee.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-3 font-semibold text-slate-800">{employee.name}</td>
+                  <td className="p-3">
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-100">
+                      {employee.employeeType || 'N/A'}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <div className="space-y-1">
+                      <div className="text-xs text-slate-500">
+                        {uploadedCount} of {mandatoryDocs.length} uploaded
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${completionPercentage === 100 ? 'bg-emerald-500' : completionPercentage >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                          style={{ width: `${completionPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-3 text-center">
+                    <div className="space-y-1">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${approvedCount === mandatoryDocs.length ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
+                        {approvedCount}/{mandatoryDocs.length} Approved
+                      </span>
+                      {completionPercentage < 100 && (
+                        <div className="text-[10px] text-rose-500">
+                          {mandatoryDocs.length - uploadedCount} Missing
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-3 text-center">
+                    <button
+                      onClick={() => openChecklistModal(employee)}
+                      className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-medium transition"
                     >
-                      <td className="px-4 py-3">
+                      <Icon icon="heroicons:eye" className="w-3 h-3 inline mr-1" />
+                      View                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderDocumentTable = () => (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Icon icon="svg-spinners:180-ring" className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-xs text-slate-500 mt-2">Loading documents...</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Icon icon="heroicons:exclamation-triangle" className="w-12 h-12 text-rose-500 mb-3" />
+          <p className="text-sm font-medium text-slate-800">Failed to load documents</p>
+          <p className="text-xs text-slate-500 mt-1">{error}</p>
+          <button
+            onClick={loadDocuments}
+            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold tracking-wider text-[11px]">
+                <tr>
+                  <th className="p-3 text-center w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedDocuments.length === filteredDocuments.length && filteredDocuments.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                  <th className="p-3 text-left min-w-[100px]">Document</th>
+                  <th className="p-3 text-left min-w-[100px] hidden sm:table-cell">Category</th>
+                  <th className="p-3 text-left min-w-[130px] hidden md:table-cell">Employee</th>
+                  <th className="p-3 text-center min-w-[60px]">Version</th>
+                  <th className="p-3 text-left min-w-[100px] hidden lg:table-cell">Upload Date</th>
+                  <th className="p-3 text-left min-w-[100px] hidden xl:table-cell">Expiry Date</th>
+                  <th className="p-3 text-center min-w-[100px]">Status</th>
+                  <th className="p-3 text-center min-w-[140px]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedDocuments.map((doc) => {
+                  const expiring = isExpiringSoon(doc.expiryDate);
+                  const expired = isExpired(doc.expiryDate);
+                  const rowClass = expired ? 'bg-rose-50/30' : expiring ? 'bg-amber-50/30' : '';
+
+                  return (
+                    <tr key={doc.id} className={`hover:bg-slate-50/50 transition-colors ${rowClass}`}>
+                      <td className="p-3 text-center">
                         <input
                           type="checkbox"
                           checked={selectedDocuments.includes(doc.id)}
                           onChange={() => handleSelectDocument(doc.id)}
-                          className="form-check-input"
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="d-flex align-items-center gap-2">
-                          <Icon icon={getFileIcon(doc.fileType)} className="text-primary fs-5" />
-                          <div>
-                            <div className="fw-medium text-dark d-flex align-items-center gap-2">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Icon icon={getFileIcon(doc.fileType)} className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-medium text-slate-800 text-xs sm:text-sm truncate flex items-center gap-1.5">
                               {doc.name}
                               {doc.mandatory && (
-                                <span className="badge bg-danger-subtle text-danger small">Mandatory</span>
+                                <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-100 flex-shrink-0">
+                                  Mandatory
+                                </span>
                               )}
                               {doc.downloadRestricted && (
-                                <Icon icon="heroicons:lock-closed" className="text-warning" title="Download Restricted" />
+                                <Icon icon="heroicons:lock-closed" className="w-3 h-3 text-amber-500 flex-shrink-0" title="Download Restricted" />
                               )}
                             </div>
-                            <div className="text-muted small mt-1">
-                              {doc.fileType.toUpperCase()} • {doc.size}
+                            <div className="text-[10px] text-slate-400">
+                              {doc.fileType?.toUpperCase()} • {doc.size}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        {getCategoryBadge(doc.category)}
+                      <td className="p-3 hidden sm:table-cell">{getCategoryBadge(doc.category)}</td>
+                      <td className="p-3 hidden md:table-cell">
+                        <div className="text-slate-700 text-xs sm:text-sm">{doc.employee?.name}</div>
+                        <div className="text-[10px] text-slate-400">{doc.employee?.employeeType || 'N/A'}</div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="text-dark">{doc.employee.name}</div>
-                        <div className="text-muted small">{doc.employee.employeeType || 'N/A'}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="d-flex align-items-center gap-2">
-                          <span className="badge bg-secondary-subtle text-secondary">v{doc.version}</span>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                            v{doc.version}
+                          </span>
                           {doc.versionHistory && doc.versionHistory.length > 1 && (
                             <button
                               onClick={() => {
                                 setSelectedDocument(doc);
                                 setShowVersionHistoryModal(true);
                               }}
-                              className="btn btn-sm btn-link p-0"
+                              className="p-1 text-slate-400 hover:text-slate-600 transition"
                               title="View Version History"
                             >
-                              <Icon icon="heroicons:clock" className="text-muted" />
+                              <Icon icon="heroicons:clock" className="w-3 h-3" />
                             </button>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="d-flex align-items-center gap-2">
-                          <Icon icon="heroicons:calendar" className="text-muted" />
-                          <span className="text-dark">
-                            {new Date(doc.uploadDate).toLocaleDateString()}
-                          </span>
+                      <td className="p-3 hidden lg:table-cell">
+                        <div className="flex items-center gap-1 text-slate-600">
+                          <Icon icon="heroicons:calendar" className="w-3 h-3 text-slate-400" />
+                          <span className="text-xs">{new Date(doc.uploadDate).toLocaleDateString()}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="d-flex align-items-center gap-2">
-                          <Icon icon="heroicons:calendar-days" className="text-muted" />
-                          <span className={`${isExpired(doc.expiryDate) ? 'text-danger fw-medium' : 'text-dark'}`}>
+                      <td className="p-3 hidden xl:table-cell">
+                        <div className="flex items-center gap-1 text-slate-600">
+                          <Icon icon="heroicons:calendar-days" className="w-3 h-3 text-slate-400" />
+                          <span className={`text-xs ${expired ? 'text-rose-600 font-medium' : ''}`}>
                             {doc.expiryDate ? new Date(doc.expiryDate).toLocaleDateString() : 'No Expiry'}
-                            {isExpiringSoon(doc.expiryDate) && !isExpired(doc.expiryDate) && (
-                              <Icon icon="heroicons:exclamation-triangle" className="ms-2 text-warning" />
-                            )}
                           </span>
+                          {expiring && !expired && (
+                            <Icon icon="heroicons:exclamation-triangle" className="w-3 h-3 text-amber-500" />
+                          )}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        {getStatusBadge(doc.status)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                      <td className="p-3 text-center">{getStatusBadge(doc.status)}</td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
                           <button
-                            onClick={() => handleViewDocument(doc)}
-                            className="btn btn-sm btn-outline-info"
-                            title="View Document"
+                            onClick={() => openViewerModal(doc)}
+                            className="p-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg transition"
+                            title="View"
                           >
-                            <Icon icon="heroicons:eye" />
+                            <Icon icon="heroicons:eye" className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
                           </button>
                           {doc.status === 'pending' && (
                             <button
                               onClick={() => openApprovalModal(doc)}
-                              className="btn btn-sm btn-outline-success"
+                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
                               title="Approve/Reject"
                             >
-                              <Icon icon="heroicons:check-circle" />
+                              <Icon icon="heroicons:check-circle" className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
                             </button>
                           )}
                           <button
                             onClick={() => openEditModal(doc)}
-                            className="btn btn-sm btn-outline-primary"
+                            className="p-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
                             title="Edit"
                           >
-                            <Icon icon="heroicons:pencil" />
+                            <Icon icon="heroicons:pencil" className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                           </button>
                           <button
                             onClick={() => handleDownloadDocument(doc)}
-                            className="btn btn-sm btn-outline-primary"
+                            className="p-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
                             title="Download"
                           >
-                            <Icon icon="heroicons:arrow-down-tray" />
+                            <Icon icon="heroicons:arrow-down-tray" className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                           </button>
                           <button
                             onClick={() => {
                               setSelectedDocument(doc);
                               setShowAuditTrailModal(true);
                             }}
-                            className="btn btn-sm btn-outline-secondary"
+                            className="p-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg transition"
                             title="Audit Trail"
                           >
-                            <Icon icon="heroicons:document-text" />
+                            <Icon icon="heroicons:document-text" className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
                           </button>
                           <button
                             onClick={() => {
                               setSelectedDocument(doc);
                               setShowDeleteModal(true);
                             }}
-                            className="btn btn-sm btn-outline-danger"
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
                             title="Delete"
                           >
-                            <Icon icon="heroicons:trash" />
+                            <Icon icon="heroicons:trash" className="w-3 h-3 sm:w-4 sm:h-4 text-rose-600" />
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredDocuments.length === 0 && (
+            <div className="text-center py-12 text-slate-400">
+              <Icon icon="heroicons:folder-open" className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="font-medium text-slate-600">No documents found</p>
+              <p className="text-xs mt-1">Try adjusting your search or filters</p>
             </div>
           )}
 
-          {filteredDocuments.length === 0 && !loading && (
-            <div className="text-center py-5 text-muted">
-              <Icon icon="heroicons:folder-open" className="fs-1 text-muted mb-3" />
-              <p className="mb-0">No documents found</p>
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[10px] sm:text-xs text-slate-500">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredDocuments.length)} of {filteredDocuments.length} documents
+              </div>
+              <nav className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Icon icon="heroicons:chevron-left" className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
+                </button>
+                {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-semibold transition ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/15'
+                          : 'hover:bg-slate-50 text-slate-600'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                {totalPages > 5 && <span className="text-slate-400 text-xs">...</span>}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Icon icon="heroicons:chevron-right" className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
+                </button>
+              </nav>
             </div>
           )}
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="w-full max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6 min-h-screen pb-8 sm:pb-10">
+      <div className="">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-blue-50 flex-shrink-0">
+              <Icon icon="heroicons:folder" className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">
+                Document Vault & Management
+              </h1>
+              <p className="text-[10px] sm:text-xs text-slate-500 flex flex-wrap items-center gap-1 sm:gap-2">
+                <span>Centralized document repository</span>
+                <span className="w-0.5 h-0.5 rounded-full bg-slate-300 hidden xs:inline"></span>
+                <span className="hidden xs:inline">Version control & approval workflow</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {renderActions()}
+          </div>
         </div>
       </div>
 
-      {/* Create/Edit Document Modal */}
-      {showDocumentModal && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  {selectedDocument ? 'Edit Document' : 'Upload New Document'}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowDocumentModal(false);
-                    setSelectedDocument(null);
-                    resetForm();
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">
-                      Document Type <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      value={documentForm.documentType}
-                      onChange={(e) => {
-                        const docType = e.target.value;
-                        const category = Object.keys(DOCUMENT_TYPES).find(cat => 
-                          DOCUMENT_TYPES[cat].includes(docType)
-                        );
-                        setDocumentForm({ 
-                          ...documentForm, 
-                          documentType: docType,
-                          name: docType,
-                          category: category || documentForm.category
-                        });
-                      }}
-                      className="form-select"
-                    >
-                      <option value="">Select Document Type</option>
-                      {Object.entries(DOCUMENT_TYPES).map(([category, types]) => (
-                        <optgroup key={category} label={category}>
-                          {types.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">
-                      Document Name <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={documentForm.name}
-                      onChange={(e) => setDocumentForm({ ...documentForm, name: e.target.value })}
-                      className="form-control"
-                      placeholder="Enter document name"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">
-                      Category <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      value={documentForm.category}
-                      onChange={(e) => setDocumentForm({ ...documentForm, category: e.target.value })}
-                      className="form-select"
-                    >
-                      {categories.filter(c => c !== 'all').map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">
-                      Employee <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      value={documentForm.employee}
-                      onChange={(e) => {
-                        const emp = employees.find(e => e.id === parseInt(e.target.value));
-                        setDocumentForm({ 
-                          ...documentForm, 
-                          employee: e.target.value,
-                          employeeType: emp?.employeeType || ''
-                        });
-                      }}
-                      className="form-select"
-                    >
-                      <option value="">Select Employee</option>
-                      {employees.map(emp => (
-                        <option key={emp.id} value={emp.id.toString()}>
-                          {emp.name} ({emp.employeeType})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="date"
-                      value={documentForm.expiryDate}
-                      onChange={(e) => setDocumentForm({ ...documentForm, expiryDate: e.target.value })}
-                      className="form-control"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Status</label>
-                    <select
-                      value={documentForm.status}
-                      onChange={(e) => setDocumentForm({ ...documentForm, status: e.target.value })}
-                      className="form-select"
-                    >
-                      {statuses.filter(s => s !== 'all').map(status => (
-                        <option key={status} value={status}>
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold d-flex align-items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={documentForm.mandatory}
-                        onChange={(e) => setDocumentForm({ ...documentForm, mandatory: e.target.checked })}
-                        className="form-check-input"
-                      />
-                      Mandatory Document
-                    </label>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold d-flex align-items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={documentForm.downloadRestricted}
-                        onChange={(e) => setDocumentForm({ ...documentForm, downloadRestricted: e.target.checked })}
-                        className="form-check-input"
-                      />
-                      Restrict Download
-                    </label>
-                  </div>
-                  {!selectedDocument && (
-                    <div className="col-12">
-                      <label className="form-label fw-semibold">
-                        Upload File <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="file"
-                        className="form-control"
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                        onChange={(e) => setUploadFile(e.target.files[0])}
-                      />
-                      {uploadFile && (
-                        <div className="mt-2 text-muted small">
-                          Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => {
-                    setShowDocumentModal(false);
-                    setSelectedDocument(null);
-                    resetForm();
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={selectedDocument ? handleUpdateDocument : handleCreateDocument}
-                  className="btn btn-primary"
-                >
-                  {selectedDocument ? 'Update Document' : 'Upload Document'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderStats()}
 
-      {/* Document Viewer Modal with Watermark */}
-      {showViewerModal && selectedDocument && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-xl modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">{selectedDocument.name}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowViewerModal(false);
-                    setSelectedDocument(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body position-relative" style={{ minHeight: '500px' }}>
-                {/* Watermark */}
-                <div 
-                  className="position-absolute top-50 start-50 translate-middle"
-                  style={{
-                    opacity: 0.1,
-                    zIndex: 1,
-                    pointerEvents: 'none',
-                    transform: 'rotate(-45deg)',
-                    fontSize: '4rem',
-                    fontWeight: 'bold',
-                    color: '#000'
-                  }}
-                >
-                  CONFIDENTIAL
-                </div>
-                {/* Document Preview */}
-                <div className="position-relative" style={{ zIndex: 2 }}>
-                  {selectedDocument.fileType === 'pdf' ? (
-                    <iframe
-                      src={selectedDocument.fileUrl}
-                      className="w-100"
-                      style={{ height: '600px', border: 'none' }}
-                      title={selectedDocument.name}
-                    />
-                  ) : selectedDocument.fileType === 'jpg' || selectedDocument.fileType === 'jpeg' || selectedDocument.fileType === 'png' ? (
-                    <img
-                      src={selectedDocument.fileUrl}
-                      alt={selectedDocument.name}
-                      className="img-fluid"
-                      style={{ maxHeight: '600px', width: 'auto', margin: '0 auto', display: 'block' }}
-                    />
-                  ) : (
-                    <div className="text-center py-5">
-                      <Icon icon="heroicons:document" className="fs-1 text-muted mb-3" />
-                      <p className="text-muted">Preview not available for {selectedDocument.fileType.toUpperCase()} files</p>
-                      <button
-                        onClick={() => handleDownloadDocument(selectedDocument)}
-                        className="btn btn-primary"
-                      >
-                        Download to View
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {/* Document Info */}
-                <div className="mt-3 p-3 bg-light rounded">
-                  <div className="row">
-                    <div className="col-md-6">
-                      <small className="text-muted d-block">Version: {selectedDocument.version}</small>
-                      <small className="text-muted d-block">Uploaded: {new Date(selectedDocument.uploadDate).toLocaleDateString()}</small>
-                      <small className="text-muted d-block">Size: {selectedDocument.size}</small>
-                    </div>
-                    <div className="col-md-6 text-end">
-                      {selectedDocument.approvedBy && (
-                        <>
-                          <small className="text-muted d-block">Approved by: {selectedDocument.approvedBy.name}</small>
-                          <small className="text-muted d-block">Approved on: {new Date(selectedDocument.approvedDate).toLocaleDateString()}</small>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => handleDownloadDocument(selectedDocument)}
-                  className="btn btn-primary"
-                  disabled={selectedDocument.downloadRestricted && currentUser.role !== 'HR Manager' && currentUser.role !== 'HR Admin'}
-                >
-                  <Icon icon="heroicons:arrow-down-tray" className="me-1" />
-                  Download
-                </button>
-                <button
-                  onClick={() => {
-                    setShowViewerModal(false);
-                    setSelectedDocument(null);
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderFilters()}
 
-      {/* Version History Modal */}
-      {showVersionHistoryModal && selectedDocument && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Version History - {selectedDocument.name}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowVersionHistoryModal(false);
-                    setSelectedDocument(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="list-group">
-                  {selectedDocument.versionHistory && selectedDocument.versionHistory.length > 0 ? (
-                    selectedDocument.versionHistory.map((version, index) => (
-                      <div key={index} className="list-group-item">
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div>
-                            <div className="d-flex align-items-center gap-2 mb-2">
-                              <span className="badge bg-primary">Version {version.version}</span>
-                              {version.version === selectedDocument.version && (
-                                <span className="badge bg-success">Current</span>
-                              )}
-                            </div>
-                            <p className="mb-1"><strong>Uploaded by:</strong> {version.uploadedBy}</p>
-                            <p className="mb-1"><strong>Date:</strong> {new Date(version.uploadDate).toLocaleDateString()}</p>
-                            {version.changes && (
-                              <p className="mb-0 text-muted"><strong>Changes:</strong> {version.changes}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted">No version history available</p>
-                  )}
-                </div>
-                {!selectedDocument.versionHistory || selectedDocument.versionHistory.length === 0 ? (
-                  <div className="mt-3">
-                    <label className="form-label fw-semibold">Upload New Version</label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      onChange={(e) => setUploadFile(e.target.files[0])}
-                    />
-                    {uploadFile && (
-                      <div className="mt-2">
-                        <button
-                          onClick={handleUploadNewVersion}
-                          className="btn btn-primary btn-sm"
-                        >
-                          Upload Version
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-3">
-                    <label className="form-label fw-semibold">Upload New Version</label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      onChange={(e) => setUploadFile(e.target.files[0])}
-                    />
-                    {uploadFile && (
-                      <div className="mt-2">
-                        <button
-                          onClick={handleUploadNewVersion}
-                          className="btn btn-primary btn-sm"
-                        >
-                          Upload New Version
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => {
-                    setShowVersionHistoryModal(false);
-                    setSelectedDocument(null);
-                    setUploadFile(null);
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderExpiringAlert()}
 
-      {/* Audit Trail Modal */}
-      {showAuditTrailModal && selectedDocument && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Audit Trail - {selectedDocument.name}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowAuditTrailModal(false);
-                    setSelectedDocument(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead className="bg-light">
-                      <tr>
-                        <th>Action</th>
-                        <th>User</th>
-                        <th>Timestamp</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedDocument.auditTrail && selectedDocument.auditTrail.length > 0 ? (
-                        selectedDocument.auditTrail.map((entry, index) => (
-                          <tr key={index}>
-                            <td>
-                              <span className={`badge ${
-                                entry.action === 'approved' ? 'bg-success-subtle text-success' :
-                                entry.action === 'rejected' ? 'bg-danger-subtle text-danger' :
-                                entry.action === 'uploaded' ? 'bg-primary-subtle text-primary' :
-                                entry.action === 'downloaded' ? 'bg-info-subtle text-info' :
-                                'bg-secondary-subtle text-secondary'
-                              }`}>
-                                {entry.action.charAt(0).toUpperCase() + entry.action.slice(1).replace('_', ' ')}
-                              </span>
-                            </td>
-                            <td>{entry.user}</td>
-                            <td>{new Date(entry.timestamp).toLocaleString()}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="3" className="text-center text-muted">No audit trail available</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => {
-                    setShowAuditTrailModal(false);
-                    setSelectedDocument(null);
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderBulkActions()}
 
-      {/* Approval Modal */}
-      {showApprovalModal && selectedDocument && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Approve/Reject Document</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowApprovalModal(false);
-                    setSelectedDocument(null);
-                    setApprovalForm({ action: 'approve', comments: '' });
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <p className="mb-2"><strong>Document:</strong> {selectedDocument.name}</p>
-                  <p className="mb-2"><strong>Employee:</strong> {selectedDocument.employee.name}</p>
-                  <p className="mb-0"><strong>Category:</strong> {selectedDocument.category}</p>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Action</label>
-                  <div className="btn-group w-100" role="group">
-                    <input
-                      type="radio"
-                      className="btn-check"
-                      name="approvalAction"
-                      id="approve"
-                      checked={approvalForm.action === 'approve'}
-                      onChange={() => setApprovalForm({ ...approvalForm, action: 'approve' })}
-                    />
-                    <label className="btn btn-outline-success" htmlFor="approve">
-                      <Icon icon="heroicons:check-circle" className="me-1" />
-                      Approve
-                    </label>
-                    <input
-                      type="radio"
-                      className="btn-check"
-                      name="approvalAction"
-                      id="reject"
-                      checked={approvalForm.action === 'reject'}
-                      onChange={() => setApprovalForm({ ...approvalForm, action: 'reject' })}
-                    />
-                    <label className="btn btn-outline-danger" htmlFor="reject">
-                      <Icon icon="heroicons:x-circle" className="me-1" />
-                      Reject
-                    </label>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">
-                    Comments {approvalForm.action === 'reject' && <span className="text-danger">*</span>}
-                  </label>
-                  <textarea
-                    className="form-control"
-                    rows="4"
-                    value={approvalForm.comments}
-                    onChange={(e) => setApprovalForm({ ...approvalForm, comments: e.target.value })}
-                    placeholder={approvalForm.action === 'approve' ? 'Add approval comments (optional)' : 'Please provide rejection reason'}
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => {
-                    setShowApprovalModal(false);
-                    setSelectedDocument(null);
-                    setApprovalForm({ action: 'approve', comments: '' });
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleApproveReject}
-                  className={`btn ${approvalForm.action === 'approve' ? 'btn-success' : 'btn-danger'}`}
-                >
-                  {approvalForm.action === 'approve' ? 'Approve' : 'Reject'} Document
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {viewMode === 'checklist' ? renderChecklistView() : renderDocumentTable()}
 
-      {/* Templates Modal */}
-      {showTemplatesModal && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Document Templates Library</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowTemplatesModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead className="bg-light">
-                      <tr>
-                        <th>Template Name</th>
-                        <th>Category</th>
-                        <th>File Type</th>
-                        <th>Size</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {DOCUMENT_TEMPLATES.map(template => (
-                        <tr key={template.id}>
-                          <td>
-                            <div className="d-flex align-items-center gap-2">
-                              <Icon icon={getFileIcon(template.fileType)} className="text-primary" />
-                              {template.name}
-                            </div>
-                          </td>
-                          <td>
-                            <span className="badge bg-secondary-subtle text-secondary">
-                              {template.category}
-                            </span>
-                          </td>
-                          <td>{template.fileType.toUpperCase()}</td>
-                          <td>{template.size}</td>
-                          <td>
-                            <button
-                              className="btn btn-sm btn-outline-primary"
-                              onClick={() => {
-                                showNotification(`Downloading ${template.name}`, 'info');
-                              }}
-                            >
-                              <Icon icon="heroicons:arrow-down-tray" className="me-1" />
-                              Download
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => setShowTemplatesModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DocumentModal
+        isOpen={showDocumentModal}
+        onClose={() => {
+          setShowDocumentModal(false);
+          setSelectedDocument(null);
+        }}
+        onSubmit={selectedDocument ? handleUpdateDocument : handleCreateDocument}
+        document={selectedDocument}
+        employees={employees}
+        documentTypes={documentTypes}
+        categories={categories}
+        statuses={statuses}
+      />
 
-      {/* Checklist Detail Modal */}
-      {showChecklistModal && selectedEmployee && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  Mandatory Document Checklist - {selectedEmployee.name}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowChecklistModal(false);
-                    setSelectedEmployee(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <p className="mb-1"><strong>Employee Type:</strong> {selectedEmployee.employeeType || 'N/A'}</p>
-                  <p className="mb-0"><strong>Required Documents:</strong> {getMandatoryDocumentsForEmployee(selectedEmployee).length}</p>
-                </div>
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead className="bg-light">
-                      <tr>
-                        <th>Document Name</th>
-                        <th>Status</th>
-                        <th>Upload Date</th>
-                        <th>Version</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getEmployeeDocumentStatus(selectedEmployee).map((docStatus, index) => (
-                        <tr key={index}>
-                          <td>
-                            <div className="d-flex align-items-center gap-2">
-                              {docStatus.uploaded ? (
-                                <Icon icon="heroicons:check-circle" className="text-success" />
-                              ) : (
-                                <Icon icon="heroicons:x-circle" className="text-danger" />
-                              )}
-                              <span className={docStatus.uploaded ? '' : 'text-muted'}>
-                                {docStatus.name}
-                              </span>
-                              {!docStatus.uploaded && (
-                                <span className="badge bg-danger-subtle text-danger small">Missing</span>
-                              )}
-                            </div>
-                          </td>
-                          <td>
-                            {docStatus.uploaded ? (
-                              getStatusBadge(docStatus.status)
-                            ) : (
-                              <span className="badge bg-danger-subtle text-danger">Not Uploaded</span>
-                            )}
-                          </td>
-                          <td>
-                            {docStatus.document?.uploadDate ? (
-                              new Date(docStatus.document.uploadDate).toLocaleDateString()
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
-                          <td>
-                            {docStatus.document?.version ? (
-                              <span className="badge bg-secondary-subtle text-secondary">
-                                v{docStatus.document.version}
-                              </span>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
-                          <td>
-                            {docStatus.document ? (
-                              <div className="d-flex gap-1">
-                                <button
-                                  onClick={() => {
-                                    handleViewDocument(docStatus.document);
-                                    setShowChecklistModal(false);
-                                  }}
-                                  className="btn btn-sm btn-outline-info"
-                                  title="View"
-                                >
-                                  <Icon icon="heroicons:eye" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    openEditModal(docStatus.document);
-                                    setShowChecklistModal(false);
-                                  }}
-                                  className="btn btn-sm btn-outline-primary"
-                                  title="Edit"
-                                >
-                                  <Icon icon="heroicons:pencil" />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setDocumentForm({
-                                    ...documentForm,
-                                    documentType: docStatus.name,
-                                    name: docStatus.name,
-                                    employee: selectedEmployee.id.toString(),
-                                    employeeType: selectedEmployee.employeeType || '',
-                                    mandatory: true
-                                  });
-                                  setShowChecklistModal(false);
-                                  setShowDocumentModal(true);
-                                }}
-                                className="btn btn-sm btn-outline-primary"
-                              >
-                                <Icon icon="heroicons:plus" className="me-1" />
-                                Upload
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => {
-                    setShowChecklistModal(false);
-                    setSelectedEmployee(null);
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DocumentViewerModal
+        isOpen={showViewerModal}
+        onClose={() => {
+          setShowViewerModal(false);
+          setSelectedDocument(null);
+        }}
+        document={selectedDocument}
+        onDownload={handleDownloadDocument}
+        currentUser={currentUser}
+      />
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && selectedDocument && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Delete Document</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedDocument(null);
-                  }}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <p className="mb-0">
-                  Are you sure you want to delete "<strong>{selectedDocument.name}</strong>"? This action cannot be undone.
-                </p>
-                {selectedDocument.mandatory && (
-                  <div className="alert alert-warning mt-3 mb-0">
-                    <Icon icon="heroicons:exclamation-triangle" className="me-2" />
-                    This is a mandatory document. Deleting it will affect the employee's document compliance status.
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedDocument(null);
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteDocument}
-                  className="btn btn-danger"
-                >
-                  Delete Document
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ApprovalModal
+        isOpen={showApprovalModal}
+        onClose={() => {
+          setShowApprovalModal(false);
+          setSelectedDocument(null);
+        }}
+        onSubmit={handleApproveReject}
+        document={selectedDocument}
+      />
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedDocument(null);
+        }}
+        onConfirm={handleDeleteDocument}
+        document={selectedDocument}
+      />
+
+      <VersionHistoryModal
+        isOpen={showVersionHistoryModal}
+        onClose={() => {
+          setShowVersionHistoryModal(false);
+          setSelectedDocument(null);
+          setUploadFile(null);
+        }}
+        document={selectedDocument}
+        onUploadVersion={handleUploadNewVersion}
+      />
+
+      <AuditTrailModal
+        isOpen={showAuditTrailModal}
+        onClose={() => {
+          setShowAuditTrailModal(false);
+          setSelectedDocument(null);
+        }}
+        document={selectedDocument}
+      />
+
+      <TemplatesModal
+        isOpen={showTemplatesModal}
+        onClose={() => setShowTemplatesModal(false)}
+        templates={documentTemplates}
+        onDownload={(template) => toast.info(`Downloading ${template.name}`)}
+        getFileIcon={getFileIcon}
+      />
+
+      <ChecklistModal
+        isOpen={showChecklistModal}
+        onClose={() => {
+          setShowChecklistModal(false);
+          setSelectedEmployee(null);
+        }}
+        employee={selectedEmployee}
+        documents={documents}
+        getMandatoryDocumentsForEmployee={getMandatoryDocumentsForEmployee}
+        getEmployeeDocumentStatus={getEmployeeDocumentStatus}
+        getStatusBadge={getStatusBadge}
+        onViewDocument={openViewerModal}
+        onEditDocument={openEditModal}
+        onUploadDocument={(docName) => {
+          setDocumentForm({
+            ...documentForm,
+            documentType: docName,
+            name: docName,
+            employee: selectedEmployee?.id?.toString() || '',
+            employeeType: selectedEmployee?.employeeType || '',
+            mandatory: true
+          });
+          setShowChecklistModal(false);
+          setShowDocumentModal(true);
+        }}
+      />
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        className="text-xs sm:text-sm"
+        toastClassName="rounded-xl shadow-lg"
+      />
     </div>
   );
 };
 
-export default Documentvault;
+export default DocumentVault;
