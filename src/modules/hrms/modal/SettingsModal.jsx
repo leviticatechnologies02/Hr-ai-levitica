@@ -8,40 +8,56 @@ const SettingsModal = ({
   onSave, 
   settings, 
   notificationSettings,
-  // For Bank Transfer module
   bankSettings,
   onSaveBankSettings,
-  // Mode detection
-  mode = 'salary' // 'salary', 'settlement', 'bank', 'payment'
+  integrationSettings,
+  onSaveIntegrationSettings,
+  mode = 'salary' 
 }) => {
-  // State for Salary/Settlement module
   const [localSettings, setLocalSettings] = useState(settings || {});
   const [localNotifications, setLocalNotifications] = useState(notificationSettings || {});
 
-  // State for Bank Transfer module
   const [localBankSettings, setLocalBankSettings] = useState(bankSettings || {});
+
+  const [localIntegrationSettings, setLocalIntegrationSettings] = useState(integrationSettings || {
+    apiEndpoint: '',
+    apiKey: '',
+    webhookUrl: '',
+    autoBackup: true,
+    auditLogging: true
+  });
 
   useEffect(() => {
     if (isOpen) {
       if (mode === 'bank' || mode === 'payment') {
         setLocalBankSettings(bankSettings || {});
+      } else if (mode === 'integration') {
+        setLocalIntegrationSettings(integrationSettings || {
+          apiEndpoint: '',
+          apiKey: '',
+          webhookUrl: '',
+          autoBackup: true,
+          auditLogging: true
+        });
       } else {
         setLocalSettings(settings || {});
         setLocalNotifications(notificationSettings || {});
       }
     }
-  }, [isOpen, settings, notificationSettings, bankSettings, mode]);
+  }, [isOpen, settings, notificationSettings, bankSettings, integrationSettings, mode]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
     if (mode === 'bank' || mode === 'payment') {
-      // Bank Transfer mode
       if (onSaveBankSettings) {
         onSaveBankSettings(localBankSettings);
       }
+    } else if (mode === 'integration') {
+      if (onSaveIntegrationSettings) {
+        onSaveIntegrationSettings(localIntegrationSettings);
+      }
     } else {
-      // Salary/Settlement mode
       if (onSave) {
         onSave(localSettings, localNotifications);
       }
@@ -56,11 +72,24 @@ const SettingsModal = ({
     });
   };
 
+  const handleIntegrationChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setLocalIntegrationSettings({
+      ...localIntegrationSettings,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (mode === 'bank' || mode === 'payment') {
       setLocalBankSettings({
         ...localBankSettings,
+        [name]: type === 'checkbox' ? checked : value
+      });
+    } else if (mode === 'integration') {
+      setLocalIntegrationSettings({
+        ...localIntegrationSettings,
         [name]: type === 'checkbox' ? checked : value
       });
     } else {
@@ -83,10 +112,76 @@ const SettingsModal = ({
     if (mode === 'bank' || mode === 'payment') {
       return 'Payment Settings';
     }
+    if (mode === 'integration') {
+      return 'Integration Configuration';
+    }
     return 'Advanced Settings';
   };
 
-  // Render Bank Transfer settings
+  const renderIntegrationSettings = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">API Endpoint</label>
+          <input
+            type="text"
+            name="apiEndpoint"
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+            value={localIntegrationSettings.apiEndpoint || ''}
+            onChange={handleIntegrationChange}
+            placeholder="https://api.example.com"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">API Key</label>
+          <input
+            type="password"
+            name="apiKey"
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+            value={localIntegrationSettings.apiKey || ''}
+            onChange={handleIntegrationChange}
+            placeholder="Enter API key"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Webhook URL</label>
+        <input
+          type="text"
+          name="webhookUrl"
+          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+          value={localIntegrationSettings.webhookUrl || ''}
+          onChange={handleIntegrationChange}
+          placeholder="https://webhook.example.com"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="autoBackup"
+            checked={localIntegrationSettings.autoBackup || false}
+            onChange={handleIntegrationChange}
+            className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+          />
+          <span className="text-sm text-slate-700">Enable Automatic Backups</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="auditLogging"
+            checked={localIntegrationSettings.auditLogging || false}
+            onChange={handleIntegrationChange}
+            className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+          />
+          <span className="text-sm text-slate-700">Enable Audit Logging</span>
+        </label>
+      </div>
+    </div>
+  );
+
   const renderBankSettings = () => (
     <div className="space-y-6">
       <div>
@@ -202,7 +297,6 @@ const SettingsModal = ({
     </div>
   );
 
-  // Render Salary/Settlement settings
   const renderSalarySettings = () => (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -371,7 +465,9 @@ const SettingsModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={getTitle()} size="xl">
       <form onSubmit={handleSubmit} className="space-y-6 p-2">
-        {(mode === 'bank' || mode === 'payment') ? renderBankSettings() : renderSalarySettings()}
+        {mode === 'bank' || mode === 'payment' ? renderBankSettings() :
+         mode === 'integration' ? renderIntegrationSettings() :
+         renderSalarySettings()}
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
           <button

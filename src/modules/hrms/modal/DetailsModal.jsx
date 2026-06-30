@@ -10,58 +10,75 @@ const DetailsModal = ({
   getStatusBadge,
   getPriorityBadge,
   getTypeBadge,
-  formatCurrency
+  formatCurrency,
+  record,
+  onExport,
+  mode = 'self-service' 
 }) => {
-  if (!item) return null;
+  const data = item || record;
+  const currentSection = section || 'details';
 
-  // Employee Self Service Section Renderers
+  if (!data) return null;
+
+  const formatValue = (value) => {
+    if (value == null) return 'N/A';
+    if (typeof value === 'number' && formatCurrency) {
+      return formatCurrency(value);
+    }
+    if (typeof value === 'string' && value.startsWith('₹')) {
+      return value;
+    }
+    return value;
+  };
+
   const renderRequestDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Request Type</label>
-        <p className="text-sm text-slate-800 mt-1 capitalize">{item.type}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Request Type</label>
+        <p className="text-sm text-slate-800 mt-1 capitalize">{data.type}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</label>
-        <p className="text-sm text-slate-800 mt-1">{item.date}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Date</label>
+        <p className="text-sm text-slate-800 mt-1">{data.date}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
-        <div className="mt-1">{getStatusBadge(item.status)}</div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+        <div className="mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</div>
       </div>
-      {item.amount && (
+      {data.amount && (
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</label>
-          <p className="text-sm font-semibold text-slate-800 mt-1">{formatCurrency ? formatCurrency(item.amount) : item.amount}</p>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Amount</label>
+          <p className="text-sm font-semibold text-slate-800 mt-1">{formatValue(data.amount)}</p>
         </div>
       )}
       <div className="sm:col-span-2">
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</label>
-        <p className="text-sm text-slate-700 mt-1">{item.description}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Description</label>
+        <p className="text-sm text-slate-700 mt-1">{data.description}</p>
       </div>
-      {item.rejectionReason && (
+      {data.rejectionReason && (
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold text-rose-500 uppercase tracking-wider">Rejection Reason</label>
+          <label className="text-xs font-semibold text-rose-500  tracking-wider">Rejection Reason</label>
           <div className="mt-1 p-3 bg-rose-50 rounded-xl border border-rose-200">
-            <p className="text-sm text-rose-700">{item.rejectionReason}</p>
+            <p className="text-sm text-rose-700">{data.rejectionReason}</p>
           </div>
         </div>
       )}
-      {item.approvalHistory && item.approvalHistory.length > 0 && (
+      {data.approvalHistory && data.approvalHistory.length > 0 && (
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approval History</label>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Approval History</label>
           <div className="mt-2 space-y-2">
-            {item.approvalHistory.map((step, index) => (
+            {data.approvalHistory.map((step, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
                   <p className="text-sm font-medium text-slate-700">{step.step}</p>
                   <p className="text-xs text-slate-500">By: {step.by} • {step.date}</p>
                 </div>
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${step.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                    step.status === 'rejected' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
-                      step.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                        'bg-slate-100 text-slate-600 border border-slate-200'
-                  }`}>
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                  step.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                  step.status === 'rejected' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                  step.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                  'bg-slate-100 text-slate-600 border border-slate-200'
+                }`}>
                   {step.status}
                 </span>
               </div>
@@ -76,22 +93,22 @@ const DetailsModal = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">From</label>
-          <p className="text-sm text-slate-800 mt-1">{item.from}</p>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">From</label>
+          <p className="text-sm text-slate-800 mt-1">{data.from}</p>
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</label>
-          <p className="text-sm text-slate-800 mt-1">{item.date}</p>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Date</label>
+          <p className="text-sm text-slate-800 mt-1">{data.date}</p>
         </div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</label>
-        <p className="text-sm font-semibold text-slate-800 mt-1">{item.subject}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Subject</label>
+        <p className="text-sm font-semibold text-slate-800 mt-1">{data.subject}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Message</label>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Message</label>
         <div className="mt-1 p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{item.content || 'No content available.'}</p>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{data.content || 'No content available.'}</p>
         </div>
       </div>
     </div>
@@ -100,33 +117,33 @@ const DetailsModal = ({
   const renderTicketDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ticket ID</label>
-        <p className="text-sm font-semibold text-slate-800 mt-1">{item.id}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Ticket ID</label>
+        <p className="text-sm font-semibold text-slate-800 mt-1">{data.id}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</label>
-        <p className="text-sm text-slate-800 mt-1">{item.date}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Date</label>
+        <p className="text-sm text-slate-800 mt-1">{data.date}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
-        <div className="mt-1">{getStatusBadge(item.status)}</div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+        <div className="mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Priority</label>
-        <div className="mt-1">{getPriorityBadge(item.priority)}</div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Priority</label>
+        <div className="mt-1">{getPriorityBadge ? getPriorityBadge(data.priority) : data.priority}</div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</label>
-        <p className="text-sm text-slate-800 mt-1 capitalize">{item.category}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Category</label>
+        <p className="text-sm text-slate-800 mt-1 capitalize">{data.category}</p>
       </div>
       <div className="sm:col-span-2">
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</label>
-        <p className="text-sm text-slate-800 mt-1">{item.subject}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Subject</label>
+        <p className="text-sm text-slate-800 mt-1">{data.subject}</p>
       </div>
-      {item.description && (
+      {data.description && (
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</label>
-          <p className="text-sm text-slate-700 mt-1">{item.description}</p>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Description</label>
+          <p className="text-sm text-slate-700 mt-1">{data.description}</p>
         </div>
       )}
     </div>
@@ -135,16 +152,16 @@ const DetailsModal = ({
   const renderPayslipDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Month</label>
-        <p className="text-sm text-slate-800 mt-1">{item.month}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Month</label>
+        <p className="text-sm text-slate-800 mt-1">{data.month}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</label>
-        <p className="text-sm font-semibold text-slate-800 mt-1">{formatCurrency ? formatCurrency(item.amount) : item.amount}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Amount</label>
+        <p className="text-sm font-semibold text-slate-800 mt-1">{formatValue(data.amount)}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
-        <div className="mt-1">{getStatusBadge(item.status)}</div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+        <div className="mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</div>
       </div>
     </div>
   );
@@ -152,24 +169,24 @@ const DetailsModal = ({
   const renderAttendanceDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</label>
-        <p className="text-sm text-slate-800 mt-1">{item.date}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Date</label>
+        <p className="text-sm text-slate-800 mt-1">{data.date}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
-        <div className="mt-1">{getStatusBadge(item.status)}</div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+        <div className="mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Check In</label>
-        <p className="text-sm text-slate-800 mt-1">{item.checkIn || '-'}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Check In</label>
+        <p className="text-sm text-slate-800 mt-1">{data.checkIn || '-'}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Check Out</label>
-        <p className="text-sm text-slate-800 mt-1">{item.checkOut || '-'}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Check Out</label>
+        <p className="text-sm text-slate-800 mt-1">{data.checkOut || '-'}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hours</label>
-        <p className="text-sm text-slate-800 mt-1">{item.hours || '0'}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Hours</label>
+        <p className="text-sm text-slate-800 mt-1">{data.hours || '0'}</p>
       </div>
     </div>
   );
@@ -177,106 +194,105 @@ const DetailsModal = ({
   const renderDocumentDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Document</label>
-        <p className="text-sm font-semibold text-slate-800 mt-1">{item.name}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Document</label>
+        <p className="text-sm font-semibold text-slate-800 mt-1">{data.name}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</label>
-        <p className="text-sm text-slate-800 mt-1 capitalize">{item.type}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Type</label>
+        <p className="text-sm text-slate-800 mt-1 capitalize">{data.type}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</label>
-        <p className="text-sm text-slate-800 mt-1">{item.date}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Date</label>
+        <p className="text-sm text-slate-800 mt-1">{data.date}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Size</label>
-        <p className="text-sm text-slate-800 mt-1">{item.size}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Size</label>
+        <p className="text-sm text-slate-800 mt-1">{data.size}</p>
       </div>
     </div>
   );
 
-  // Payroll Section Renderers
   const renderPayrollRunDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Payroll ID</label>
-        <p className="text-sm font-medium text-slate-800 mt-1">{item.id}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Payroll ID</label>
+        <p className="text-sm font-medium text-slate-800 mt-1">{data.id}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Month</label>
-        <p className="text-sm text-slate-700 mt-1">{item.month}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Month</label>
+        <p className="text-sm text-slate-700 mt-1">{data.month}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</label>
-        <p className="text-sm mt-1">{getTypeBadge ? getTypeBadge(item.type) : item.type}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Type</label>
+        <p className="text-sm mt-1">{getTypeBadge ? getTypeBadge(data.type) : data.type}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
-        <p className="text-sm mt-1">{getStatusBadge(item.status)}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+        <p className="text-sm mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Amount</label>
-        <p className="text-sm font-bold text-blue-600 mt-1">{formatCurrency ? formatCurrency(item.totalAmount) : item.totalAmount}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Total Amount</label>
+        <p className="text-sm font-bold text-blue-600 mt-1">{formatValue(data.totalAmount)}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Employees</label>
-        <p className="text-sm text-slate-700 mt-1">{item.employeesCount}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Employees</label>
+        <p className="text-sm text-slate-700 mt-1">{data.employeesCount}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Processed Date</label>
-        <p className="text-sm text-slate-700 mt-1">{item.processedDate || 'N/A'}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Processed Date</label>
+        <p className="text-sm text-slate-700 mt-1">{data.processedDate || 'N/A'}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Paid Date</label>
-        <p className="text-sm text-slate-700 mt-1">{item.paidDate || 'N/A'}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Paid Date</label>
+        <p className="text-sm text-slate-700 mt-1">{data.paidDate || 'N/A'}</p>
       </div>
-      {item.details && (
+      {data.details && (
         <>
           <div className="sm:col-span-2 border-t border-slate-200 pt-4 mt-2">
-            <h6 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Financial Breakdown</h6>
+            <h6 className="text-xs font-bold text-slate-600  tracking-wider mb-3">Financial Breakdown</h6>
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Earnings</label>
-            <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.totalEarnings) : item.details.totalEarnings}</p>
+            <label className="text-xs font-semibold text-slate-500  tracking-wider">Total Earnings</label>
+            <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.totalEarnings)}</p>
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Deductions</label>
-            <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.totalDeductions) : item.details.totalDeductions}</p>
+            <label className="text-xs font-semibold text-slate-500  tracking-wider">Total Deductions</label>
+            <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.totalDeductions)}</p>
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tax Amount</label>
-            <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.taxAmount) : item.details.taxAmount}</p>
+            <label className="text-xs font-semibold text-slate-500  tracking-wider">Tax Amount</label>
+            <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.taxAmount)}</p>
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">PF Amount</label>
-            <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.pfAmount) : item.details.pfAmount}</p>
+            <label className="text-xs font-semibold text-slate-500  tracking-wider">PF Amount</label>
+            <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.pfAmount)}</p>
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">ESI Amount</label>
-            <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.esiAmount) : item.details.esiAmount}</p>
+            <label className="text-xs font-semibold text-slate-500  tracking-wider">ESI Amount</label>
+            <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.esiAmount)}</p>
           </div>
-          {item.details.arrearsIncluded > 0 && (
+          {data.details.arrearsIncluded > 0 && (
             <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Arrears Included</label>
-              <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.arrearsIncluded) : item.details.arrearsIncluded}</p>
+              <label className="text-xs font-semibold text-slate-500  tracking-wider">Arrears Included</label>
+              <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.arrearsIncluded)}</p>
             </div>
           )}
-          {item.details.loanEMI > 0 && (
+          {data.details.loanEMI > 0 && (
             <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Loan EMI</label>
-              <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.loanEMI) : item.details.loanEMI}</p>
+              <label className="text-xs font-semibold text-slate-500  tracking-wider">Loan EMI</label>
+              <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.loanEMI)}</p>
             </div>
           )}
-          {item.details.advanceRecovery > 0 && (
+          {data.details.advanceRecovery > 0 && (
             <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Advance Recovery</label>
-              <p className="text-sm text-slate-700 mt-1">{formatCurrency ? formatCurrency(item.details.advanceRecovery) : item.details.advanceRecovery}</p>
+              <label className="text-xs font-semibold text-slate-500  tracking-wider">Advance Recovery</label>
+              <p className="text-sm text-slate-700 mt-1">{formatValue(data.details.advanceRecovery)}</p>
             </div>
           )}
-          {item.details.heldEmployeesCount > 0 && (
+          {data.details.heldEmployeesCount > 0 && (
             <div className="sm:col-span-2">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Held Employees</label>
-              <p className="text-sm text-rose-600 mt-1">{item.details.heldEmployeesCount} employees</p>
+              <label className="text-xs font-semibold text-slate-500  tracking-wider">Held Employees</label>
+              <p className="text-sm text-rose-600 mt-1">{data.details.heldEmployeesCount} employees</p>
             </div>
           )}
         </>
@@ -288,36 +304,37 @@ const DetailsModal = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Check Name</label>
-          <p className="text-sm font-medium text-slate-800 mt-1">{item.checkName}</p>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Check Name</label>
+          <p className="text-sm font-medium text-slate-800 mt-1">{data.checkName}</p>
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
-          <p className="text-sm mt-1">{getStatusBadge(item.status)}</p>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+          <p className="text-sm mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</p>
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Severity</label>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Severity</label>
           <p className="text-sm mt-1">
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.severity === 'high' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
-                item.severity === 'medium' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                  'bg-blue-50 text-blue-700 border border-blue-100'
-              }`}>
-              {item.severity}
+            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+              data.severity === 'high' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+              data.severity === 'medium' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+              'bg-blue-50 text-blue-700 border border-blue-100'
+            }`}>
+              {data.severity}
             </span>
           </p>
         </div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</label>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Description</label>
         <div className="mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200">
-          <p className="text-sm text-slate-700">{item.description}</p>
+          <p className="text-sm text-slate-700">{data.description}</p>
         </div>
       </div>
-      {item.details && (
+      {data.details && (
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Details</label>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Details</label>
           <div className="mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <p className="text-sm text-slate-700">{item.details}</p>
+            <p className="text-sm text-slate-700">{data.details}</p>
           </div>
         </div>
       )}
@@ -327,49 +344,119 @@ const DetailsModal = ({
   const renderApprovalDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Payroll ID</label>
-        <p className="text-sm font-medium text-slate-800 mt-1">{item.payrollId}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Payroll ID</label>
+        <p className="text-sm font-medium text-slate-800 mt-1">{data.payrollId}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approver</label>
-        <p className="text-sm text-slate-700 mt-1">{item.approver}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Approver</label>
+        <p className="text-sm text-slate-700 mt-1">{data.approver}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</label>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Role</label>
         <p className="text-sm text-slate-700 mt-1">
           <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-            {item.role}
+            {data.role}
           </span>
         </p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</label>
-        <p className="text-sm mt-1">{getStatusBadge(item.status)}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+        <p className="text-sm mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted Date</label>
-        <p className="text-sm text-slate-700 mt-1">{item.submittedDate}</p>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Submitted Date</label>
+        <p className="text-sm text-slate-700 mt-1">{data.submittedDate}</p>
       </div>
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          {item.status === 'approved' ? 'Approved Date' :
-            item.status === 'rejected' ? 'Rejected Date' : 'Expected Date'}
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">
+          {data.status === 'approved' ? 'Approved Date' :
+           data.status === 'rejected' ? 'Rejected Date' : 'Expected Date'}
         </label>
-        <p className="text-sm text-slate-700 mt-1">{item.approvedDate || item.rejectedDate || 'N/A'}</p>
+        <p className="text-sm text-slate-700 mt-1">{data.approvedDate || data.rejectedDate || 'N/A'}</p>
       </div>
-      {item.comments && (
+      {data.comments && (
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Comments</label>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Comments</label>
           <div className="mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <p className="text-sm text-slate-700">{item.comments}</p>
+            <p className="text-sm text-slate-700">{data.comments}</p>
           </div>
         </div>
       )}
     </div>
   );
 
+  const renderIntegrationDetails = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Employee Name</label>
+        <p className="text-sm font-medium text-slate-800 mt-1">{data.employeeName}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Employee ID</label>
+        <p className="text-sm text-slate-700 mt-1">{data.employeeId}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Department</label>
+        <p className="text-sm text-slate-700 mt-1">{data.department}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Location</label>
+        <p className="text-sm text-slate-700 mt-1">{data.location}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Basic Salary</label>
+        <p className="text-sm font-semibold text-slate-800 mt-1">{formatValue(data.basicSalary)}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Net Pay</label>
+        <p className="text-sm font-bold text-blue-600 mt-1">{formatValue(data.netPay)}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Present Days</label>
+        <p className="text-sm text-emerald-600 font-semibold mt-1">{data.totalPresent}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Absent Days</label>
+        <p className="text-sm text-rose-600 font-semibold mt-1">{data.totalAbsent}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Overtime Hours</label>
+        <p className="text-sm text-amber-600 font-semibold mt-1">{data.totalOvertime}</p>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Status</label>
+        <div className="mt-1">{getStatusBadge ? getStatusBadge(data.status) : data.status}</div>
+      </div>
+      {data.lossOfPay > 0 && (
+        <div>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Loss of Pay</label>
+          <p className="text-sm text-rose-600 font-semibold mt-1">{formatValue(data.lossOfPay)}</p>
+        </div>
+      )}
+      {data.overtimePay > 0 && (
+        <div>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Overtime Pay</label>
+          <p className="text-sm text-emerald-600 font-semibold mt-1">{formatValue(data.overtimePay)}</p>
+        </div>
+      )}
+      {data.holidayPay > 0 && (
+        <div>
+          <label className="text-xs font-semibold text-slate-500  tracking-wider">Holiday Pay</label>
+          <p className="text-sm text-emerald-600 font-semibold mt-1">{formatValue(data.holidayPay)}</p>
+        </div>
+      )}
+      <div className="sm:col-span-2">
+        <label className="text-xs font-semibold text-slate-500  tracking-wider">Last Updated</label>
+        <p className="text-sm text-slate-700 mt-1">{data.lastUpdated || 'N/A'}</p>
+      </div>
+    </div>
+  );
+
   const getTitle = () => {
-    switch (section) {
+    if (mode === 'integration') {
+      return `Payroll Details: ${data.employeeName || 'Employee'}`;
+    }
+    switch (currentSection) {
       case 'requests': return 'Request Details';
       case 'messages': return 'Message Details';
       case 'tickets': return 'Ticket Details';
@@ -384,15 +471,17 @@ const DetailsModal = ({
   };
 
   const renderContent = () => {
-    switch (section) {
-      // Employee Self Service sections
+    if (mode === 'integration') {
+      return renderIntegrationDetails();
+    }
+
+    switch (currentSection) {
       case 'requests': return renderRequestDetails();
       case 'messages': return renderMessageDetails();
       case 'tickets': return renderTicketDetails();
       case 'payslips': return renderPayslipDetails();
       case 'attendance': return renderAttendanceDetails();
       case 'documents': return renderDocumentDetails();
-      // Payroll sections
       case 'runs': return renderPayrollRunDetails();
       case 'validation': return renderValidationDetails();
       case 'approvals': return renderApprovalDetails();
@@ -404,7 +493,7 @@ const DetailsModal = ({
     <Modal isOpen={isOpen} onClose={onClose} title={getTitle()} size="lg">
       <div className="space-y-4">
         {renderContent()}
-        <div className="flex justify-end pt-4 border-t border-slate-200">
+        <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
           <button
             type="button"
             className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-all"
@@ -412,6 +501,16 @@ const DetailsModal = ({
           >
             Close
           </button>
+          {mode === 'integration' && onExport && (
+            <button
+              type="button"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
+              onClick={() => onExport(data)}
+            >
+              <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
+              Export Details
+            </button>
+          )}
         </div>
       </div>
     </Modal>
