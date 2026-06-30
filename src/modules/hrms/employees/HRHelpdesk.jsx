@@ -1,1280 +1,458 @@
-import React, { useState, useEffect } from 'react';
-import { Icon } from '@iconify/react/dist/iconify.js';
-import 'bootstrap/dist/css/bootstrap.min.css';
-
+import React, { useState, useEffect, useMemo } from 'react';
+import { Icon } from '@iconify/react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import StatCard from '../../../shared/components/StatCard';
+import TicketModal from '../modal/TicketModal';
+import ViewTicketModal from '../modal/ViewTicketModal';
 
 const HRHelpdesk = () => {
-  // States
   const [tickets, setTickets] = useState([]);
-  const [newTicket, setNewTicket] = useState({
-    title: '',
-    category: '',
-    priority: 'medium',
-    description: '',
-    employeeName: '',
-    employeeId: '',
-    department: ''
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [activeTab, setActiveTab] = useState('all');
+
+  const [modalState, setModalState] = useState({
+    type: null,
+    isOpen: false,
+    data: null
   });
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [activeView, setActiveView] = useState('list');
+
+  const [filters, setFilters] = useState({
+    search: '',
+    category: 'All',
+    priority: 'All',
+    agent: 'All'
+  });
+
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const [internalNotes, setInternalNotes] = useState({});
   const [assignedAgents] = useState(['John HR', 'Priya Kumar', 'IT Support', 'Admin Team', 'Finance Team']);
-  const [userRole] = useState('hr_admin');
-  const [selectedAgent, setSelectedAgent] = useState('');
+  const userRole = 'hr_admin';
 
-  // Mock data
-  const mockTickets = [
-    {
-      id: 1,
-      title: 'PF Deduction Issue',
-      category: 'Payroll queries',
-      priority: 'high',
-      status: 'open',
-      description: 'PF deduction seems incorrect in last month payslip. Need clarification on the calculation.',
-      createdAt: '2024-01-15T10:30:00Z',
-      assignedTo: 'John HR',
-      employeeName: 'Rahul Sharma',
-      employeeId: 'EMP001',
-      department: 'Engineering',
-      resolutionTime: null,
-      lastUpdated: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: 2,
-      title: 'Leave Balance Update',
-      category: 'Leave and attendance issues',
-      priority: 'medium',
-      status: 'in-progress',
-      description: 'My leave balance is not updated after my vacation last week. Please check and update.',
-      createdAt: '2024-01-14T14:20:00Z',
-      assignedTo: 'Priya Kumar',
-      employeeName: 'Priya Kumar',
-      employeeId: 'EMP002',
-      department: 'Sales',
-      resolutionTime: null,
-      lastUpdated: '2024-01-15T09:15:00Z'
-    },
-    {
-      id: 3,
-      title: 'Email Access Issue',
-      category: 'IT access issues',
-      priority: 'low',
-      status: 'resolved',
-      description: 'Cannot access corporate email from mobile device. Getting authentication error.',
-      createdAt: '2024-01-13T09:15:00Z',
-      assignedTo: 'IT Support',
-      employeeName: 'Amit Patel',
-      employeeId: 'EMP003',
-      department: 'Marketing',
-      resolutionTime: '2024-01-13T16:45:00Z',
-      lastUpdated: '2024-01-13T16:45:00Z'
-    },
-    {
-      id: 4,
-      title: 'Policy Clarification Needed',
-      category: 'Policy clarifications',
-      priority: 'medium',
-      status: 'open',
-      description: 'Need clarification on new work from home policy regarding core working hours.',
-      createdAt: '2024-01-16T11:20:00Z',
-      assignedTo: null,
-      employeeName: 'Sneha Reddy',
-      employeeId: 'EMP004',
-      department: 'HR',
-      resolutionTime: null,
-      lastUpdated: '2024-01-16T11:20:00Z'
-    },
-    {
-      id: 5,
-      title: 'Reimbursement Pending',
-      category: 'Reimbursement queries',
-      priority: 'high',
-      status: 'in-progress',
-      description: 'Travel reimbursement for December business trip is still pending approval.',
-      createdAt: '2024-01-12T15:45:00Z',
-      assignedTo: 'Finance Team',
-      employeeName: 'Rajesh Kumar',
-      employeeId: 'EMP005',
-      department: 'Operations',
-      resolutionTime: null,
-      lastUpdated: '2024-01-15T14:30:00Z'
-    },
-    {
-      id: 6,
-      title: 'Address Change Request',
-      category: 'Personal data updates',
-      priority: 'low',
-      status: 'closed',
-      description: 'Need to update my residential address in company records.',
-      createdAt: '2024-01-10T09:00:00Z',
-      assignedTo: 'Admin Team',
-      employeeName: 'Meera Singh',
-      employeeId: 'EMP006',
-      department: 'Engineering',
-      resolutionTime: '2024-01-11T11:30:00Z',
-      lastUpdated: '2024-01-11T11:30:00Z'
-    }
-  ];
-
-  const categories = [
-    'Payroll queries',
-    'Leave and attendance issues',
-    'Policy clarifications',
-    'IT access issues',
-    'Document requests',
-    'Reimbursement queries',
-    'Personal data updates',
-    'General HR queries',
-    'Grievances and complaints'
-  ];
-
-  // Initialize with mock data
+  // Sample Data Initialization -> Replaced with empty array as per user request
   useEffect(() => {
-    setTickets(mockTickets);
+    setIsLoading(true);
+    // TODO: Fetch from API
+    setTickets([]);
+    setIsLoading(false);
   }, []);
 
-  // Calculate statistics
-  const stats = {
-    total: tickets.length,
-    open: tickets.filter(t => t.status === 'open').length,
-    inProgress: tickets.filter(t => t.status === 'in-progress').length,
-    resolved: tickets.filter(t => t.status === 'resolved').length,
-    closed: tickets.filter(t => t.status === 'closed').length,
-    highPriority: tickets.filter(t => t.priority === 'high').length,
-    unassigned: tickets.filter(t => !t.assignedTo).length,
-    // New metrics
-    today: tickets.filter(t => {
-      const today = new Date().toISOString().split('T')[0];
-      return t.createdAt.split('T')[0] === today;
-    }).length,
-    overdue: tickets.filter(t => {
-      if (t.status !== 'open' && t.status !== 'in-progress') return false;
-      const created = new Date(t.createdAt);
-      const now = new Date();
-      const daysDiff = (now - created) / (1000 * 60 * 60 * 24);
-      return daysDiff > 3;
-    }).length,
-    averageResolution: calculateAverageResolutionTime()
+  const openModal = (type, data = null) => {
+    setModalState({ type, isOpen: true, data });
   };
 
-  function calculateAverageResolutionTime() {
+  const closeModal = () => {
+    setModalState({ type: null, isOpen: false, data: null });
+  };
+
+  const showNotification = (message, type = 'success') => {
+    toast[type](message, { position: 'top-right', autoClose: 3000 });
+  };
+
+  const calculateAverageResolutionTime = () => {
     const resolvedTickets = tickets.filter(t => t.resolutionTime && t.status === 'resolved');
     if (resolvedTickets.length === 0) return 0;
-    
     const totalHours = resolvedTickets.reduce((sum, ticket) => {
       const created = new Date(ticket.createdAt);
       const resolved = new Date(ticket.resolutionTime);
-      const hours = (resolved - created) / (1000 * 60 * 60);
-      return sum + hours;
+      return sum + ((resolved - created) / (1000 * 60 * 60));
     }, 0);
-    
     return Math.round(totalHours / resolvedTickets.length);
-  }
+  };
 
-  // Handle create ticket
-  const handleCreateTicket = (e) => {
-    e.preventDefault();
-    if (!newTicket.title.trim() || !newTicket.category || !newTicket.description.trim()) {
-      alert('Please fill all required fields');
-      return;
+  const kpis = useMemo(() => {
+    const total = tickets.length;
+    const open = tickets.filter(t => t.status === 'open').length;
+    const inProgress = tickets.filter(t => t.status === 'in-progress').length;
+    const resolved = tickets.filter(t => t.status === 'resolved').length;
+    const unassigned = tickets.filter(t => !t.assignedTo).length;
+    const avgResolution = calculateAverageResolutionTime();
+
+    return { total, open, inProgress, resolved, unassigned, avgResolution };
+  }, [tickets]);
+
+  const filteredData = useMemo(() => {
+    let filtered = tickets;
+
+    if (activeTab !== 'all') {
+      filtered = filtered.filter(t => t.status === activeTab);
     }
 
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(t =>
+        t.title.toLowerCase().includes(searchLower) ||
+        t.employeeName?.toLowerCase().includes(searchLower) ||
+        t.employeeId?.toLowerCase().includes(searchLower) ||
+        t.id.toString().includes(searchLower)
+      );
+    }
+
+    if (filters.category !== 'All') filtered = filtered.filter(t => t.category === filters.category);
+    if (filters.priority !== 'All') filtered = filtered.filter(t => t.priority === filters.priority);
+    if (filters.agent !== 'All') filtered = filtered.filter(t => t.assignedTo === filters.agent);
+
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        if (sortConfig.key === 'createdAt' || sortConfig.key === 'lastUpdated') {
+          aVal = new Date(aVal).getTime();
+          bVal = new Date(bVal).getTime();
+        }
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [tickets, activeTab, filters, sortConfig]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredData.slice(startIndex, startIndex + pageSize);
+  }, [filteredData, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'high': return 'bg-rose-50 text-rose-700 border-rose-200';
+      case 'medium': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'low': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'open': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'in-progress': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'resolved': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'closed': return 'bg-slate-50 text-slate-700 border-slate-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
+  const handleCreateTicket = (data) => {
     const newTicketObj = {
       id: tickets.length + 1,
-      ...newTicket,
+      title: data.subject,
+      category: data.category,
+      priority: data.priority,
+      description: data.description,
       status: 'open',
       createdAt: new Date().toISOString(),
       assignedTo: null,
+      employeeName: 'Current User', // Mock employee name
+      employeeId: 'EMP000',
+      department: 'HR',
       resolutionTime: null,
       lastUpdated: new Date().toISOString()
     };
-
     setTickets([newTicketObj, ...tickets]);
-    setNewTicket({
-      title: '',
-      category: '',
-      priority: 'medium',
-      description: '',
-      employeeName: '',
-      employeeId: '',
-      department: ''
-    });
-
-    alert(`Ticket created successfully! Ticket ID: #${newTicketObj.id}`);
+    showNotification('Ticket created successfully!');
+    closeModal();
   };
 
-  // Handle view ticket
-  const handleViewTicket = (ticket) => {
-    setSelectedTicket(ticket);
-    setShowModal(true);
-  };
-
-  // Update ticket status
   const updateTicketStatus = (ticketId, newStatus) => {
-    const updatedTickets = tickets.map(ticket => {
-      if (ticket.id === ticketId) {
-        const updatedTicket = {
-          ...ticket,
-          status: newStatus,
-          lastUpdated: new Date().toISOString()
-        };
-        
-        if (newStatus === 'resolved' && !ticket.resolutionTime) {
-          updatedTicket.resolutionTime = new Date().toISOString();
+    setTickets(prev => prev.map(t => {
+      if (t.id === ticketId) {
+        const updated = { ...t, status: newStatus, lastUpdated: new Date().toISOString() };
+        if (newStatus === 'resolved' && !t.resolutionTime) {
+          updated.resolutionTime = new Date().toISOString();
         }
-        
-        if (selectedTicket && selectedTicket.id === ticketId) {
-          setSelectedTicket(updatedTicket);
+        if (modalState.data?.id === ticketId) {
+          setModalState(s => ({ ...s, data: updated }));
         }
-        
-        return updatedTicket;
+        return updated;
       }
-      return ticket;
-    });
-    
-    setTickets(updatedTickets);
+      return t;
+    }));
+    showNotification(`Ticket marked as ${newStatus}`);
   };
 
-  // Assign ticket to agent
   const assignTicket = (ticketId, agentName) => {
-    const updatedTickets = tickets.map(ticket => 
-      ticket.id === ticketId ? { 
-        ...ticket, 
-        assignedTo: agentName,
-        lastUpdated: new Date().toISOString()
-      } : ticket
-    );
-    setTickets(updatedTickets);
-    
-    if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket({...selectedTicket, assignedTo: agentName});
-    }
+    setTickets(prev => prev.map(t => {
+      if (t.id === ticketId) {
+        const updated = { ...t, assignedTo: agentName, lastUpdated: new Date().toISOString() };
+        if (modalState.data?.id === ticketId) {
+          setModalState(s => ({ ...s, data: updated }));
+        }
+        return updated;
+      }
+      return t;
+    }));
+    showNotification(`Ticket assigned to ${agentName}`);
   };
 
-  // Add internal note
-  const addInternalNote = (ticketId, note) => {
-    if (!note.trim()) return;
-    
+  const addInternalNote = (ticketId, noteContent) => {
     const noteObj = {
       id: Date.now(),
-      content: note,
+      content: noteContent,
       timestamp: new Date().toISOString(),
       author: userRole === 'hr_admin' ? 'You' : 'HR Support',
       ticketId: ticketId
     };
-    
     setInternalNotes(prev => ({
       ...prev,
       [ticketId]: [...(prev[ticketId] || []), noteObj]
     }));
+    showNotification('Internal note added');
   };
 
-  // Filter and sort tickets
-  const filteredAndSortedTickets = tickets
-    .filter(ticket => {
-      if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
-      if (categoryFilter !== 'all' && ticket.category !== categoryFilter) return false;
-      if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
-      if (selectedAgent && ticket.assignedTo !== selectedAgent) return false;
-      
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          ticket.title.toLowerCase().includes(searchLower) ||
-          ticket.description.toLowerCase().includes(searchLower) ||
-          ticket.employeeName?.toLowerCase().includes(searchLower) ||
-          ticket.employeeId?.toLowerCase().includes(searchLower) ||
-          ticket.id.toString().includes(searchLower)
-        );
-      }
-      
-      return true;
-    })
-    .sort((a, b) => {
-      let aVal, bVal;
-      
-      switch (sortBy) {
-        case 'priority':
-          const priorityOrder = { high: 3, medium: 2, low: 1 };
-          aVal = priorityOrder[a.priority] || 0;
-          bVal = priorityOrder[b.priority] || 0;
-          break;
-        case 'createdAt':
-          aVal = new Date(a.createdAt);
-          bVal = new Date(b.createdAt);
-          break;
-        case 'lastUpdated':
-          aVal = new Date(a.lastUpdated);
-          bVal = new Date(b.lastUpdated);
-          break;
-        default:
-          aVal = a[sortBy];
-          bVal = b[sortBy];
-      }
-      
-      return sortOrder === 'asc' ? 
-        (aVal < bVal ? -1 : aVal > bVal ? 1 : 0) :
-        (aVal > bVal ? -1 : aVal < bVal ? 1 : 0);
-    });
+  const renderStats = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <StatCard title="Total Tickets" value={kpis.total} subtitle="All time" icon="heroicons:ticket" color="blue" />
+      <StatCard title="Open" value={kpis.open} subtitle="Needs attention" icon="heroicons:envelope-open" color="red" />
+      <StatCard title="In Progress" value={kpis.inProgress} subtitle="Being worked on" icon="heroicons:arrow-path" color="purple" />
+      <StatCard title="Resolved" value={kpis.resolved} subtitle="Successfully fixed" icon="heroicons:check-circle" color="green" />
+      <StatCard title="Unassigned" value={kpis.unassigned} subtitle="Awaiting assignment" icon="heroicons:user-minus" color="amber" />
+      <StatCard title="Avg Resolution" value={`${kpis.avgResolution}h`} subtitle="Average time" icon="heroicons:clock" color="cyan" />
+    </div>
+  );
 
-  // Get priority color
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'high': return '#dc2626';
-      case 'medium': return '#d97706';
-      case 'low': return '#059669';
-      default: return '#6b7280';
-    }
-  };
+  const renderTabs = () => (
+    <div className="flex flex-wrap gap-1 mb-6 border-b border-slate-200">
+      {[
+        { id: 'all', label: 'All Tickets', icon: 'heroicons:queue-list', count: kpis.total },
+        { id: 'open', label: 'Open', icon: 'heroicons:envelope-open', count: kpis.open },
+        { id: 'in-progress', label: 'In Progress', icon: 'heroicons:arrow-path', count: kpis.inProgress },
+        { id: 'resolved', label: 'Resolved', icon: 'heroicons:check-circle', count: kpis.resolved },
+      ].map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+        >
+          <Icon icon={tab.icon} className="w-4 h-4" />
+          {tab.label}
+          <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+            {tab.count}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
 
-  // Get status color
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'open': return '#1d4ed8';
-      case 'in-progress': return '#7c3aed';
-      case 'resolved': return '#15803d';
-      case 'closed': return '#6b7280';
-      default: return '#6b7280';
-    }
-  };
+  const renderFilters = () => (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="relative">
+          <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search tickets..."
+            className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          />
+        </div>
+        <select
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+          value={filters.category}
+          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+        >
+          <option value="All">All Categories</option>
+          <option value="Payroll queries">Payroll queries</option>
+          <option value="Leave and attendance issues">Leave & Attendance</option>
+          <option value="IT access issues">IT Access</option>
+          <option value="Policy clarifications">Policy</option>
+          <option value="Reimbursement queries">Reimbursements</option>
+        </select>
+        <select
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+          value={filters.priority}
+          onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+        >
+          <option value="All">All Priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+          value={filters.agent}
+          onChange={(e) => setFilters({ ...filters, agent: e.target.value })}
+        >
+          <option value="All">All Agents</option>
+          {assignedAgents.map(agent => (
+            <option key={agent} value={agent}>{agent}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
 
-  // Styles
-  const styles = {
-    container: {
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif',
-      backgroundColor: '#f8fafc',
-      minHeight: '100vh',
-      padding: '24px'
-    },
-    header: {
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      padding: '24px',
-      borderRadius: '12px',
-      marginBottom: '24px',
-      boxShadow: '0 4px 20px rgba(102, 126, 234, 0.15)'
-    },
-    mainContent: {
-      display: 'grid',
-      gridTemplateColumns: '2fr 1fr',
-      gap: '24px'
-    },
-    ticketForm: {
-      background: 'white',
-      padding: '24px',
-      borderRadius: '12px',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-      marginBottom: '24px'
-    },
-    formGrid: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '16px'
-    },
-    input: {
-      width: '100%',
-      padding: '10px 12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      marginTop: '4px'
-    },
-    textarea: {
-      width: '100%',
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      minHeight: '100px',
-      resize: 'vertical'
-    },
-    button: {
-      padding: '10px 20px',
-      borderRadius: '8px',
-      border: 'none',
-      fontSize: '14px',
-      fontWeight: '500',
-      cursor: 'pointer',
-      transition: 'all 0.2s'
-    },
-    primaryButton: {
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white'
-    },
-    secondaryButton: {
-      background: '#f8f9fa',
-      color: '#6c757d',
-      border: '1px solid #dee2e6'
-    },
-    ticketsTable: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      background: 'white',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-    },
-    tableHeader: {
-      backgroundColor: '#f8f9fa',
-      padding: '16px',
-      textAlign: 'left',
-      fontWeight: '600',
-      color: '#495057',
-      borderBottom: '2px solid #e9ecef'
-    },
-    tableCell: {
-      padding: '16px',
-      borderBottom: '1px solid #e9ecef'
-    },
-    priorityBadge: {
-      display: 'inline-block',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '12px',
-      fontWeight: '600',
-      textTransform: 'uppercase'
-    },
-    modalOverlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000,
-      padding: '20px'
-    },
-    modalContent: {
-      background: 'white',
-      borderRadius: '16px',
-      width: '90%',
-      maxWidth: '800px',
-      maxHeight: '90vh',
-      overflowY: 'auto'
-    }
-  };
-
-  const cardStyle = {
-    background: 'white',
-    border: '1px solid #dee2e6',
-    borderRadius: '12px',
-    padding: '20px',
-    textAlign: 'center',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-    width: '150px'
-  };
-
-  const labelStyle = {
-    color: '#6c757d',
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    marginBottom: '8px'
-  };
-
-  const valueStyle = {
-    fontSize: '1.5rem',
-    fontWeight: '700'
-  };
-
-  // Menu items for the layout
-  const menuItems = [
-    {
-      title: 'Dashboard',
-      link: '/hr/dashboard',
-      active: false
-    },
-    {
-      title: 'Employee Master',
-      link: '/hr/employees'
-    },
-    {
-      title: 'HR Operations',
-      link: '/hr/operations'
-    },
-    {
-      title: 'HR Helpdesk',
-      link: '/hr/helpdesk',
-      active: true
-    },
-    {
-      title: 'Attendance',
-      link: '/hr/attendance'
-    },
-    {
-      title: 'Leave Management',
-      link: '/hr/leave'
-    },
-    {
-      title: 'Payroll',
-      link: '/hr/payroll'
-    },
-    {
-      title: 'Performance',
-      link: '/hr/performance'
-    },
-    {
-      title: 'Reports',
-      link: '/hr/reports'
-    },
-    {
-      title: 'Settings',
-      link: '/hr/settings'
-    }
-  ];
-
-  const userInfo = {
-    name: 'HR Manager',
-    role: 'Human Resources',
-    email: 'hr@company.com'
-  };
-
-  // Modal component
-  const TicketModal = ({ ticket, onClose }) => {
-    const [note, setNote] = useState('');
-    const [assignTo, setAssignTo] = useState(ticket.assignedTo || '');
-    const ticketNotes = internalNotes[ticket.id] || [];
-
-    const handleAddNote = () => {
-      if (note.trim()) {
-        addInternalNote(ticket.id, note);
-        setNote('');
-      }
-    };
-
-    return (
-      <div style={styles.modalOverlay} onClick={onClose}>
-        <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
-          <div style={{padding: '24px', borderBottom: '1px solid #e9ecef'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px'}}>
-              <div>
-                <h2 style={{margin: 0, color: '#212529'}}>Ticket #{ticket.id}</h2>
-                <h3 style={{margin: '8px 0 0', color: '#495057'}}>{ticket.title}</h3>
-              </div>
-              <button 
-                onClick={onClose}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  color: '#6c757d',
-                  cursor: 'pointer',
-                  padding: '4px'
-                }}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-              <span style={{
-                ...styles.priorityBadge,
-                backgroundColor: getPriorityColor(ticket.priority) + '20',
-                color: getPriorityColor(ticket.priority)
-              }}>
-                {ticket.priority}
-              </span>
-              <span style={{
-                ...styles.priorityBadge,
-                backgroundColor: getStatusColor(ticket.status) + '20',
-                color: getStatusColor(ticket.status)
-              }}>
-                {ticket.status}
-              </span>
-              <span style={{
-                ...styles.priorityBadge,
-                backgroundColor: '#e7f1ff',
-                color: '#0d6efd'
-              }}>
-                {ticket.category}
-              </span>
-            </div>
-          </div>
-
-          <div style={{padding: '24px'}}>
-            {/* Ticket Details */}
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px'}}>
-              <div>
-                <h4 style={{color: '#495057', marginBottom: '12px'}}>Employee Details</h4>
-                <div style={{color: '#6c757d', lineHeight: '1.8'}}>
-                  <div><strong>Name:</strong> {ticket.employeeName || 'Not provided'}</div>
-                  <div><strong>ID:</strong> {ticket.employeeId || 'N/A'}</div>
-                  <div><strong>Department:</strong> {ticket.department || 'N/A'}</div>
-                </div>
-              </div>
-              <div>
-                <h4 style={{color: '#495057', marginBottom: '12px'}}>Ticket Details</h4>
-                <div style={{color: '#6c757d', lineHeight: '1.8'}}>
-                  <div><strong>Created:</strong> {new Date(ticket.createdAt).toLocaleString()}</div>
-                  <div><strong>Last Updated:</strong> {new Date(ticket.lastUpdated).toLocaleString()}</div>
-                  <div><strong>Assigned To:</strong> {ticket.assignedTo || 'Unassigned'}</div>
-                  {ticket.resolutionTime && (
-                    <div><strong>Resolved:</strong> {new Date(ticket.resolutionTime).toLocaleString()}</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div style={{marginBottom: '24px'}}>
-              <h4 style={{color: '#495057', marginBottom: '12px'}}>Description</h4>
-              <div style={{
-                backgroundColor: '#f8f9fa',
-                padding: '16px',
-                borderRadius: '8px',
-                border: '1px solid #e9ecef',
-                color: '#495057',
-                lineHeight: '1.6'
-              }}>
-                {ticket.description}
-              </div>
-            </div>
-
-            {/* Assignment Section */}
-            {userRole === 'hr_admin' && (
-              <div style={{marginBottom: '24px'}}>
-                <h4 style={{color: '#495057', marginBottom: '12px'}}>Assign Ticket</h4>
-                <div style={{display: 'flex', gap: '12px'}}>
-                  <select
-                    value={assignTo}
-                    onChange={(e) => setAssignTo(e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: '10px 12px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="">Select Agent</option>
-                    {assignedAgents.map(agent => (
-                      <option key={agent} value={agent}>{agent}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => assignTicket(ticket.id, assignTo)}
-                    disabled={!assignTo}
-                    style={{
-                      ...styles.button,
-                      ...styles.primaryButton,
-                      opacity: assignTo ? 1 : 0.5
-                    }}
-                  >
-                    Assign
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Internal Notes */}
-            <div style={{marginBottom: '24px'}}>
-              <h4 style={{color: '#495057', marginBottom: '12px'}}>Internal Notes</h4>
-              <div style={{
-                maxHeight: '200px',
-                overflowY: 'auto',
-                marginBottom: '16px',
-                border: '1px solid #e9ecef',
-                borderRadius: '8px',
-                padding: '12px'
-              }}>
-                {ticketNotes.length === 0 ? (
-                  <div style={{color: '#adb5bd', textAlign: 'center', padding: '20px'}}>No internal notes yet</div>
-                ) : (
-                  ticketNotes.map(note => (
-                    <div key={note.id} style={{
-                      backgroundColor: '#e7f1ff',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      marginBottom: '12px',
-                      borderLeft: '4px solid #0d6efd'
-                    }}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px'}}>
-                        <span style={{fontWeight: '600', color: '#0d6efd'}}>{note.author}</span>
-                        <span style={{color: '#6c757d'}}>
-                          {new Date(note.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                      <div style={{color: '#212529', lineHeight: '1.5'}}>{note.content}</div>
+  const renderTable = () => (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="border-b border-slate-200 bg-slate-50/50 px-4 py-3 flex justify-between items-center">
+        <h5 className="font-bold text-slate-800 flex items-center gap-2">
+          <Icon icon="heroicons:ticket" className="w-5 h-5 text-blue-500" />
+          Support Tickets
+        </h5>
+        <button
+          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+          onClick={() => openModal('create')}
+        >
+          <Icon icon="heroicons:plus" className="w-4 h-4" /> New Ticket
+        </button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50/50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('id')}>ID</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('title')}>Subject & Requester</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-600">Category</th>
+              <th className="px-4 py-3 text-center font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('priority')}>Priority</th>
+              <th className="px-4 py-3 text-center font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('status')}>Status</th>
+              <th className="px-4 py-3 text-center font-semibold text-slate-600">Assigned To</th>
+              <th className="px-4 py-3 text-center font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('createdAt')}>Created</th>
+              <th className="px-4 py-3 text-center font-semibold text-slate-600">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {paginatedData.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-12">
+                  <Icon icon="heroicons:inbox" className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                  <h6 className="text-slate-600 font-medium">No tickets found</h6>
+                  <p className="text-sm text-slate-400">Try adjusting your search or filters</p>
+                </td>
+              </tr>
+            ) : (
+              paginatedData.map(item => (
+                <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                  <td className="px-4 py-3 text-slate-600 font-medium">#{item.id}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-800">{item.title}</div>
+                    <div className="text-xs text-slate-500">{item.employeeName}</div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs border border-slate-200">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(item.priority)}`}>
+                      {item.priority}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(item.status)}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center text-slate-600">
+                    {item.assignedTo ? (
+                      <span className="flex items-center justify-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                          {item.assignedTo.charAt(0)}
+                        </div>
+                        {item.assignedTo}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic">Unassigned</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center text-slate-500 text-xs">
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition"
+                        onClick={() => openModal('view', item)}
+                        title="View Ticket"
+                      >
+                        <Icon icon="heroicons:eye" className="w-4 h-4" />
+                      </button>
                     </div>
-                  ))
-                )}
-              </div>
-              
-              <div>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Add internal note..."
-                  rows="3"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    marginBottom: '12px'
-                  }}
-                />
-                <button
-                  onClick={handleAddNote}
-                  style={{
-                    ...styles.button,
-                    backgroundColor: '#198754',
-                    color: 'white'
-                  }}
-                >
-                  Add Note
-                </button>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{display: 'flex', justifyContent: 'space-between', paddingTop: '24px', borderTop: '1px solid #e9ecef'}}>
-              <div style={{display: 'flex', gap: '12px'}}>
-                {ticket.status === 'open' && (
-                  <button
-                    onClick={() => updateTicketStatus(ticket.id, 'in-progress')}
-                    style={{
-                      ...styles.button,
-                      backgroundColor: '#0d6efd',
-                      color: 'white'
-                    }}
-                  >
-                    Start Progress
-                  </button>
-                )}
-                {ticket.status === 'in-progress' && (
-                  <button
-                    onClick={() => updateTicketStatus(ticket.id, 'resolved')}
-                    style={{
-                      ...styles.button,
-                      backgroundColor: '#198754',
-                      color: 'white'
-                    }}
-                  >
-                    Mark as Resolved
-                  </button>
-                )}
-                {ticket.status !== 'closed' && (
-                  <button
-                    onClick={() => updateTicketStatus(ticket.id, 'closed')}
-                    style={{
-                      ...styles.button,
-                      backgroundColor: '#6c757d',
-                      color: 'white'
-                    }}
-                  >
-                    Close Ticket
-                  </button>
-                )}
-              </div>
-              <div style={{display: 'flex', gap: '12px'}}>
-                <button style={{
-                  ...styles.button,
-                  backgroundColor: 'white',
-                  color: '#6c757d',
-                  border: '1px solid #dee2e6'
-                }}>
-                  Escalate
-                </button>
-              </div>
-            </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div className="border-t border-slate-200 px-4 py-3 flex justify-between items-center">
+          <div className="text-sm text-slate-500">
+            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} entries
+          </div>
+          <div className="flex gap-1">
+            <button
+              className="px-3 py-1 border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
+            <button
+              className="px-3 py-1 border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
           </div>
         </div>
-      </div>
-    );
-  };
+      )}
+    </div>
+  );
 
   return (
-    <>
-      <div style={styles.container}>
-        {/* Header */}
-     <div>
-  <h5 className="mb-2 d-flex align-items-center">
-    <Icon
-      icon="heroicons-outline:lifebuoy"
-      className="me-2"
-      width={24}
-      height={24}
-    />
-    HR Helpdesk & Ticketing System
-  </h5>
-
-  <p className="text-muted d-none d-md-block">
-    Manage all HR queries and support requests in one place
-  </p>
-</div>
-
-
-        {/* Statistics Cards Grid */}
-        <div style={{ marginBottom: '24px', overflowX: 'auto' }}>
-          <div
-            style={{
-              display: 'flex',
-              gap: '16px',
-              minWidth: '1200px',
-            }}
-          >
-            {/* Total Tickets */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>Total Tickets</div>
-              <div style={{ ...valueStyle, color: '#0d6efd' }}>{stats.total}</div>
-            </div>
-
-            {/* Open */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>Open</div>
-              <div style={{ ...valueStyle, color: '#dc3545' }}>{stats.open}</div>
-            </div>
-
-            {/* In Progress */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>In Progress</div>
-              <div style={{ ...valueStyle, color: '#0dcaf0' }}>{stats.inProgress}</div>
-            </div>
-
-            {/* Resolved */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>Resolved</div>
-              <div style={{ ...valueStyle, color: '#198754' }}>{stats.resolved}</div>
-            </div>
-
-            {/* High Priority */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>High Priority</div>
-              <div style={{ ...valueStyle, color: '#dc3545' }}>{stats.highPriority}</div>
-            </div>
-
-            {/* Unassigned */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>Unassigned</div>
-              <div style={{ ...valueStyle, color: '#fd7e14' }}>{stats.unassigned}</div>
-            </div>
-
-            {/* Today's Tickets */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>Today's Tickets</div>
-              <div style={{ ...valueStyle, color: '#20c997' }}>{stats.today}</div>
-            </div>
-
-            {/* Overdue */}
-            <div style={cardStyle}>
-              <div style={labelStyle}>Overdue</div>
-              <div style={{ ...valueStyle, color: '#ffc107' }}>{stats.overdue}</div>
-            </div>
+    <div className="mx-auto max-w-7xl">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center justify-center w-10 h-10 bg-purple-50 rounded-xl">
+            <Icon icon="heroicons:lifebuoy" className="w-5 h-5 text-purple-600" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">HR Helpdesk</h1>
+            <p className="text-sm text-slate-500">Manage support tickets, assignments, and resolutions</p>
           </div>
         </div>
-
-        {/* Main Content */}
-        <div style={styles.mainContent}>
-          {/* Left Column */}
-          <div>
-            {/* Create Ticket Form */}
-            <div style={styles.ticketForm}>
-              <h5 style={{color: '#212529', marginBottom: '20px', fontSize: '1.5rem'}}>Create New Ticket</h5>
-              <form onSubmit={handleCreateTicket}>
-                <div style={styles.formGrid}>
-                  <div>
-                    <label style={{display: 'block', color: '#495057', marginBottom: '8px', fontSize: '14px'}}>
-                      <strong>Title *</strong>
-                    </label>
-                    <input
-                      type="text"
-                      value={newTicket.title}
-                      onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
-                      placeholder="Brief description of issue"
-                      required
-                      style={styles.input}
-                    />
-                  </div>
-                  <div>
-                    <label style={{display: 'block', color: '#495057', marginBottom: '8px', fontSize: '14px'}}>
-                      <strong>Category *</strong>
-                    </label>
-                    <select
-                      value={newTicket.category}
-                      onChange={(e) => setNewTicket({...newTicket, category: e.target.value})}
-                      required
-                      style={styles.input}
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{display: 'block', color: '#495057', marginBottom: '8px', fontSize: '14px'}}>
-                      <strong>Priority</strong>
-                    </label>
-                    <select
-                      value={newTicket.priority}
-                      onChange={(e) => setNewTicket({...newTicket, priority: e.target.value})}
-                      style={styles.input}
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{display: 'block', color: '#495057', marginBottom: '8px', fontSize: '14px'}}>
-                      <strong>Employee Name</strong>
-                    </label>
-                    <input
-                      type="text"
-                      value={newTicket.employeeName}
-                      onChange={(e) => setNewTicket({...newTicket, employeeName: e.target.value})}
-                      placeholder="Optional"
-                      style={styles.input}
-                    />
-                  </div>
-                </div>
-                
-                <div style={{marginTop: '16px'}}>
-                  <label style={{display: 'block', color: '#495057', marginBottom: '8px', fontSize: '14px'}}>
-                    <strong>Description *</strong>
-                  </label>
-                  <textarea
-                    value={newTicket.description}
-                    onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
-                    placeholder="Detailed description of the issue..."
-                    required
-                    style={styles.textarea}
-                  />
-                </div>
-                
-                <button
-                  type="submit"
-                  style={{
-                    ...styles.button,
-                    ...styles.primaryButton,
-                    marginTop: '20px',
-                    width: '100%',
-                    fontSize: '16px',
-                    padding: '12px'
-                  }}
-                >
-                  Create Ticket
-                </button>
-              </form>
-            </div>
-
-            {/* Tickets Table */}
-            <div style={{background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-              <div style={{padding: '24px', borderBottom: '1px solid #e9ecef'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h5 style={{color: '#212529', margin: 0, fontSize: '1.25rem'}}>
-                    All Tickets <span style={{color: '#6c757d'}}>({filteredAndSortedTickets.length})</span>
-                  </h5>
-                  <div style={{display: 'flex', gap: '12px'}}>
-                    <input
-                      type="text"
-                      placeholder="Search tickets..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      style={{
-                        padding: '10px 12px',
-                        border: '1px solid #dee2e6',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        width: '200px'
-                      }}
-                    />
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      style={{
-                        padding: '10px 12px',
-                        border: '1px solid #dee2e6',
-                        borderRadius: '8px',
-                        fontSize: '14px'
-                      }}
-                    >
-                      <option value="all">All Status</option>
-                      <option value="open">Open</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    style={{
-                      padding: '10px 12px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="all">All Categories</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                  
-                  <select
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value)}
-                    style={{
-                      padding: '10px 12px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="all">All Priorities</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                  
-                  <select
-                    value={selectedAgent}
-                    onChange={(e) => setSelectedAgent(e.target.value)}
-                    style={{
-                      padding: '10px 12px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="">All Agents</option>
-                    {assignedAgents.map(agent => (
-                      <option key={agent} value={agent}>{agent}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <table style={styles.ticketsTable}>
-                <thead>
-                  <tr>
-                    <th style={styles.tableHeader}>ID</th>
-                    <th style={styles.tableHeader}>Title</th>
-                    <th style={styles.tableHeader}>Category</th>
-                    <th style={styles.tableHeader}>Priority</th>
-                    <th style={styles.tableHeader}>Status</th>
-                    <th style={styles.tableHeader}>Created</th>
-                    <th style={styles.tableHeader}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedTickets.map(ticket => (
-                    <tr key={ticket.id} style={{borderBottom: '1px solid #e9ecef'}}>
-                      <td style={styles.tableCell}>
-                        <strong style={{color: '#212529'}}>#{ticket.id}</strong>
-                      </td>
-                      <td style={styles.tableCell}>
-                        <div>
-                          <strong style={{color: '#212529'}}>{ticket.title}</strong>
-                          <div style={{color: '#6c757d', fontSize: '13px', marginTop: '4px'}}>
-                            {ticket.description.substring(0, 60)}...
-                          </div>
-                        </div>
-                      </td>
-                      <td style={styles.tableCell}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '4px 10px',
-                          backgroundColor: '#e7f1ff',
-                          color: '#0d6efd',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          {ticket.category}
-                        </span>
-                      </td>
-                      <td style={styles.tableCell}>
-                        <span style={{
-                          ...styles.priorityBadge,
-                          backgroundColor: getPriorityColor(ticket.priority) + '20',
-                          color: getPriorityColor(ticket.priority)
-                        }}>
-                          {ticket.priority}
-                        </span>
-                      </td>
-                      <td style={styles.tableCell}>
-                        <span style={{
-                          ...styles.priorityBadge,
-                          backgroundColor: getStatusColor(ticket.status) + '20',
-                          color: getStatusColor(ticket.status)
-                        }}>
-                          {ticket.status}
-                        </span>
-                      </td>
-                      <td style={styles.tableCell}>
-                        <div style={{color: '#6c757d', fontSize: '13px'}}>
-                          {new Date(ticket.createdAt).toLocaleDateString()}
-                          <div style={{fontSize: '11px', color: '#adb5bd'}}>
-                            {new Date(ticket.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={styles.tableCell}>
-                        <div style={{display: 'flex', gap: '8px'}}>
-                          <button
-                            onClick={() => handleViewTicket(ticket)}
-                            style={{
-                              ...styles.button,
-                              backgroundColor: '#0d6efd',
-                              color: 'white',
-                              padding: '6px 12px',
-                              fontSize: '13px'
-                            }}
-                          >
-                            View
-                          </button>
-                          {userRole === 'hr_admin' && ticket.status === 'open' && (
-                            <button
-                              onClick={() => updateTicketStatus(ticket.id, 'in-progress')}
-                              style={{
-                                ...styles.button,
-                                backgroundColor: '#198754',
-                                color: 'white',
-                                padding: '6px 12px',
-                                fontSize: '13px'
-                              }}
-                            >
-                              Start
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Right Column */}
-          <div>
-            {/* Quick Actions */}
-            <div style={{background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-              <h5 style={{color: '#212529', marginBottom: '20px', fontSize: '1.25rem'}}>Quick Actions</h5>
-              <div style={{display: 'grid', gap: '12px'}}>
-                <button style={{...styles.button, ...styles.secondaryButton, textAlign: 'left'}}>
-                  Export Tickets to Excel
-                </button>
-                <button style={{...styles.button, ...styles.secondaryButton, textAlign: 'left'}}>
-                  View Unassigned Tickets
-                </button>
-                <button style={{...styles.button, ...styles.secondaryButton, textAlign: 'left'}}>
-                  Generate Weekly Report
-                </button>
-                <button style={{...styles.button, ...styles.secondaryButton, textAlign: 'left'}}>
-                  View All Agents
-                </button>
-              </div>
-            </div>
-
-            {/* Category Breakdown */}
-            <div style={{background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-              <h5 style={{color: '#212529', marginBottom: '20px', fontSize: '1.25rem'}}>Category Breakdown</h5>
-              {categories.map(category => {
-                const count = tickets.filter(t => t.category === category).length;
-                return (
-                  <div key={category} style={{marginBottom: '12px'}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px'}}>
-                      <span style={{color: '#495057', fontSize: '14px'}}>{category}</span>
-                      <span style={{color: '#212529', fontWeight: '500', fontSize: '14px'}}>{count}</span>
-                    </div>
-                    <div style={{
-                      width: '100%',
-                      height: '8px',
-                      backgroundColor: '#f8f9fa',
-                      borderRadius: '4px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        width: `${(count / tickets.length) * 100}%`,
-                        height: '100%',
-                        backgroundColor: '#0d6efd',
-                        borderRadius: '4px'
-                      }}></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Agent Performance */}
-            <div style={{background: 'white', borderRadius: '12px', padding: '24px', marginTop: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-              <h5 style={{color: '#212529', marginBottom: '20px', fontSize: '1.25rem'}}>Agent Performance</h5>
-              <div style={{display: 'grid', gap: '16px'}}>
-                {assignedAgents.map(agent => {
-                  const agentTickets = tickets.filter(t => t.assignedTo === agent);
-                  const resolvedTickets = agentTickets.filter(t => t.status === 'resolved' || t.status === 'closed').length;
-                  const avgResolution = agentTickets.length > 0 ? 
-                    Math.round(agentTickets.reduce((sum, t) => {
-                      if (t.resolutionTime) {
-                        const created = new Date(t.createdAt);
-                        const resolved = new Date(t.resolutionTime);
-                        return sum + ((resolved - created) / (1000 * 60 * 60));
-                      }
-                      return sum;
-                    }, 0) / agentTickets.length) : 0;
-                  
-                  return (
-                    <div key={agent} style={{
-                      padding: '12px',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      backgroundColor: '#f8f9fa'
-                    }}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                        <span style={{fontWeight: '500', color: '#212529'}}>{agent}</span>
-                        <span style={{
-                          backgroundColor: resolvedTickets > 0 ? '#d1e7dd' : '#f8d7da',
-                          color: resolvedTickets > 0 ? '#0f5132' : '#842029',
-                          padding: '4px 8px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          {resolvedTickets} resolved
-                        </span>
-                      </div>
-                      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '12px', color: '#6c757d'}}>
-                        <span>Total: {agentTickets.length}</span>
-                        <span>Avg: {avgResolution}h</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Modal */}
-        {showModal && selectedTicket && (
-          <TicketModal
-            ticket={selectedTicket}
-            onClose={() => {
-              setShowModal(false);
-              setSelectedTicket(null);
-            }}
-          />
-        )}
       </div>
-    </>
+
+      {renderStats()}
+      {renderTabs()}
+      {renderFilters()}
+      {renderTable()}
+
+      <TicketModal
+        isOpen={modalState.isOpen && modalState.type === 'create'}
+        onClose={closeModal}
+        onSubmit={handleCreateTicket}
+        newTicket={{ subject: '', category: 'technical', priority: 'medium', description: '' }}
+      />
+
+      <ViewTicketModal
+        isOpen={modalState.isOpen && modalState.type === 'view'}
+        onClose={closeModal}
+        ticket={modalState.data}
+        onUpdateStatus={updateTicketStatus}
+        onAssign={assignTicket}
+        onAddNote={addInternalNote}
+        internalNotes={internalNotes}
+        userRole={userRole}
+        assignedAgents={assignedAgents}
+      />
+
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} className="text-xs sm:text-sm" toastClassName="rounded-xl shadow-lg" />
+    </div>
   );
 };
 
