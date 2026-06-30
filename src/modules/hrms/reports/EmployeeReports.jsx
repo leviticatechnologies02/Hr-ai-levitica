@@ -52,156 +52,103 @@ const EmployeeReports = () => {
   });
 
   // Enhanced Headcount & Demographics Data
-  const headcountData = [
-    { id: 1, department: 'Engineering', location: 'Bangalore', headcount: 150, growth: 12, male: 110, female: 40, permanent: 130, contract: 18, intern: 2, grade1: 20, grade2: 45, grade3: 60, grade4: 25 },
-    { id: 2, department: 'Sales', location: 'Mumbai', headcount: 85, growth: 8, male: 55, female: 30, permanent: 70, contract: 13, intern: 2, grade1: 15, grade2: 30, grade3: 30, grade4: 10 },
-    { id: 3, department: 'Marketing', location: 'Delhi', headcount: 45, growth: 15, male: 25, female: 20, permanent: 40, contract: 4, intern: 1, grade1: 8, grade2: 15, grade3: 18, grade4: 4 },
-    { id: 4, department: 'HR', location: 'Bangalore', headcount: 25, growth: 5, male: 10, female: 15, permanent: 22, contract: 2, intern: 1, grade1: 3, grade2: 8, grade3: 10, grade4: 4 },
-    { id: 5, department: 'Finance', location: 'Chennai', headcount: 35, growth: -2, male: 20, female: 15, permanent: 30, contract: 4, intern: 1, grade1: 5, grade2: 12, grade3: 14, grade4: 4 },
-    { id: 6, department: 'Operations', location: 'Hyderabad', headcount: 65, growth: 10, male: 45, female: 20, permanent: 55, contract: 8, intern: 2, grade1: 10, grade2: 22, grade3: 25, grade4: 8 },
-  ];
+  const headcountData = [];
+    
 
   // Age Distribution Data
   const ageDistribution = [
-    { range: '20-25', count: 180, percentage: 12.2 },
-    { range: '26-30', count: 520, percentage: 35.1 },
-    { range: '31-35', count: 420, percentage: 28.4 },
-    { range: '36-40', count: 240, percentage: 16.2 },
-    { range: '41-45', count: 80, percentage: 5.4 },
-    { range: '46-50', count: 32, percentage: 2.2 },
-    { range: '50+', count: 8, percentage: 0.5 },
+    { range: '20-25', count: 0, percentage: 0.0 },
+    { range: '26-30', count: 0, percentage: 0.0 },
+    { range: '31-35', count: 0, percentage: 0.0 },
+    { range: '36-40', count: 0, percentage: 0.0 },
+    { range: '41-45', count: 0, percentage: 0.0 },
+    { range: '46-50', count: 0, percentage: 0.0 },
+    { range: '50+', count: 0, percentage: 0.0 },
   ];
 
   // Tenure Distribution Data
   const tenureDistribution = [
-    { range: '0-1 years', count: 320, percentage: 21.6 },
-    { range: '1-3 years', count: 480, percentage: 32.4 },
-    { range: '3-5 years', count: 360, percentage: 24.3 },
-    { range: '5-7 years', count: 180, percentage: 12.2 },
-    { range: '7-10 years', count: 100, percentage: 6.8 },
-    { range: '10+ years', count: 40, percentage: 2.7 },
+    { range: '0-1 years', count: 0, percentage: 0.0 },
+    { range: '1-3 years', count: 0, percentage: 0.0 },
+    { range: '3-5 years', count: 0, percentage: 0.0 },
+    { range: '5-7 years', count: 0, percentage: 0.0},
+    { range: '7-10 years', count: 0, percentage: 0.0 },
+    { range: '10+ years', count: 0, percentage: 0.0 },
   ];
 
   // New Joiner Reports by Period
   const newJoinerReports = {
-    daily: [
-      { date: '2024-03-01', count: 3, department: 'Engineering', accepted: 3 },
-      { date: '2024-03-02', count: 2, department: 'Sales', accepted: 2 },
-      { date: '2024-03-03', count: 1, department: 'Marketing', accepted: 1 },
-    ],
-    weekly: [
-      { week: 'Week 1 (Mar 1-7)', count: 15, accepted: 14, declined: 1 },
-      { week: 'Week 2 (Mar 8-14)', count: 18, accepted: 16, declined: 2 },
-      { week: 'Week 3 (Mar 15-21)', count: 12, accepted: 11, declined: 1 },
-    ],
-    monthly: [
-      { month: 'January 2024', count: 45, accepted: 42, declined: 3 },
-      { month: 'February 2024', count: 52, accepted: 48, declined: 4 },
-      { month: 'March 2024', count: 65, accepted: 60, declined: 5 },
-    ]
+    daily: [],
+    weekly: [],
+    monthly: []
   };
 
   // Employee List Sample Data
-  const employeeListData = [
-    { id: 1, name: 'Rajesh Kumar', employeeId: 'EMP001', department: 'Engineering', location: 'Bangalore', status: 'Active', grade: 'L3', tenure: '2.5 years', joiningDate: '2021-08-15' },
-    { id: 2, name: 'Priya Sharma', employeeId: 'EMP002', department: 'Sales', location: 'Mumbai', status: 'Active', grade: 'L2', tenure: '1.2 years', joiningDate: '2022-11-20' },
-    { id: 3, name: 'Arun Patel', employeeId: 'EMP003', department: 'Finance', location: 'Chennai', status: 'On Notice', grade: 'L2', tenure: '3.8 years', joiningDate: '2020-03-10', noticePeriod: '30 days' },
-    { id: 4, name: 'Sneha Reddy', employeeId: 'EMP004', department: 'Marketing', location: 'Delhi', status: 'Active', grade: 'L3', tenure: '4.2 years', joiningDate: '2019-12-05' },
-  ];
+  const employeeListData = [];
 
   // Enhanced Attrition Data
-  const attritionData = [
-    { id: 1, department: 'Engineering', location: 'Bangalore', total: 120, voluntary: 80, involuntary: 40, attritionRate: 15.2, avgTenure: 2.5, regrettable: 65, nonRegrettable: 55, grade1: 20, grade2: 45, grade3: 40, grade4: 15 },
-    { id: 2, department: 'Sales', location: 'Mumbai', total: 25, voluntary: 15, involuntary: 10, attritionRate: 8.5, avgTenure: 1.8, regrettable: 12, nonRegrettable: 13, grade1: 5, grade2: 10, grade3: 8, grade4: 2 },
-    { id: 3, department: 'Marketing', location: 'Delhi', total: 12, voluntary: 8, involuntary: 4, attritionRate: 5.2, avgTenure: 3.2, regrettable: 6, nonRegrettable: 6, grade1: 2, grade2: 4, grade3: 5, grade4: 1 },
-    { id: 4, department: 'Operations', location: 'Hyderabad', total: 18, voluntary: 12, involuntary: 6, attritionRate: 7.1, avgTenure: 2.8, regrettable: 10, nonRegrettable: 8, grade1: 3, grade2: 7, grade3: 6, grade4: 2 },
-  ];
+  const attritionData = [];
 
   // Attrition Reasons
   const attritionReasons = [
-    { reason: 'Better opportunity', count: 85, percentage: 48.6 },
-    { reason: 'Salary/Compensation', count: 45, percentage: 25.7 },
-    { reason: 'Work-life balance', count: 25, percentage: 14.3 },
-    { reason: 'Career growth', count: 12, percentage: 6.9 },
-    { reason: 'Relocation', count: 8, percentage: 4.6 },
+    { reason: 'Better opportunity', count: 0, percentage: 0.0 },
+    { reason: 'Salary/Compensation', count: 0, percentage: 0.0 },
+    { reason: 'Work-life balance', count: 0, percentage: 0.0 },
+    { reason: 'Career growth', count: 0, percentage: 0.0 },
+    { reason: 'Relocation', count: 0, percentage: 0.0 },
+
   ];
 
   // Attrition Trends
-  const attritionTrends = [
-    { period: 'Q1 2023', rate: 7.2, voluntary: 5.1, involuntary: 2.1 },
-    { period: 'Q2 2023', rate: 8.5, voluntary: 6.2, involuntary: 2.3 },
-    { period: 'Q3 2023', rate: 9.1, voluntary: 6.8, involuntary: 2.3 },
-    { period: 'Q4 2023', rate: 8.8, voluntary: 6.5, involuntary: 2.3 },
-    { period: 'Q1 2024', rate: 8.2, voluntary: 6.0, involuntary: 2.2 },
-  ];
+  const attritionTrends = [];
 
   // Replacement Cost Analysis
-  const replacementCostData = [
-    { department: 'Engineering', avgCost: 125000, totalCost: 15000000, hiresNeeded: 120 },
-    { department: 'Sales', avgCost: 85000, totalCost: 2125000, hiresNeeded: 25 },
-    { department: 'Marketing', avgCost: 75000, totalCost: 900000, hiresNeeded: 12 },
-    { department: 'Operations', avgCost: 65000, totalCost: 1170000, hiresNeeded: 18 },
-  ];
+  const replacementCostData = [];
 
   // Exit Interview Insights
   const exitInterviewInsights = [
-    { insight: 'Lack of career growth opportunities', mentions: 65, severity: 'High' },
-    { insight: 'Inadequate compensation', mentions: 45, severity: 'High' },
-    { insight: 'Poor work-life balance', mentions: 25, severity: 'Medium' },
-    { insight: 'Limited learning opportunities', mentions: 18, severity: 'Medium' },
+    { insight: 'Lack of career growth opportunities', mentions: 0, severity: 'High' },
+    { insight: 'Inadequate compensation', mentions: 0, severity: 'High' },
+    { insight: 'Poor work-life balance', mentions: 0, severity: 'Medium' },
+    { insight: 'Limited learning opportunities', mentions: 0, severity: 'Medium' },
+
   ];
 
   // Enhanced Onboarding Data
-  const onboardingData = [
-    { id: 1, department: 'Engineering', location: 'Bangalore', newJoiners: 25, accepted: 22, declined: 3, acceptanceRate: 88.0, timeToJoin: 15, variance: 2, onboardingComplete: 20, onboardingRate: 80.0, probationComplete: 18, confirmationRate: 90.0, firstYearAttrition: 4, firstYearAttritionRate: 18.2 },
-    { id: 2, department: 'Sales', location: 'Mumbai', newJoiners: 12, accepted: 10, declined: 2, acceptanceRate: 83.3, timeToJoin: 10, variance: 1, onboardingComplete: 9, onboardingRate: 75.0, probationComplete: 8, confirmationRate: 88.9, firstYearAttrition: 2, firstYearAttritionRate: 20.0 },
-    { id: 3, department: 'Marketing', location: 'Delhi', newJoiners: 8, accepted: 7, declined: 1, acceptanceRate: 87.5, timeToJoin: 12, variance: 0, onboardingComplete: 6, onboardingRate: 75.0, probationComplete: 5, confirmationRate: 83.3, firstYearAttrition: 1, firstYearAttritionRate: 14.3 },
-  ];
+  const onboardingData = [];
 
   // Offer Decline Reasons
   const offerDeclineReasons = [
-    { reason: 'Accepted another offer', count: 45, percentage: 45.0 },
-    { reason: 'Salary expectations', count: 28, percentage: 28.0 },
-    { reason: 'Location concerns', count: 15, percentage: 15.0 },
-    { reason: 'Personal reasons', count: 12, percentage: 12.0 },
+    { reason: 'Accepted another offer', count: 0, percentage: 0.0 },
+    { reason: 'Salary expectations', count: 0, percentage: 0.0 },
+    { reason: 'Location concerns', count: 0, percentage: 0.0 },
+    { reason: 'Personal reasons', count: 0, percentage: 0.0 }
   ];
 
   // Joining Variance Data
   const joiningVarianceData = [
-    { department: 'Engineering', onTime: 18, delayed: 4, avgVariance: 2.3 },
-    { department: 'Sales', onTime: 8, delayed: 2, avgVariance: 1.5 },
-    { department: 'Marketing', onTime: 6, delayed: 1, avgVariance: 1.2 },
+    { department: 'Engineering', onTime: 0, delayed: 0, avgVariance: 0.0},
+    { department: 'Sales', onTime: 0, delayed: 0, avgVariance: 0.0 },
+    { department: 'Marketing', onTime: 0, delayed: 0, avgVariance: 0.0 },
+
   ];
 
   // Enhanced Movement Data
-  const movementData = [
-    { id: 1, type: 'Promotion', employee: 'Rajesh Kumar', employeeId: 'EMP001', from: 'Senior Engineer', to: 'Tech Lead', department: 'Engineering', location: 'Bangalore', date: '2024-01-15', salaryChange: '15%', effectiveDate: '2024-02-01' },
-    { id: 2, type: 'Transfer', employee: 'Priya Sharma', employeeId: 'EMP002', from: 'Bangalore', to: 'Mumbai', department: 'Sales', location: 'Mumbai', date: '2024-01-10', salaryChange: '0%', effectiveDate: '2024-01-20' },
-    { id: 3, type: 'Designation Change', employee: 'Arun Patel', employeeId: 'EMP003', from: 'Analyst', to: 'Senior Analyst', department: 'Finance', location: 'Chennai', date: '2024-01-05', salaryChange: '8%', effectiveDate: '2024-01-15' },
-    { id: 4, type: 'Department Change', employee: 'Sneha Reddy', employeeId: 'EMP004', from: 'Marketing', to: 'Product', department: 'Product', location: 'Delhi', date: '2024-01-03', salaryChange: '5%', effectiveDate: '2024-01-10' },
-    { id: 5, type: 'Promotion', employee: 'Vikram Singh', employeeId: 'EMP005', from: 'Manager', to: 'Senior Manager', department: 'Operations', location: 'Hyderabad', date: '2024-01-20', salaryChange: '12%', effectiveDate: '2024-02-01' },
-    { id: 6, type: 'Inter-location Transfer', employee: 'Anita Desai', employeeId: 'EMP006', from: 'Delhi', to: 'Bangalore', department: 'HR', location: 'Bangalore', date: '2024-01-12', salaryChange: '10%', effectiveDate: '2024-02-01' },
-  ];
+  const movementData = [];
 
   // Salary Revision Reports
-  const salaryRevisionData = [
-    { id: 1, employee: 'Rajesh Kumar', employeeId: 'EMP001', department: 'Engineering', type: 'Promotion', oldSalary: 850000, newSalary: 977500, change: 15.0, effectiveDate: '2024-02-01' },
-    { id: 2, employee: 'Arun Patel', employeeId: 'EMP003', department: 'Finance', type: 'Designation Change', oldSalary: 600000, newSalary: 648000, change: 8.0, effectiveDate: '2024-01-15' },
-    { id: 3, employee: 'Sneha Reddy', employeeId: 'EMP004', department: 'Product', type: 'Department Change', oldSalary: 720000, newSalary: 756000, change: 5.0, effectiveDate: '2024-01-10' },
-    { id: 4, employee: 'Vikram Singh', employeeId: 'EMP005', department: 'Operations', type: 'Promotion', oldSalary: 1200000, newSalary: 1344000, change: 12.0, effectiveDate: '2024-02-01' },
-    { id: 5, employee: 'Anita Desai', employeeId: 'EMP006', department: 'HR', type: 'Transfer', oldSalary: 550000, newSalary: 605000, change: 10.0, effectiveDate: '2024-02-01' },
-  ];
+  const salaryRevisionData = [];
 
   // KPI Metrics
   const kpiMetrics = {
-    totalHeadcount: 1480,
-    activeEmployees: 1420,
-    newJoiners: 65,
-    attritionRate: 8.2,
-    retentionRate: 91.8,
-    avgTimeToJoin: 14,
-    promotionRate: 12.5,
-    onboardingCompletion: 88.3
+    totalHeadcount: 0,
+    activeEmployees: 0,
+    newJoiners: 0,
+    attritionRate: 0,
+    retentionRate: 0,
+    avgTimeToJoin: 0,
+    promotionRate: 0,
+    onboardingCompletion: 0
   };
 
   const reports = [
@@ -347,7 +294,7 @@ const EmployeeReports = () => {
 
   // Render Distribution Chart (Simple bar chart using CSS)
   const renderDistributionChart = (data, labelKey, valueKey, color = '#3b82f6') => {
-    const maxValue = Math.max(...data.map(d => d[valueKey]));
+    const maxValue = Math.max(...data.map(d => d[valueKey])) || 1;
     return (
       <div className="mt-3">
         {data.map((item, index) => (
@@ -1195,7 +1142,7 @@ const EmployeeReports = () => {
           <div className="card border shadow-none text-center">
             <div className="card-body">
               <div className="text-secondary-light small">Offer Acceptance Rate</div>
-              <div className="h5 mb-0">84.5%</div>
+              <div className="h5 mb-0">0.0%</div>
             </div>
           </div>
         </div>
@@ -1203,7 +1150,7 @@ const EmployeeReports = () => {
           <div className="card border shadow-none text-center">
             <div className="card-body">
               <div className="text-secondary-light small">Onboarding Completion</div>
-              <div className="h5 mb-0">88.3%</div>
+              <div className="h5 mb-0">0.0%</div>
             </div>
           </div>
         </div>
@@ -1211,7 +1158,7 @@ const EmployeeReports = () => {
           <div className="card border shadow-none text-center">
             <div className="card-body">
               <div className="text-secondary-light small">Probation Completion</div>
-              <div className="h5 mb-0">92.1%</div>
+              <div className="h5 mb-0">0.0%</div>
             </div>
           </div>
         </div>
@@ -1219,7 +1166,7 @@ const EmployeeReports = () => {
           <div className="card border shadow-none text-center">
             <div className="card-body">
               <div className="text-secondary-light small">First Year Attrition</div>
-              <div className="h5 mb-0">18.2%</div>
+              <div className="h5 mb-0">0.0%</div>
             </div>
           </div>
         </div>
