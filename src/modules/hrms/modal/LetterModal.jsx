@@ -2,15 +2,15 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import Modal from '../../../shared/components/Modal';
 
-const LetterModal = ({ isOpen, onClose, onGenerate, employee = null, formatDate }) => {
+const LetterModal = ({ isOpen, onClose, onGenerate, employee = null, formatDate, letterType = 'Confirmation Letter' }) => {
   if (!employee) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Generate Confirmation Letter - ${employee.name}`} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Generate ${letterType} - ${employee?.name}`} size="lg">
       <div className="space-y-4 p-2">
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
           <p className="text-sm text-emerald-700">
-            Generating confirmation letter for <strong>{employee.name}</strong> ({employee.employeeId})
+            Generating <strong>{letterType}</strong> for <strong>{employee?.name}</strong> ({employee?.employeeId})
           </p>
         </div>
 
@@ -78,13 +78,13 @@ const LetterModal = ({ isOpen, onClose, onGenerate, employee = null, formatDate 
 
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <h6 className="font-semibold text-sm text-blue-700 mb-2">Letter Preview</h6>
-          <p className="text-sm text-blue-600">The confirmation letter will be generated in PDF format and include:</p>
+          <p className="text-sm text-blue-600">The {letterType.toLowerCase()} will be generated in PDF format and include:</p>
           <ul className="text-sm text-blue-600 mt-2 space-y-1">
-            <li>• Official confirmation of permanent employment</li>
-            <li>• Employee details and confirmation date</li>
+            <li>• Official {letterType.toLowerCase()} content</li>
+            <li>• Employee details and generation date</li>
             <li>• Designation, department, and work location</li>
-            <li>• Salary details (if selected)</li>
-            <li>• Terms and conditions of permanent employment</li>
+            <li>• Selected dynamic fields (if selected)</li>
+            <li>• Standard terms and conditions</li>
             <li>• Company letterhead and authorized signatures</li>
           </ul>
         </div>
