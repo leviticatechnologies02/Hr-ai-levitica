@@ -25,37 +25,12 @@ const WorkflowEngine = () => {
     value: "",
     action: "auto-approve"
   });
-  const [autoApprovalRules, setAutoApprovalRules] = useState([
-    { id: 1, condition: "amount", operator: "<=", value: "1000", action: "auto-approve" }
-  ]);
+  const [autoApprovalRules, setAutoApprovalRules] = useState([]);
   
   // Escalation rules state
-  const [escalationRules, setEscalationRules] = useState([
-    { 
-      id: 1, 
-      name: "Primary Approver Timeout", 
-      trigger: "timeout", 
-      timeout: 48, 
-      unit: "hours", 
-      action: "escalate",
-      target: "skip-level",
-      notifyOriginal: true,
-      isEnabled: true 
-    },
-    { 
-      id: 2, 
-      name: "Out of Office", 
-      trigger: "out-of-office", 
-      action: "delegate",
-      target: "backup-approver",
-      notifyOriginal: true,
-      isEnabled: true 
-    }
-  ]);
+  const [escalationRules, setEscalationRules] = useState([]);
   
-  const [workflowStages, setWorkflowStages] = useState([
-    { id: 1, level: "direct-manager", approvers: [], timeout: 24, isEnabled: true }
-  ]);
+  const [workflowStages, setWorkflowStages] = useState([]);
   const [notifications, setNotifications] = useState({
     email: true,
     sms: false,
@@ -639,30 +614,9 @@ const WorkflowEngine = () => {
   const handleResetToDefaults = () => {
     if (window.confirm("Are you sure you want to reset all settings to defaults? This cannot be undone.")) {
       setWorkflowType("linear");
-      setWorkflowStages([{ id: 1, level: "direct-manager", approvers: [], timeout: 24, isEnabled: true }]);
-      setAutoApprovalRules([{ id: 1, condition: "amount", operator: "<=", value: "1000", action: "auto-approve" }]);
-      setEscalationRules([
-        { 
-          id: 1, 
-          name: "Primary Approver Timeout", 
-          trigger: "timeout", 
-          timeout: 48, 
-          unit: "hours", 
-          action: "escalate",
-          target: "skip-level",
-          notifyOriginal: true,
-          isEnabled: true 
-        },
-        { 
-          id: 2, 
-          name: "Out of Office", 
-          trigger: "out-of-office", 
-          action: "delegate",
-          target: "backup-approver",
-          notifyOriginal: true,
-          isEnabled: true 
-        }
-      ]);
+      setWorkflowStages([]);
+      setAutoApprovalRules([]);
+      setEscalationRules([]);
       setConditionalRules([]);
       setWorkflowActions({
         requireApprovalComments: true,

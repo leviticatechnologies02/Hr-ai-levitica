@@ -51,6 +51,13 @@ const colorThemes = {
     iconBg: 'bg-cyan-100',
     iconColor: 'text-cyan-600',
   },
+  orange: {
+    bg: 'bg-orange-100',
+    border: 'border-orange-100',
+    textTitle: 'text-orange-600',
+    iconBg: 'bg-orange-100',
+    iconColor: 'text-orange-600',
+  },
 };
 
 const StatCard = ({ title, value, subtitle, icon, color = 'blue' }) => {

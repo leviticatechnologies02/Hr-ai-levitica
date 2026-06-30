@@ -1084,14 +1084,7 @@ const EmployeeSelfServicePortal = () => {
       setSelectedRequest(bankRequest);
       setShowRequestModal(true);
       // Auto-fill some sample data for demo
-      setFormData({
-        currentBank: 'HDFC Bank',
-        currentAccountNumber: '123456789012',
-        newBank: 'ICICI Bank',
-        newAccountNumber: '987654321012',
-        ifscCode: 'ICIC0001234',
-        branchName: 'MG Road Branch'
-      });
+      setFormData({});
       setFormErrors({});
       setCharCount({});
     }
@@ -1110,8 +1103,6 @@ const EmployeeSelfServicePortal = () => {
       setFormData({
         wfhStartDate: today.toISOString().split('T')[0],
         wfhEndDate: nextWeek.toISOString().split('T')[0],
-        workLocation: 'Home - Bangalore',
-        internetAvailability: 'Yes'
       });
       setFormErrors({});
       setCharCount({});
@@ -1124,12 +1115,7 @@ const EmployeeSelfServicePortal = () => {
       setSelectedRequest(reimbursementRequest);
       setShowRequestModal(true);
       // Auto-fill sample data
-      setFormData({
-        expenseType: 'Travel',
-        totalAmount: 7500,
-        expensePeriod: '2024-03',
-        description: 'Travel expenses for client meeting in Mumbai'
-      });
+      setFormData({});
       setFormErrors({});
       setCharCount({});
     }
@@ -1141,13 +1127,7 @@ const EmployeeSelfServicePortal = () => {
       setSelectedRequest(itRequest);
       setShowRequestModal(true);
       // Auto-fill sample data
-      setFormData({
-        softwareName: 'Microsoft Project',
-        version: '2021',
-        requiredAccessLevel: 'Read-Write',
-        projectTeam: 'Project Management Team',
-        purposeOfAccess: 'To manage project timelines and resources'
-      });
+      setFormData({});
       setFormErrors({});
       setCharCount({});
     }
@@ -1159,12 +1139,7 @@ const EmployeeSelfServicePortal = () => {
       setSelectedRequest(feedbackRequest);
       setShowRequestModal(true);
       // Auto-fill sample data
-      setFormData({
-        feedbackType: 'Constructive',
-        category: 'Work Environment',
-        feedbackDetails: 'The office environment is good, but we need more collaborative spaces.',
-        suggestions: 'Add more meeting rooms with whiteboards'
-      });
+      setFormData({});
       setFormErrors({});
       setCharCount({});
     }
@@ -2024,7 +1999,7 @@ const EmployeeSelfServicePortal = () => {
                   >
                     <i className="bi bi-bank fs-4 mb-2"></i>
                     <span className="small">Bank Change</span>
-                    <small className="text-muted">Auto-fill demo</small>
+                    <small className="text-muted">Quick form</small>
                   </button>
                 </div>
                 
@@ -2046,7 +2021,7 @@ const EmployeeSelfServicePortal = () => {
                   >
                     <i className="bi bi-cash-stack fs-4 mb-2"></i>
                     <span className="small">Reimbursement</span>
-                    <small className="text-muted">Auto-fill sample</small>
+                    <small className="text-muted">Quick form</small>
                   </button>
                 </div>
                 
@@ -2057,7 +2032,7 @@ const EmployeeSelfServicePortal = () => {
                   >
                     <i className="bi bi-laptop fs-4 mb-2"></i>
                     <span className="small">IT Request</span>
-                    <small className="text-muted">Auto-fill details</small>
+                    <small className="text-muted">Quick form</small>
                   </button>
                 </div>
                 
@@ -2068,7 +2043,7 @@ const EmployeeSelfServicePortal = () => {
                   >
                     <i className="bi bi-chat-dots fs-4 mb-2"></i>
                     <span className="small">Feedback</span>
-                    <small className="text-muted">Auto-fill categories</small>
+                    <small className="text-muted">Quick form</small>
                   </button>
                 </div>
                 

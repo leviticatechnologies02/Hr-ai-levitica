@@ -72,30 +72,7 @@ const SurveysPulseChecks = () => {
   const [selectedAudience, setSelectedAudience] = useState("all");
   const [distributionMethod, setDistributionMethod] = useState("email");
   const [scheduling, setScheduling] = useState("immediate");
-  const [surveys, setSurveys] = useState([
-    {
-      id: 1,
-      title: "Q1 Engagement Survey 2024",
-      questions: 15,
-      responses: 1087,
-      status: "completed",
-      createdAt: "2024-01-15",
-      description: "Quarterly engagement survey for Q1 2024",
-      audience: "all",
-      visibility: "anonymous"
-    },
-    {
-      id: 2,
-      title: "Wellness Pulse Check",
-      questions: 6,
-      responses: 945,
-      status: "active",
-      createdAt: "2024-02-01",
-      description: "Monthly wellness check for employees",
-      audience: "all",
-      visibility: "anonymous"
-    }
-  ]);
+  const [surveys, setSurveys] = useState([]);
 
   const [drafts, setDrafts] = useState([]);
   const [showNewSurveyModal, setShowNewSurveyModal] = useState(false);
@@ -125,11 +102,7 @@ const SurveysPulseChecks = () => {
     type: "success"
   });
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: "Survey 'Q1 Engagement' has reached 85% response rate", type: "success", read: false, time: "2 hours ago" },
-    { id: 2, message: "Exit Interview survey scheduled for tomorrow", type: "info", read: false, time: "1 day ago" },
-    { id: 3, message: "Low response rate for Wellness Pulse Check", type: "warning", read: false, time: "3 days ago" }
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -162,69 +135,9 @@ const SurveysPulseChecks = () => {
   const [surveyCategory, setSurveyCategory] = useState("");
 
   // Question Bank Management State
-  const [questionBank, setQuestionBank] = useState([
-    { id: 1, question: "How satisfied are you with your current job role?", type: "rating", category: "engagement", used: 42, tags: ["engagement", "satisfaction"], lastUsed: "2024-03-15" },
-    { id: 2, question: "Would you recommend our company as a great place to work?", type: "nps", category: "engagement", used: 38, tags: ["nps", "engagement"], lastUsed: "2024-03-10" },
-    { id: 3, question: "What do you enjoy most about working here?", type: "open", category: "satisfaction", used: 35, tags: ["open-ended", "feedback"], lastUsed: "2024-03-12" },
-    { id: 4, question: "How would you rate your work-life balance?", type: "rating", category: "wellness", used: 40, tags: ["wellness", "balance"], lastUsed: "2024-03-08" },
-    { id: 5, question: "Do you feel supported by your manager?", type: "multiple", category: "management", used: 45, tags: ["management", "support"], lastUsed: "2024-03-14" },
-    { id: 6, question: "What areas need improvement in your department?", type: "open", category: "improvement", used: 32, tags: ["improvement", "feedback"], lastUsed: "2024-03-05" },
-    { id: 7, question: "Rate your satisfaction with company benefits:", type: "rating", category: "benefits", used: 28, tags: ["benefits", "compensation"], lastUsed: "2024-03-01" },
-    { id: 8, question: "How clear are your career growth opportunities?", type: "rating", category: "growth", used: 30, tags: ["career", "growth"], lastUsed: "2024-03-03" }
-  ]);
+  const [questionBank, setQuestionBank] = useState([]);
 
-  const [bscQuestionBank, setBscQuestionBank] = useState([
-    {
-      id: 101,
-      question: "How well do you understand our company's strategic objectives?",
-      type: "rating",
-      category: "strategic-alignment",
-      perspective: "learning",
-      used: 28,
-      tags: ["strategy", "alignment"],
-      lastUsed: "2024-03-10"
-    },
-    {
-      id: 102,
-      question: "Rate the effectiveness of our internal communication processes",
-      type: "rating",
-      category: "internal-process",
-      perspective: "internal",
-      used: 32,
-      tags: ["communication", "process"],
-      lastUsed: "2024-03-08"
-    },
-    {
-      id: 103,
-      question: "How well are customer needs being met by our current processes?",
-      type: "rating",
-      category: "customer-focus",
-      perspective: "customer",
-      used: 45,
-      tags: ["customer", "satisfaction"],
-      lastUsed: "2024-03-12"
-    },
-    {
-      id: 104,
-      question: "To what extent do you feel empowered to contribute to strategic goals?",
-      type: "rating",
-      category: "empowerment",
-      perspective: "learning",
-      used: 31,
-      tags: ["empowerment", "strategy"],
-      lastUsed: "2024-03-06"
-    },
-    {
-      id: 105,
-      question: "How effectively are resources allocated to strategic initiatives?",
-      type: "rating",
-      category: "resource-allocation",
-      perspective: "financial",
-      used: 24,
-      tags: ["resources", "strategy"],
-      lastUsed: "2024-03-04"
-    }
-  ]);
+  const [bscQuestionBank, setBscQuestionBank] = useState([]);
 
   const [showEditQuestionModal, setShowEditQuestionModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -414,12 +327,12 @@ const SurveysPulseChecks = () => {
   ];
 
   const targetAudiences = [
-    { id: "all", label: "All Employees", count: 1250 },
-    { id: "department", label: "By Department", count: 450 },
-    { id: "location", label: "By Location", count: 320 },
-    { id: "role", label: "By Role", count: 280 },
-    { id: "tenure", label: "By Tenure", count: 190 },
-    { id: "custom", label: "Custom Group", count: 85 }
+    { id: "all", label: "All Employees", count: 0 },
+    { id: "department", label: "By Department", count: 0 },
+    { id: "location", label: "By Location", count: 0 },
+    { id: "role", label: "By Role", count: 0 },
+    { id: "tenure", label: "By Tenure", count: 0 },
+    { id: "custom", label: "Custom Group", count: 0 }
   ];
 
   const distributionMethods = [
@@ -448,35 +361,18 @@ const SurveysPulseChecks = () => {
   const categories = ["all", "engagement", "satisfaction", "wellness", "management", "improvement", "benefits", "growth", "strategic-alignment", "internal-process", "customer-focus", "empowerment", "resource-allocation"];
 
   const analyticsData = {
-    responseRate: 87,
-    completionRate: 91,
-    averageNPS: 42,
-    totalResponses: 1087,
-    departmentComparison: [
-      { department: "Engineering", responseRate: 92, satisfaction: 4.2 },
-      { department: "Sales", responseRate: 85, satisfaction: 4.0 },
-      { department: "Marketing", responseRate: 88, satisfaction: 4.3 },
-      { department: "HR", responseRate: 95, satisfaction: 4.5 },
-      { department: "Operations", responseRate: 82, satisfaction: 3.9 }
-    ],
-    trendData: [
-      { month: "Jan", engagement: 4.1, responseRate: 84 },
-      { month: "Feb", engagement: 4.2, responseRate: 86 },
-      { month: "Mar", engagement: 4.3, responseRate: 87 },
-      { month: "Apr", engagement: 4.4, responseRate: 89 },
-      { month: "May", engagement: 4.3, responseRate: 87 }
-    ]
+    responseRate: 0,
+    completionRate: 0,
+    averageNPS: 0,
+    totalResponses: 0,
+    departmentComparison: [],
+    trendData: []
   };
 
   // BSC Correlation Data
   const bscCorrelationData = {
     perspectives: ["Financial", "Customer", "Internal", "Learning"],
-    correlations: [
-      [1.0, 0.65, 0.72, 0.58],
-      [0.65, 1.0, 0.81, 0.69],
-      [0.72, 0.81, 1.0, 0.77],
-      [0.58, 0.69, 0.77, 1.0]
-    ]
+    correlations: []
   };
 
   const maxEngagement = Math.max(...analyticsData.trendData.map(m => m.engagement));
@@ -2614,24 +2510,24 @@ const SurveysPulseChecks = () => {
 
         <div style={styles.grid4Col}>
           <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#3b82f6", marginBottom: "8px" }}>1,250</div>
+            <div style={{ fontSize: "32px", fontWeight: "700", color: "#3b82f6", marginBottom: "8px" }}>0</div>
             <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Total Recipients</div>
-            <div style={{ fontSize: "12px", color: "#10b981" }}>100% target audience</div>
+            <div style={{ fontSize: "12px", color: "#10b981" }}>0% target audience</div>
           </div>
           <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#10b981", marginBottom: "8px" }}>1,087</div>
+            <div style={{ fontSize: "32px", fontWeight: "700", color: "#10b981", marginBottom: "8px" }}>0</div>
             <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Emails Sent</div>
-            <div style={{ fontSize: "12px", color: "#6b7280" }}>87% delivery rate</div>
+            <div style={{ fontSize: "12px", color: "#6b7280" }}>0% delivery rate</div>
           </div>
           <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#f59e0b", marginBottom: "8px" }}>945</div>
+            <div style={{ fontSize: "32px", fontWeight: "700", color: "#f59e0b", marginBottom: "8px" }}>0</div>
             <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Opened</div>
-            <div style={{ fontSize: "12px", color: "#10b981" }}>87% open rate</div>
+            <div style={{ fontSize: "12px", color: "#10b981" }}>0% open rate</div>
           </div>
           <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#8b5cf6", marginBottom: "8px" }}>782</div>
+            <div style={{ fontSize: "32px", fontWeight: "700", color: "#8b5cf6", marginBottom: "8px" }}>0</div>
             <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Started</div>
-            <div style={{ fontSize: "12px", color: "#f59e0b" }}>72% start rate</div>
+            <div style={{ fontSize: "12px", color: "#f59e0b" }}>0% start rate</div>
           </div>
         </div>
 
@@ -2639,20 +2535,20 @@ const SurveysPulseChecks = () => {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
             <h5 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>Survey Completion Status</h5>
             <span style={{ ...styles.chip, background: "#d1fae5", color: "#065f46" }}>
-              {Math.round((782 / 1250) * 100)}% Completion Rate
+              {Math.round(0)}% Completion Rate
             </span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
             <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "700", color: "#3b82f6", marginBottom: "4px" }}>782</div>
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#3b82f6", marginBottom: "4px" }}>0</div>
               <div style={{ fontSize: "12px", color: "#6b7280" }}>Completed</div>
             </div>
             <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "700", color: "#f59e0b", marginBottom: "4px" }}>163</div>
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#f59e0b", marginBottom: "4px" }}>0</div>
               <div style={{ fontSize: "12px", color: "#6b7280" }}>In Progress</div>
             </div>
             <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "700", color: "#ef4444", marginBottom: "4px" }}>305</div>
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#ef4444", marginBottom: "4px" }}>0</div>
               <div style={{ fontSize: "12px", color: "#6b7280" }}>Not Started</div>
             </div>
             <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
@@ -2663,10 +2559,10 @@ const SurveysPulseChecks = () => {
           <div style={{ marginTop: "16px", padding: "12px", background: "white", borderRadius: "6px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
               <span style={{ fontSize: "14px", fontWeight: "500" }}>Reminder Status</span>
-              <span style={{ fontSize: "14px", color: "#6b7280" }}>2 of 3 reminders sent</span>
+              <span style={{ fontSize: "14px", color: "#6b7280" }}>0 of 0 reminders sent</span>
             </div>
             <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{ width: "67%", height: "100%", background: "#3b82f6", borderRadius: "4px" }}></div>
+              <div style={{ width: "0%", height: "100%", background: "#3b82f6", borderRadius: "4px" }}></div>
             </div>
           </div>
         </div>
@@ -2924,14 +2820,14 @@ const SurveysPulseChecks = () => {
                   {analyticsData.responseRate}%
                 </div>
                 <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Response Rate</div>
-                <div style={{ fontSize: "12px", color: "#10b981" }}>↑ 3% from last month</div>
+                <div style={{ fontSize: "12px", color: "#10b981" }}></div>
               </div>
               <div style={styles.metricCard}>
                 <div style={{ fontSize: "32px", fontWeight: "700", color: "#10b981", marginBottom: "8px" }}>
                   {analyticsData.completionRate}%
                 </div>
                 <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Completion Rate</div>
-                <div style={{ fontSize: "12px", color: "#10b981" }}>↑ 2% from last month</div>
+                <div style={{ fontSize: "12px", color: "#10b981" }}></div>
               </div>
               <div style={styles.metricCard}>
                 <div style={{ fontSize: "32px", fontWeight: "700", color: "#8b5cf6", marginBottom: "8px" }}>
@@ -2947,7 +2843,7 @@ const SurveysPulseChecks = () => {
                   {analyticsData.totalResponses}
                 </div>
                 <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Total Responses</div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>Out of 1,250 recipients</div>
+                <div style={{ fontSize: "12px", color: "#6b7280" }}>Out of 0 recipients</div>
               </div>
             </div>
           </>
@@ -3020,7 +2916,7 @@ const SurveysPulseChecks = () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <div>
                 <div style={{ fontSize: "14px", color: "#6b7280" }}>Engagement Score Trend</div>
-                <div style={{ fontSize: "24px", fontWeight: "600" }}>4.3/5</div>
+                <div style={{ fontSize: "24px", fontWeight: "600" }}>0/5</div>
               </div>
               <div style={{ display: "flex", gap: "12px" }}>
                 <button
@@ -3139,7 +3035,7 @@ const SurveysPulseChecks = () => {
               alignItems: "center",
               justifyContent: "center"
             }}>
-              {["Great", "Supportive", "Challenging", "Growth", "Balance", "Collaborative", "Flexible", "Innovative"].map(word => (
+              {[].map(word => (
                 <span key={word} style={{
                   fontSize: `${Math.random() * 20 + 14}px`,
                   fontWeight: "600",
@@ -3156,28 +3052,28 @@ const SurveysPulseChecks = () => {
             <div style={{ marginBottom: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "14px" }}>Positive</span>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#10b981" }}>68%</span>
+                <span style={{ fontSize: "14px", fontWeight: "600", color: "#10b981" }}>0%</span>
               </div>
               <div style={{ height: "12px", background: "#e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
-                <div style={{ width: "68%", height: "100%", background: "#10b981", borderRadius: "6px" }}></div>
+                <div style={{ width: "0%", height: "100%", background: "#10b981", borderRadius: "6px" }}></div>
               </div>
             </div>
             <div style={{ marginBottom: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "14px" }}>Neutral</span>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#6b7280" }}>22%</span>
+                <span style={{ fontSize: "14px", fontWeight: "600", color: "#6b7280" }}>0%</span>
               </div>
               <div style={{ height: "12px", background: "#e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
-                <div style={{ width: "22%", height: "100%", background: "#6b7280", borderRadius: "6px" }}></div>
+                <div style={{ width: "0%", height: "100%", background: "#6b7280", borderRadius: "6px" }}></div>
               </div>
             </div>
             <div style={{ marginBottom: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "14px" }}>Negative</span>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#ef4444" }}>10%</span>
+                <span style={{ fontSize: "14px", fontWeight: "600", color: "#ef4444" }}>0%</span>
               </div>
               <div style={{ height: "12px", background: "#e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
-                <div style={{ width: "10%", height: "100%", background: "#ef4444", borderRadius: "6px" }}></div>
+                <div style={{ width: "0%", height: "100%", background: "#ef4444", borderRadius: "6px" }}></div>
               </div>
             </div>
           </div>
