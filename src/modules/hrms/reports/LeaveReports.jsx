@@ -51,193 +51,7 @@ const userInfo = {
 /* -----------------------------------------------
    SAMPLE DATA WITH ENHANCED EMPLOYEE FIELDS
 ------------------------------------------------ */
-const initialLeaves = [
-  {
-    id: 1,
-    employee: "Priya Sharma",
-    employeeCode: "EMP001",
-    gender: "Female",
-    dob: "1990-05-15",
-    doj: "2020-01-01",
-    doe: "",
-    location: "Hyderabad",
-    costCenter: "ENG001",
-    department: "Engineering",
-    grade: "Senior",
-    designation: "Software Engineer",
-    pan: "ABCDE1234F",
-    esi: "1234567890",
-    pfUan: "123456789012",
-    aadhaar: "123456789012",
-    officeEmail: "priya.sharma@company.com",
-    officePhone: "+91-40-12345678",
-    mobile: "+91-9876543210",
-    bankName: "HDFC Bank",
-    bankIfsc: "HDFC0001234",
-    bankAccount: "1234567890123456",
-    homePhone: "+91-40-87654321",
-    personalEmail: "priya.sharma.personal@gmail.com",
-    emergencyContact: "Rahul Sharma (Husband)",
-    bloodGroup: "O+",
-    maritalStatus: "Married",
-    spouseName: "Rahul Sharma",
-    children: "2",
-    leaveType: "Casual Leave",
-    fromDate: "2025-11-20",
-    toDate: "2025-11-22",
-    appliedOn: "2025-11-15",
-    status: "Pending",
-    reason: "Family function",
-  },
-  {
-    id: 2,
-    employee: "Vikas Rao",
-    employeeCode: "EMP002",
-    gender: "Male",
-    dob: "1988-11-22",
-    doj: "2019-03-15",
-    doe: "",
-    location: "Bangalore",
-    costCenter: "QA001",
-    department: "QA",
-    grade: "Senior",
-    designation: "QA Engineer",
-    pan: "FGHIJ5678K",
-    esi: "0987654321",
-    pfUan: "987654321098",
-    aadhaar: "987654321098",
-    officeEmail: "vikas.rao@company.com",
-    officePhone: "+91-80-12345678",
-    mobile: "+91-9876543211",
-    bankName: "ICICI Bank",
-    bankIfsc: "ICIC0001234",
-    bankAccount: "9876543210987654",
-    homePhone: "+91-80-87654321",
-    personalEmail: "vikas.rao.personal@gmail.com",
-    emergencyContact: "Sunita Rao (Wife)",
-    bloodGroup: "A+",
-    maritalStatus: "Married",
-    spouseName: "Sunita Rao",
-    children: "1",
-    leaveType: "Sick Leave",
-    fromDate: "2025-10-05",
-    toDate: "2025-10-06",
-    appliedOn: "2025-10-01",
-    status: "Approved",
-    reason: "Fever",
-  },
-  {
-    id: 3,
-    employee: "Sneha Reddy",
-    employeeCode: "EMP003",
-    gender: "Female",
-    dob: "1992-07-10",
-    doj: "2021-06-01",
-    doe: "",
-    location: "Hyderabad",
-    costCenter: "DES001",
-    department: "Design",
-    grade: "Junior",
-    designation: "UI/UX Designer",
-    pan: "KLMNO9012P",
-    esi: "2345678901",
-    pfUan: "234567890123",
-    aadhaar: "234567890123",
-    officeEmail: "sneha.reddy@company.com",
-    officePhone: "+91-40-23456789",
-    mobile: "+91-9876543212",
-    bankName: "Axis Bank",
-    bankIfsc: "UTIB0001234",
-    bankAccount: "2345678901234567",
-    homePhone: "+91-40-76543210",
-    personalEmail: "sneha.reddy.personal@gmail.com",
-    emergencyContact: "Raj Reddy (Father)",
-    bloodGroup: "B+",
-    maritalStatus: "Single",
-    spouseName: "",
-    children: "0",
-    leaveType: "Casual Leave",
-    fromDate: "2025-09-12",
-    toDate: "2025-09-12",
-    appliedOn: "2025-09-10",
-    status: "Rejected",
-    reason: "Short notice",
-  },
-  {
-    id: 4,
-    employee: "Arjun Singh",
-    employeeCode: "EMP004",
-    gender: "Male",
-    dob: "1985-12-05",
-    doj: "2018-08-20",
-    doe: "",
-    location: "Bangalore",
-    costCenter: "ENG002",
-    department: "Engineering",
-    grade: "Lead",
-    designation: "Tech Lead",
-    pan: "PQRST3456U",
-    esi: "3456789012",
-    pfUan: "345678901234",
-    aadhaar: "345678901234",
-    officeEmail: "arjun.singh@company.com",
-    officePhone: "+91-80-34567890",
-    mobile: "+91-9876543213",
-    bankName: "SBI",
-    bankIfsc: "SBIN0001234",
-    bankAccount: "3456789012345678",
-    homePhone: "+91-80-65432109",
-    personalEmail: "arjun.singh.personal@gmail.com",
-    emergencyContact: "Meera Singh (Wife)",
-    bloodGroup: "AB+",
-    maritalStatus: "Married",
-    spouseName: "Meera Singh",
-    children: "2",
-    leaveType: "Sick Leave",
-    fromDate: "2025-08-01",
-    toDate: "2025-08-03",
-    appliedOn: "2025-07-28",
-    status: "Approved",
-    reason: "Viral fever",
-  },
-  {
-    id: 5,
-    employee: "Neha Gupta",
-    employeeCode: "EMP005",
-    gender: "Female",
-    dob: "1991-03-25",
-    doj: "2020-11-10",
-    doe: "",
-    location: "Hyderabad",
-    costCenter: "HR001",
-    department: "HR",
-    grade: "Manager",
-    designation: "HR Manager",
-    pan: "UVWXY6789Z",
-    esi: "4567890123",
-    pfUan: "456789012345",
-    aadhaar: "456789012345",
-    officeEmail: "neha.gupta@company.com",
-    officePhone: "+91-40-45678901",
-    mobile: "+91-9876543214",
-    bankName: "Kotak Mahindra",
-    bankIfsc: "KKBK0001234",
-    bankAccount: "4567890123456789",
-    homePhone: "+91-40-54321098",
-    personalEmail: "neha.gupta.personal@gmail.com",
-    emergencyContact: "Amit Gupta (Husband)",
-    bloodGroup: "O-",
-    maritalStatus: "Married",
-    spouseName: "Amit Gupta",
-    children: "1",
-    leaveType: "Casual Leave",
-    fromDate: "2025-11-18",
-    toDate: "2025-11-18",
-    appliedOn: "2025-11-16",
-    status: "Pending",
-    reason: "Personal work",
-  },
-];
+const initialLeaves = [];
 
 /* -----------------------------------------------
    UTILITY FUNCTIONS
@@ -317,131 +131,50 @@ const LeaveReports = () => {
   const perPage = 10;
 
   // Leave Balance Data
-  const leaveBalanceData = [
-    { employee: "Priya Sharma", employeeId: "EMP001", department: "Engineering", casualLeave: { allocated: 12, used: 8, balance: 4, carryForward: 2 }, sickLeave: { allocated: 10, used: 3, balance: 7, carryForward: 0 }, earnedLeave: { allocated: 15, used: 5, balance: 10, carryForward: 5 }, totalBalance: 21 },
-    { employee: "Vikas Rao", employeeId: "EMP002", department: "QA", casualLeave: { allocated: 12, used: 10, balance: 2, carryForward: 0 }, sickLeave: { allocated: 10, used: 7, balance: 3, carryForward: 0 }, earnedLeave: { allocated: 15, used: 12, balance: 3, carryForward: 2 }, totalBalance: 8 },
-    { employee: "Arjun Singh", employeeId: "EMP003", department: "Engineering", casualLeave: { allocated: 12, used: 6, balance: 6, carryForward: 0 }, sickLeave: { allocated: 10, used: 4, balance: 6, carryForward: 0 }, earnedLeave: { allocated: 15, used: 8, balance: 7, carryForward: 3 }, totalBalance: 19 },
-    { employee: "Neha Gupta", employeeId: "EMP004", department: "HR", casualLeave: { allocated: 12, used: 9, balance: 3, carryForward: 1 }, sickLeave: { allocated: 10, used: 2, balance: 8, carryForward: 0 }, earnedLeave: { allocated: 15, used: 10, balance: 5, carryForward: 4 }, totalBalance: 16 },
-  ];
+  const leaveBalanceData = [];
 
   // Department-wise Leave Liability
-  const deptLeaveLiability = [
-    { department: "Engineering", totalEmployees: 150, totalBalance: 2450, casualLeave: 680, sickLeave: 950, earnedLeave: 820, encashmentLiability: 245000 },
-    { department: "QA", totalEmployees: 45, totalBalance: 680, casualLeave: 180, sickLeave: 220, earnedLeave: 280, encashmentLiability: 68000 },
-    { department: "Design", totalEmployees: 25, totalBalance: 420, casualLeave: 120, sickLeave: 150, earnedLeave: 150, encashmentLiability: 42000 },
-    { department: "HR", totalEmployees: 30, totalBalance: 520, casualLeave: 140, sickLeave: 180, earnedLeave: 200, encashmentLiability: 52000 },
-    { department: "Finance", totalEmployees: 35, totalBalance: 580, casualLeave: 160, sickLeave: 200, earnedLeave: 220, encashmentLiability: 58000 },
-    { department: "Support", totalEmployees: 40, totalBalance: 680, casualLeave: 180, sickLeave: 240, earnedLeave: 260, encashmentLiability: 68000 },
-  ];
+  const deptLeaveLiability = [];
 
   // Leave Accrual Register
-  const leaveAccrualData = [
-    { employee: "Priya Sharma", employeeId: "EMP001", department: "Engineering", accrualDate: "2024-01-01", leaveType: "Earned Leave", daysAccrued: 1.25, balanceBefore: 13.75, balanceAfter: 15.00 },
-    { employee: "Vikas Rao", employeeId: "EMP002", department: "QA", accrualDate: "2024-01-01", leaveType: "Earned Leave", daysAccrued: 1.25, balanceBefore: 10.75, balanceAfter: 12.00 },
-    { employee: "Arjun Singh", employeeId: "EMP003", department: "Engineering", accrualDate: "2024-01-01", leaveType: "Earned Leave", daysAccrued: 1.25, balanceBefore: 5.75, balanceAfter: 7.00 },
-  ];
+  const leaveAccrualData = [];
 
   // Carry-forward Leave Tracking
-  const carryForwardData = [
-    { employee: "Priya Sharma", employeeId: "EMP001", department: "Engineering", leaveType: "Casual Leave", previousYearBalance: 2, carriedForward: 2, currentYearAllocated: 12, totalAvailable: 14 },
-    { employee: "Priya Sharma", employeeId: "EMP001", department: "Engineering", leaveType: "Earned Leave", previousYearBalance: 5, carriedForward: 5, currentYearAllocated: 15, totalAvailable: 20 },
-    { employee: "Neha Gupta", employeeId: "EMP004", department: "HR", leaveType: "Casual Leave", previousYearBalance: 1, carriedForward: 1, currentYearAllocated: 12, totalAvailable: 13 },
-    { employee: "Neha Gupta", employeeId: "EMP004", department: "HR", leaveType: "Earned Leave", previousYearBalance: 4, carriedForward: 4, currentYearAllocated: 15, totalAvailable: 19 },
-  ];
+  const carryForwardData = [];
 
   // Leave Utilization Data
-  const monthlyLeaveSummary = [
-    { month: "January 2024", totalLeaves: 125, casualLeave: 45, sickLeave: 35, earnedLeave: 40, other: 5, avgDaysPerEmployee: 2.1 },
-    { month: "February 2024", totalLeaves: 98, casualLeave: 32, sickLeave: 28, earnedLeave: 35, other: 3, avgDaysPerEmployee: 1.8 },
-    { month: "March 2024", totalLeaves: 142, casualLeave: 52, sickLeave: 38, earnedLeave: 48, other: 4, avgDaysPerEmployee: 2.5 },
-    { month: "April 2024", totalLeaves: 115, casualLeave: 40, sickLeave: 32, earnedLeave: 40, other: 3, avgDaysPerEmployee: 2.0 },
-    { month: "May 2024", totalLeaves: 108, casualLeave: 38, sickLeave: 30, earnedLeave: 37, other: 3, avgDaysPerEmployee: 1.9 },
-    { month: "June 2024", totalLeaves: 135, casualLeave: 48, sickLeave: 35, earnedLeave: 49, other: 3, avgDaysPerEmployee: 2.3 },
-  ];
+  const monthlyLeaveSummary = [];
 
   // Leave Type Popularity
-  const leaveTypePopularity = [
-    { leaveType: "Casual Leave", count: 255, percentage: 38.5, avgDays: 1.5 },
-    { leaveType: "Sick Leave", count: 198, percentage: 29.9, avgDays: 2.0 },
-    { leaveType: "Earned Leave", count: 249, percentage: 37.6, avgDays: 3.2 },
-    { leaveType: "Maternity Leave", count: 8, percentage: 1.2, avgDays: 90.0 },
-    { leaveType: "Paternity Leave", count: 12, percentage: 1.8, avgDays: 15.0 },
-  ];
+  const leaveTypePopularity = [];
+    
 
   // Seasonal Leave Patterns
-  const seasonalPatterns = [
-    { quarter: "Q1 (Jan-Mar)", totalLeaves: 365, peakMonth: "March", reason: "Holiday season" },
-    { quarter: "Q2 (Apr-Jun)", totalLeaves: 358, peakMonth: "June", reason: "Summer vacation" },
-    { quarter: "Q3 (Jul-Sep)", totalLeaves: 342, peakMonth: "September", reason: "Festival season" },
-    { quarter: "Q4 (Oct-Dec)", totalLeaves: 385, peakMonth: "December", reason: "Year-end holidays" },
-  ];
+  const seasonalPatterns = [];
 
   // Department-wise Leave Utilization
-  const deptUtilization = [
-    { department: "Engineering", totalEmployees: 150, avgLeaveDays: 18.5, utilizationRate: 75.2, casualLeave: 680, sickLeave: 450, earnedLeave: 620 },
-    { department: "QA", totalEmployees: 45, avgLeaveDays: 16.2, utilizationRate: 68.5, casualLeave: 180, sickLeave: 150, earnedLeave: 220 },
-    { department: "Design", totalEmployees: 25, avgLeaveDays: 20.1, utilizationRate: 81.2, casualLeave: 120, sickLeave: 80, earnedLeave: 150 },
-    { department: "HR", totalEmployees: 30, avgLeaveDays: 17.8, utilizationRate: 72.1, casualLeave: 140, sickLeave: 120, earnedLeave: 180 },
-    { department: "Finance", totalEmployees: 35, avgLeaveDays: 16.5, utilizationRate: 66.8, casualLeave: 160, sickLeave: 140, earnedLeave: 200 },
-    { department: "Support", totalEmployees: 40, avgLeaveDays: 17.0, utilizationRate: 69.0, casualLeave: 180, sickLeave: 160, earnedLeave: 240 },
-  ];
+  const deptUtilization = [];
 
   // Unutilized Leave Alerts
-  const unutilizedLeaveAlerts = [
-    { employee: "Priya Sharma", employeeId: "EMP001", department: "Engineering", leaveType: "Earned Leave", balance: 15, threshold: 10, riskLevel: "High" },
-    { employee: "Arjun Singh", employeeId: "EMP003", department: "Engineering", leaveType: "Earned Leave", balance: 12, threshold: 10, riskLevel: "High" },
-    { employee: "Neha Gupta", employeeId: "EMP004", department: "HR", leaveType: "Sick Leave", balance: 8, threshold: 5, riskLevel: "Medium" },
-    { employee: "Karthik Kumar", employeeId: "EMP006", department: "Support", leaveType: "Earned Leave", balance: 11, threshold: 10, riskLevel: "High" },
-  ];
+  const unutilizedLeaveAlerts = [];
 
   // Leave Clustering
-  const leaveClustering = [
-    { date: "2024-01-15", totalEmployees: 12, departments: ["Engineering", "QA", "Design"], impact: "High", casualLeave: 8, sickLeave: 2, earnedLeave: 2 },
-    { date: "2024-03-20", totalEmployees: 18, departments: ["Engineering", "HR", "Finance"], impact: "Very High", casualLeave: 12, sickLeave: 3, earnedLeave: 3 },
-    { date: "2024-06-10", totalEmployees: 15, departments: ["Support", "QA", "Design"], impact: "High", casualLeave: 10, sickLeave: 2, earnedLeave: 3 },
-    { date: "2024-12-25", totalEmployees: 25, departments: ["All"], impact: "Critical", casualLeave: 18, sickLeave: 2, earnedLeave: 5 },
-  ];
+  const leaveClustering = [];
 
   // Leave Approval Data
-  const leaveApprovalData = [
-    { id: 1, employee: "Priya Sharma", department: "Engineering", leaveType: "Casual Leave", fromDate: "2024-11-20", toDate: "2024-11-22", appliedOn: "2024-11-15", approvedOn: null, approvalTime: null, status: "Pending", approver: "John Manager" },
-    { id: 2, employee: "Vikas Rao", department: "QA", leaveType: "Sick Leave", fromDate: "2024-10-05", toDate: "2024-10-06", appliedOn: "2024-10-01", approvedOn: "2024-10-02", approvalTime: "1 day", status: "Approved", approver: "Sarah Manager" },
-    { id: 3, employee: "Neha Gupta", department: "HR", leaveType: "Casual Leave", fromDate: "2024-11-18", toDate: "2024-11-18", appliedOn: "2024-11-16", approvedOn: null, approvalTime: null, status: "Pending", approver: "Mike Manager" },
-    { id: 4, employee: "Meera Joshi", department: "Finance", leaveType: "Sick Leave", fromDate: "2024-09-20", toDate: "2024-09-21", appliedOn: "2024-09-19", approvedOn: "2024-09-19", approvalTime: "Same day", status: "Approved", approver: "Lisa Manager" },
-  ];
+  const leaveApprovalData = [];
 
   // Leave Rejection Analysis
-  const leaveRejectionData = [
-    { employee: "Sneha Reddy", department: "Design", leaveType: "Casual Leave", reason: "Short notice period", rejectionRate: "5.2%", pattern: "Frequent short notice" },
-    { employee: "Harsha Nair", department: "QA", leaveType: "Casual Leave", reason: "Urgency not justified", rejectionRate: "3.8%", pattern: "Low justification" },
-    { employee: "Rajesh Kumar", department: "Engineering", leaveType: "Earned Leave", reason: "Insufficient team coverage", rejectionRate: "4.1%", pattern: "Resource constraints" },
-  ];
+  const leaveRejectionData = [];
 
   // Leave Cancellation Reports
-  const leaveCancellationData = [
-    { employee: "Priya Sharma", employeeId: "EMP001", department: "Engineering", leaveType: "Casual Leave", originalFrom: "2024-10-15", originalTo: "2024-10-17", cancelledOn: "2024-10-12", reason: "Work emergency", cancelledBy: "Self" },
-    { employee: "Arjun Singh", employeeId: "EMP003", department: "Engineering", leaveType: "Earned Leave", originalFrom: "2024-09-05", originalTo: "2024-09-10", cancelledOn: "2024-09-03", reason: "Project deadline", cancelledBy: "Manager" },
-  ];
+  const leaveCancellationData = [];
 
   // Demographic Data
-  const demographicData = [
-    { department: "Engineering", totalEmployees: 150, male: 110, female: 38, other: 2, avgAge: 29.5, avgTenure: "2.8 years" },
-    { department: "QA", totalEmployees: 45, male: 28, female: 16, other: 1, avgAge: 30.2, avgTenure: "3.1 years" },
-    { department: "Design", totalEmployees: 25, male: 10, female: 14, other: 1, avgAge: 28.7, avgTenure: "2.5 years" },
-    { department: "HR", totalEmployees: 30, male: 10, female: 20, other: 0, avgAge: 32.1, avgTenure: "4.2 years" },
-    { department: "Finance", totalEmployees: 35, male: 15, female: 20, other: 0, avgAge: 33.5, avgTenure: "5.0 years" },
-    { department: "Support", totalEmployees: 40, male: 25, female: 15, other: 0, avgAge: 31.2, avgTenure: "3.8 years" },
-  ];
+  const demographicData = [];
 
   // Bank Information Summary
-  const bankInfoSummary = [
-    { bankName: "HDFC Bank", employees: 85, percentage: 25.8 },
-    { bankName: "ICICI Bank", employees: 72, percentage: 21.8 },
-    { bankName: "SBI", employees: 68, percentage: 20.6 },
-    { bankName: "Axis Bank", employees: 45, percentage: 13.6 },
-    { bankName: "Kotak Mahindra", employees: 35, percentage: 10.6 },
-    { bankName: "Others", employees: 25, percentage: 7.6 },
-  ];
+  const bankInfoSummary = [];
 
   /* -------- FILTERING -------- */
   const filtered = leaves.filter((l) => {
@@ -476,12 +209,12 @@ const LeaveReports = () => {
     approved: leaves.filter((l) => l.status === "Approved").length,
     rejected: leaves.filter((l) => l.status === "Rejected").length,
     totalEmployees: new Set(leaves.map(l => l.employeeCode)).size,
-    avgAge: Math.round(leaves.reduce((sum, l) => sum + getAge(l.dob), 0) / leaves.length),
+    avgAge: leaves.length ? Math.round(leaves.reduce((sum, l) => sum + getAge(l.dob), 0) / leaves.length) : 0,
   };
 
   // Helper function to render distribution chart
   const renderDistributionChart = (data, labelKey, valueKey, color = '#3b82f6') => {
-    const maxValue = Math.max(...data.map(d => d[valueKey]));
+    const maxValue = Math.max(...data.map(d => d[valueKey])) || 1;
     return (
       <div className="mt-3">
         {data.map((item, index) => (
@@ -1341,7 +1074,7 @@ const LeaveReports = () => {
                   <div className="card border text-center">
                     <div className="card-body">
                       <ClockIcon className="text-primary mb-2" size={32} />
-                      <div className="h4 text-primary">1.2</div>
+                      <div className="h4 text-primary">0</div>
                       <small className="text-muted">Average Days</small>
                     </div>
                   </div>
@@ -1350,7 +1083,7 @@ const LeaveReports = () => {
                   <div className="card border text-center">
                     <div className="card-body">
                       <ClockIcon className="text-success mb-2" size={32} />
-                      <div className="h4 text-success">4 hrs</div>
+                      <div className="h4 text-success">0</div>
                       <small className="text-muted">Fastest Approval</small>
                     </div>
                   </div>
@@ -1359,7 +1092,7 @@ const LeaveReports = () => {
                   <div className="card border text-center">
                     <div className="card-body">
                       <ClockIcon className="text-warning mb-2" size={32} />
-                      <div className="h4 text-warning">3.5 days</div>
+                      <div className="h4 text-warning">0</div>
                       <small className="text-muted">Slowest Approval</small>
                     </div>
                   </div>
@@ -1368,7 +1101,7 @@ const LeaveReports = () => {
                   <div className="card border text-center">
                     <div className="card-body">
                       <TrendingDown className="text-info mb-2" size={32} />
-                      <div className="h4 text-info">-15%</div>
+                      <div className="h4 text-info">0</div>
                       <small className="text-muted">vs Last Month</small>
                     </div>
                   </div>
@@ -1386,11 +1119,7 @@ const LeaveReports = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr><td>Engineering</td><td>1.0 day</td><td>45</td></tr>
-                      <tr><td>QA</td><td>1.5 days</td><td>28</td></tr>
-                      <tr><td>HR</td><td>0.8 days</td><td>32</td></tr>
-                      <tr><td>Finance</td><td>1.3 days</td><td>18</td></tr>
-                      <tr><td>Support</td><td>1.2 days</td><td>25</td></tr>
+                      
                     </tbody>
                   </table>
                 </div>
@@ -1443,7 +1172,7 @@ const LeaveReports = () => {
                   <div className="col-md-4">
                     <div className="card border text-center">
                       <div className="card-body">
-                        <div className="h4 text-danger">8.5%</div>
+                        <div className="h4 text-danger">0</div>
                         <small className="text-muted">Overall Rejection Rate</small>
                       </div>
                     </div>
@@ -1451,7 +1180,7 @@ const LeaveReports = () => {
                   <div className="col-md-4">
                     <div className="card border text-center">
                       <div className="card-body">
-                        <div className="h4 text-warning">"Short notice"</div>
+                        <div className="h4 text-warning">0</div>
                         <small className="text-muted">Most Common Reason</small>
                       </div>
                     </div>
@@ -1459,7 +1188,7 @@ const LeaveReports = () => {
                   <div className="col-md-4">
                     <div className="card border text-center">
                       <div className="card-body">
-                        <div className="h4 text-info">Design</div>
+                        <div className="h4 text-info">0</div>
                         <small className="text-muted">Highest Rejection Rate Dept</small>
                       </div>
                     </div>
@@ -1619,25 +1348,25 @@ const LeaveReports = () => {
                   <div className="row text-center">
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-primary">65</div>
+                        <div className="h4 text-primary">0</div>
                         <small className="text-muted">20-25 years</small>
                       </div>
                     </div>
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-success">120</div>
+                        <div className="h4 text-success">0</div>
                         <small className="text-muted">26-30 years</small>
                       </div>
                     </div>
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-warning">85</div>
+                        <div className="h4 text-warning">0</div>
                         <small className="text-muted">31-35 years</small>
                       </div>
                     </div>
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-info">60</div>
+                        <div className="h4 text-info">0</div>
                         <small className="text-muted">36+ years</small>
                       </div>
                     </div>
@@ -1656,10 +1385,7 @@ const LeaveReports = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr><td>Engineering</td><td>45</td><td>65</td><td>30</td><td>10</td></tr>
-                          <tr><td>QA</td><td>10</td><td>20</td><td>12</td><td>3</td></tr>
-                          <tr><td>HR</td><td>2</td><td>8</td><td>12</td><td>8</td></tr>
-                          <tr><td>Finance</td><td>1</td><td>5</td><td>15</td><td>14</td></tr>
+                          
                         </tbody>
                       </table>
                     </div>
@@ -1678,25 +1404,25 @@ const LeaveReports = () => {
                   <div className="row text-center">
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-primary">45%</div>
+                        <div className="h4 text-primary">0</div>
                         <small className="text-muted">0-2 years</small>
                       </div>
                     </div>
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-success">35%</div>
+                        <div className="h4 text-success">0</div>
                         <small className="text-muted">2-5 years</small>
                       </div>
                     </div>
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-warning">15%</div>
+                        <div className="h4 text-warning">0</div>
                         <small className="text-muted">5-10 years</small>
                       </div>
                     </div>
                     <div className="col-md-3 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-info">5%</div>
+                        <div className="h4 text-info">0</div>
                         <small className="text-muted">10+ years</small>
                       </div>
                     </div>
@@ -1817,19 +1543,19 @@ const LeaveReports = () => {
                   <div className="row text-center">
                     <div className="col-md-4 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-success">98%</div>
+                        <div className="h4 text-success">0</div>
                         <small className="text-muted">PAN Coverage</small>
                       </div>
                     </div>
                     <div className="col-md-4 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-primary">95%</div>
+                        <div className="h4 text-primary">0</div>
                         <small className="text-muted">Aadhaar Coverage</small>
                       </div>
                     </div>
                     <div className="col-md-4 mb-3">
                       <div className="border rounded p-3">
-                        <div className="h4 text-info">92%</div>
+                        <div className="h4 text-info">0</div>
                         <small className="text-muted">PF UAN Coverage</small>
                       </div>
                     </div>
@@ -1848,10 +1574,7 @@ const LeaveReports = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr><td>Engineering</td><td>99%</td><td>98%</td><td>95%</td><td>90%</td></tr>
-                          <tr><td>QA</td><td>98%</td><td>96%</td><td>94%</td><td>88%</td></tr>
-                          <tr><td>HR</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td></tr>
-                          <tr><td>Finance</td><td>100%</td><td>97%</td><td>96%</td><td>92%</td></tr>
+                          
                         </tbody>
                       </table>
                     </div>
@@ -1872,18 +1595,18 @@ const LeaveReports = () => {
                 <div className="col-md-4">
                   <div className="card border">
                     <div className="card-body text-center">
-                      <div className="h5 text-primary">180</div>
-                      <div className="text-muted">Hyderabad</div>
-                      <small>60% of total workforce</small>
+                      <div className="h5 text-primary">0</div>
+                      <div className="text-muted"></div>
+                      <small></small>
                     </div>
                   </div>
                 </div>
                 <div className="col-md-4">
                   <div className="card border">
                     <div className="card-body text-center">
-                      <div className="h5 text-success">120</div>
-                      <div className="text-muted">Bangalore</div>
-                      <small>40% of total workforce</small>
+                      <div className="h5 text-success">0</div>
+                      <div className="text-muted"></div>
+                      <small></small>
                     </div>
                   </div>
                 </div>
@@ -1891,8 +1614,8 @@ const LeaveReports = () => {
                   <div className="card border">
                     <div className="card-body text-center">
                       <div className="h5 text-info">0</div>
-                      <div className="text-muted">Other Locations</div>
-                      <small>Remote/Other offices</small>
+                      <div className="text-muted"></div>
+                      <small></small>
                     </div>
                   </div>
                 </div>
@@ -1904,18 +1627,13 @@ const LeaveReports = () => {
                     <thead>
                       <tr>
                         <th>Department</th>
-                        <th>Hyderabad</th>
-                        <th>Bangalore</th>
+                        <th>Location 1</th>
+                        <th>Location 2</th>
                         <th>Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr><td>Engineering</td><td>100</td><td>50</td><td>150</td></tr>
-                      <tr><td>QA</td><td>30</td><td>15</td><td>45</td></tr>
-                      <tr><td>Design</td><td>15</td><td>10</td><td>25</td></tr>
-                      <tr><td>HR</td><td>20</td><td>10</td><td>30</td></tr>
-                      <tr><td>Finance</td><td>15</td><td>20</td><td>35</td></tr>
-                      <tr><td>Support</td><td>0</td><td>15</td><td>15</td></tr>
+                      
                     </tbody>
                   </table>
                 </div>
@@ -1934,7 +1652,7 @@ const LeaveReports = () => {
                 <div className="col-md-3">
                   <div className="card border text-center">
                     <div className="card-body">
-                      <div className="h4 text-primary">45%</div>
+                      <div className="h4 text-primary">0</div>
                       <small className="text-muted">Junior Level</small>
                     </div>
                   </div>
@@ -1942,7 +1660,7 @@ const LeaveReports = () => {
                 <div className="col-md-3">
                   <div className="card border text-center">
                     <div className="card-body">
-                      <div className="h4 text-success">35%</div>
+                      <div className="h4 text-success">0</div>
                       <small className="text-muted">Senior Level</small>
                     </div>
                   </div>
@@ -1950,7 +1668,7 @@ const LeaveReports = () => {
                 <div className="col-md-3">
                   <div className="card border text-center">
                     <div className="card-body">
-                      <div className="h4 text-warning">15%</div>
+                      <div className="h4 text-warning">0</div>
                       <small className="text-muted">Lead/Manager</small>
                     </div>
                   </div>
@@ -1958,7 +1676,7 @@ const LeaveReports = () => {
                 <div className="col-md-3">
                   <div className="card border text-center">
                     <div className="card-body">
-                      <div className="h4 text-info">5%</div>
+                      <div className="h4 text-info">0</div>
                       <small className="text-muted">Director+</small>
                     </div>
                   </div>
@@ -1977,11 +1695,7 @@ const LeaveReports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td>Engineering</td><td>60</td><td>65</td><td>20</td><td>5</td><td>150</td></tr>
-                    <tr><td>QA</td><td>20</td><td>18</td><td>5</td><td>2</td><td>45</td></tr>
-                    <tr><td>Design</td><td>15</td><td>8</td><td>2</td><td>0</td><td>25</td></tr>
-                    <tr><td>HR</td><td>5</td><td>15</td><td>8</td><td>2</td><td>30</td></tr>
-                    <tr><td>Finance</td><td>8</td><td>15</td><td>10</td><td>2</td><td>35</td></tr>
+                    
                   </tbody>
                 </table>
               </div>
