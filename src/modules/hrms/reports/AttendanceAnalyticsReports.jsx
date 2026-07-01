@@ -17,339 +17,27 @@ const AttendanceReports = () => {
     reason: ''
   });
 
-  const [reportsData] = useState([
-    { date: '2024-01-01', report: 'Daily Attendance Summary', status: 'Generated' },
-    { date: '2024-01-02', report: 'Late Arrivals List', status: 'Generated' },
-    { date: '2024-01-03', report: 'Monthly Attendance Register', status: 'Generated' },
-    { date: '2024-01-04', report: 'Exception Report', status: 'Pending' },
-    { date: '2024-01-05', report: 'Compliance Muster Roll', status: 'Generated' },
-    { date: '2024-01-06', report: 'Department-wise Summary', status: 'Generated' },
-    { date: '2024-01-07', report: 'WFH Tracking Report', status: 'Pending' },
-    { date: '2024-01-08', report: 'Overtime Summary', status: 'Generated' },
-    { date: '2024-01-09', report: 'Biometric Mismatch Report', status: 'Generated' },
-    { date: '2024-01-10', report: 'Factory Act Compliance', status: 'Generated' },
-  ]);
+  const [reportsData] = useState([]);
 
-  const [reportsHistory, setReportsHistory] = useState([
-    { id: 1, type: 'Daily Attendance Summary', from: '2024-01-10', to: '2024-01-10', generatedBy: 'System', status: 'Generated', size: '2.4 MB' },
-    { id: 2, type: 'Monthly Consolidated Report', from: '2024-01-01', to: '2024-01-31', generatedBy: 'Admin User', status: 'Pending', size: '5.1 MB' },
-    { id: 3, type: 'Exception Report', from: '2024-01-08', to: '2024-01-08', generatedBy: 'System', status: 'Generated', size: '1.8 MB' },
-  ]);
+  const [reportsHistory, setReportsHistory] = useState([]);
+    
 
   // Real-time Attendance Dashboard Data
   const realTimeDashboard = {
-    totalEmployees: 1480,
-    present: 1420,
-    absent: 45,
-    onLeave: 35,
-    lateArrivals: 12,
-    earlyDepartures: 8,
-    wfh: 28,
-    onTime: 1408,
-    attendancePercentage: 95.9,
+    totalEmployees: 0,
+    present: 0,
+    absent: 0,
+    onLeave: 0,
+    lateArrivals: 0,
+    earlyDepartures: 0,
+    wfh: 0,
+    onTime: 0,
+    attendancePercentage: 0,
     lastUpdated: new Date().toLocaleTimeString()
   };
 
   // Enhanced Attendance Reports with Categories
-  const [attendanceReports, setAttendanceReports] = useState([
-    // Daily Reports
-    {
-      id: 1,
-      reportName: 'Daily Attendance Summary',
-      category: 'daily',
-      date: '2024-01-15',
-      generated: '09:00 AM',
-      totalEmployees: 1480,
-      present: 1420,
-      absent: 45,
-      onLeave: 35,
-      holiday: 0,
-      status: 'generated',
-      department: 'All'
-    },
-    {
-      id: 2,
-      reportName: 'Late Arrivals List',
-      category: 'daily',
-      date: '2024-01-15',
-      generated: '10:30 AM',
-      lateArrivals: 12,
-      avgDelay: '25 mins',
-      department: 'Engineering',
-      status: 'generated',
-      location: 'Bangalore'
-    },
-    {
-      id: 21,
-      reportName: 'Early Departures List',
-      category: 'daily',
-      date: '2024-01-15',
-      generated: '11:00 AM',
-      earlyDepartures: 8,
-      avgEarlyTime: '45 mins',
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 22,
-      reportName: 'Missing Punch Report',
-      category: 'daily',
-      date: '2024-01-15',
-      generated: '12:00 PM',
-      missingPunches: 15,
-      pendingRegularization: 8,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 23,
-      reportName: 'Shift-wise Attendance',
-      category: 'daily',
-      date: '2024-01-15',
-      generated: '09:30 AM',
-      generalShift: 950,
-      nightShift: 380,
-      morningShift: 150,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 24,
-      reportName: 'Location-wise Attendance',
-      category: 'daily',
-      date: '2024-01-15',
-      generated: '10:00 AM',
-      bangalore: 850,
-      mumbai: 420,
-      delhi: 150,
-      chennai: 60,
-      status: 'generated'
-    },
-    // Monthly Reports
-    {
-      id: 3,
-      reportName: 'Monthly Attendance Register',
-      category: 'monthly',
-      date: '2024-01-01',
-      generated: '08:45 AM',
-      totalEmployees: 1480,
-      avgAttendance: '94.2%',
-      department: 'All',
-      status: 'generated',
-      month: 'January 2024'
-    },
-    {
-      id: 31,
-      reportName: 'Department-wise Attendance Summary',
-      category: 'monthly',
-      date: '2024-01-31',
-      generated: '09:00 AM',
-      engineering: { present: 135, absent: 15, percentage: 90.0 },
-      sales: { present: 78, absent: 7, percentage: 91.8 },
-      marketing: { present: 42, absent: 3, percentage: 93.3 },
-      department: 'All',
-      status: 'generated',
-      month: 'January 2024'
-    },
-    {
-      id: 32,
-      reportName: 'Consolidated Monthly Report',
-      category: 'monthly',
-      date: '2024-01-31',
-      generated: '06:00 PM',
-      totalDays: 31,
-      totalPresent: 44200,
-      totalAbsent: 1480,
-      avgAttendance: '94.2%',
-      status: 'generated',
-      month: 'January 2024'
-    },
-    {
-      id: 33,
-      reportName: 'Loss of Pay Calculation',
-      category: 'monthly',
-      date: '2024-01-31',
-      generated: '05:00 PM',
-      lossOfPayEmployees: 25,
-      totalLossOfPay: 156250,
-      department: 'All',
-      status: 'generated',
-      month: 'January 2024'
-    },
-    {
-      id: 8,
-      reportName: 'Overtime Summary',
-      category: 'monthly',
-      date: '2024-01-31',
-      generated: '04:00 PM',
-      totalOvertimeHours: 1250,
-      employeesWithOT: 180,
-      department: 'All',
-      status: 'generated',
-      month: 'January 2024'
-    },
-    {
-      id: 7,
-      reportName: 'WFH Tracking Report',
-      category: 'monthly',
-      date: '2024-01-31',
-      generated: '03:00 PM',
-      totalWFHDays: 420,
-      employeesWFH: 85,
-      avgWFHDays: 4.9,
-      department: 'All',
-      status: 'generated',
-      month: 'January 2024'
-    },
-    {
-      id: 34,
-      reportName: 'Attendance Percentage by Department/Location',
-      category: 'monthly',
-      date: '2024-01-31',
-      generated: '02:00 PM',
-      departmentPercentages: { Engineering: 90.0, Sales: 91.8, Marketing: 93.3 },
-      locationPercentages: { Bangalore: 94.2, Mumbai: 92.8, Delhi: 95.1 },
-      status: 'generated',
-      month: 'January 2024'
-    },
-    // Exception Reports
-    {
-      id: 4,
-      reportName: 'Exception Report',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '11:15 AM',
-      exceptions: 18,
-      pendingCases: 8,
-      department: 'All',
-      status: 'generated',
-      location: 'All'
-    },
-    {
-      id: 41,
-      reportName: 'Continuous Absence Report',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '10:00 AM',
-      continuousAbsence: 12,
-      moreThan3Days: 8,
-      moreThan7Days: 4,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 42,
-      reportName: 'Frequent Late Arrivals',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '10:30 AM',
-      frequentLate: 25,
-      moreThan5Times: 15,
-      moreThan10Times: 10,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 43,
-      reportName: 'Pattern-based Anomalies',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '11:00 AM',
-      anomalies: 18,
-      suspiciousPatterns: 12,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 44,
-      reportName: 'Biometric vs Applied Leave Mismatch',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '11:30 AM',
-      mismatches: 15,
-      pendingResolution: 8,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 45,
-      reportName: 'Pending Regularization Requests',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '12:00 PM',
-      pendingRequests: 22,
-      overdue: 8,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 46,
-      reportName: 'Unapproved Overtime',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '12:30 PM',
-      unapprovedOT: 15,
-      totalHours: 120,
-      department: 'All',
-      status: 'generated'
-    },
-    {
-      id: 47,
-      reportName: 'Weekend Working without Approval',
-      category: 'exception',
-      date: '2024-01-15',
-      generated: '01:00 PM',
-      weekendWork: 8,
-      withoutApproval: 5,
-      department: 'All',
-      status: 'generated'
-    },
-    // Compliance Reports
-    {
-      id: 5,
-      reportName: 'Compliance Muster Roll',
-      category: 'compliance',
-      date: '2024-01-31',
-      generated: '06:00 PM',
-      format: 'Factory Act',
-      department: 'All',
-      status: 'generated',
-      period: 'January 2024'
-    },
-    {
-      id: 51,
-      reportName: 'Attendance Register for Labor Department',
-      category: 'compliance',
-      date: '2024-01-31',
-      generated: '05:30 PM',
-      format: 'Labor Department',
-      department: 'All',
-      status: 'generated',
-      period: 'January 2024'
-    },
-    {
-      id: 52,
-      reportName: 'Factory Attendance Register',
-      category: 'compliance',
-      date: '2024-01-31',
-      generated: '06:30 PM',
-      format: 'Factory Act',
-      department: 'Operations',
-      status: 'generated',
-      period: 'January 2024'
-    },
-    {
-      id: 53,
-      reportName: 'Shops & Establishment Act Report',
-      category: 'compliance',
-      date: '2024-01-31',
-      generated: '07:00 PM',
-      format: 'Shops & Establishment Act',
-      department: 'All',
-      status: 'generated',
-      period: 'January 2024'
-    }
-  ]);
+  const [attendanceReports, setAttendanceReports] = useState([]);
 
   const [selectedDate, setSelectedDate] = useState('2024-01-15');
   const [filterDepartment, setFilterDepartment] = useState('all');
@@ -919,7 +607,8 @@ const AttendanceReports = () => {
                       <div
                         className="progress-bar bg-primary"
                         style={{
-                          width: `${(attendanceReports.filter(r => r.category === 'daily' && r.status === 'generated').length / attendanceReports.filter(r => r.category === 'daily').length) * 100}%`
+                          
+                          width: `${(attendanceReports.filter(r => r.category === 'daily' && r.status === 'generated').length / (attendanceReports.filter(r => r.category === 'daily').length || 1)) * 100}%`
                         }}
                       ></div>
                     </div>
@@ -944,7 +633,8 @@ const AttendanceReports = () => {
                       <div
                         className="progress-bar bg-success"
                         style={{
-                          width: `${(attendanceReports.filter(r => r.category === 'monthly' && r.status === 'generated').length / attendanceReports.filter(r => r.category === 'monthly').length) * 100}%`
+                          
+                          width: `${(attendanceReports.filter(r => r.category === 'monthly' && r.status === 'generated').length / (attendanceReports.filter(r => r.category === 'monthly').length || 1)) * 100}%`
                         }}
                       ></div>
                     </div>
@@ -969,7 +659,7 @@ const AttendanceReports = () => {
                       <div
                         className="progress-bar bg-warning"
                         style={{
-                          width: `${(attendanceReports.filter(r => r.category === 'exception' && r.status === 'generated').length / attendanceReports.filter(r => r.category === 'exception').length) * 100}%`
+                          width: `${(attendanceReports.filter(r => r.category === 'exception' && r.status === 'generated').length / (attendanceReports.filter(r => r.category === 'exception').length || 1)) * 100}%`
                         }}
                       ></div>
                     </div>
@@ -994,7 +684,7 @@ const AttendanceReports = () => {
                       <div
                         className="progress-bar bg-info"
                         style={{
-                          width: `${(attendanceReports.filter(r => r.category === 'compliance' && r.status === 'generated').length / attendanceReports.filter(r => r.category === 'compliance').length) * 100}%`
+                          width: `${(attendanceReports.filter(r => r.category === 'compliance' && r.status === 'generated').length / (attendanceReports.filter(r => r.category === 'compliance').length || 1)) * 100}%`
                         }}
                       ></div>
                     </div>
