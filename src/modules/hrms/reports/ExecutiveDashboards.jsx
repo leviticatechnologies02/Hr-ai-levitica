@@ -70,58 +70,27 @@ const DashboardPage = () => {
   const dashboardData = {
     "HR Leadership": {
       kpis: [
-        { id: 1, title: "Total Headcount", value: "1,243", change: "+2.3%", icon: Users, color: "primary" },
-        { id: 2, title: "Monthly Attrition", value: "4.2%", change: "-0.8%", icon: TrendingDown, color: "success" },
-        { id: 3, title: "Open Positions", value: "87", change: "+12", icon: TrendingUp, color: "warning" },
-        { id: 4, title: "Payroll Cost", value: "$4.2M", change: "+5.1%", icon: DollarSign, color: "info" },
-        { id: 5, title: "Avg. Attendance", value: "94.7%", change: "+1.2%", icon: Clock, color: "secondary" },
-        { id: 6, title: "Pending Approvals", value: "156", change: "+23", icon: AlertTriangle, color: "danger" },
+        { id: 1, title: "Total Headcount", value: "0", change: "0", icon: Users, color: "primary" },
+        { id: 2, title: "Monthly Attrition", value: "0", change: "0", icon: TrendingDown, color: "success" },
+        { id: 3, title: "Open Positions", value: "0", change: "0", icon: TrendingUp, color: "warning" },
+        { id: 4, title: "Payroll Cost", value: "0", change: "0", icon: DollarSign, color: "info" },
+        { id: 5, title: "Avg. Attendance", value: "0", change: "0", icon: Clock, color: "secondary" },
+        { id: 6, title: "Pending Approvals", value: "0", change: "0", icon: AlertTriangle, color: "danger" },
       ],
-      metrics: [
-        { id: 1, name: "Headcount Trend (6 months)", category: "Trend", status: "Stable", value: "↑ 8.2%", lastUpdated: "2025-11-25" },
-        { id: 2, name: "Attrition by Department", category: "Analysis", status: "Alert", value: "IT: 6.7%", lastUpdated: "2025-11-28" },
-        { id: 3, name: "Hiring Pipeline Status", category: "Recruitment", status: "On Track", value: "78% filled", lastUpdated: "2025-11-27" },
-        { id: 4, name: "Payroll Cost Analysis", category: "Finance", status: "Review", value: "$4.2M", lastUpdated: "2025-11-20" },
-        { id: 5, name: "Leave Pattern Analysis", category: "Attendance", status: "Normal", value: "Avg 2.1 days", lastUpdated: "2025-11-22" },
-        { id: 6, name: "Compliance Status", category: "Compliance", status: "Compliant", value: "98%", lastUpdated: "2025-11-29" },
-        { id: 7, name: "Top Concerns", category: "Alerts", status: "Critical", value: "3 urgent", lastUpdated: "2025-11-30" },
-        { id: 8, name: "Training Completion", category: "Development", status: "Behind", value: "67%", lastUpdated: "2025-11-24" },
-      ]
+      metrics: []
+        
     },
 
     "Manager": {
-      kpis: [
-        { id: 1, title: "Team Size", value: "24", change: "+2", icon: Users, color: "primary" },
-        { id: 2, title: "Team Attrition", value: "1.8%", change: "-0.3%", icon: TrendingDown, color: "success" },
-        { id: 3, title: "Avg. Performance", value: "4.2/5", change: "+0.3", icon: TrendingUp, color: "warning" },
-        { id: 4, title: "Pending Approvals", value: "18", change: "+5", icon: AlertTriangle, color: "danger" },
-      ],
-      metrics: [
-        { id: 1, name: "Team Composition", category: "Demographics", status: "Updated", value: "5 roles", lastUpdated: "2025-11-29" },
-        { id: 2, name: "Attendance Summary", category: "Attendance", status: "Good", value: "96%", lastUpdated: "2025-11-28" },
-        { id: 3, name: "Team Leave Calendar", category: "Calendar", status: "View", value: "3 on leave", lastUpdated: "2025-11-30" },
-        { id: 4, name: "Performance Indicators", category: "Performance", status: "Above Target", value: "4.2/5", lastUpdated: "2025-11-25" },
-        { id: 5, name: "New Hires in Team", category: "Onboarding", status: "In Progress", value: "2 new", lastUpdated: "2025-11-27" },
-        { id: 6, name: "Upcoming Milestones", category: "Events", status: "Upcoming", value: "4 events", lastUpdated: "2025-11-26" },
-      ]
+      kpis: [],
+        
+      metrics: []
+        
     },
 
     "Employee": {
-      kpis: [
-        { id: 1, title: "Leave Balance", value: "18 days", change: "-2", icon: Calendar, color: "primary" },
-        { id: 2, title: "Attendance This Month", value: "100%", change: "0%", icon: Clock, color: "success" },
-        { id: 3, title: "Pending Requests", value: "3", change: "+1", icon: AlertTriangle, color: "warning" },
-        { id: 4, title: "Upcoming Holidays", value: "2", change: "-", icon: Calendar, color: "info" },
-      ],
-      metrics: [
-        { id: 1, name: "Personal Attendance", category: "Summary", status: "Perfect", value: "100%", lastUpdated: "2025-11-30" },
-        { id: 2, name: "Leave History", category: "Leaves", status: "View All", value: "Taken: 7 days", lastUpdated: "2025-11-29" },
-        { id: 3, name: "Pending Payslips", category: "Payroll", status: "Available", value: "Nov 2025", lastUpdated: "2025-11-28" },
-        { id: 4, name: "Request Status", category: "Requests", status: "Processing", value: "3 pending", lastUpdated: "2025-11-27" },
-        { id: 5, name: "Team Calendar", category: "Calendar", status: "View", value: "Team events", lastUpdated: "2025-11-30" },
-        { id: 6, name: "Quick Actions", category: "Actions", status: "Available", value: "5 actions", lastUpdated: "2025-11-26" },
-      ]
-    }
+      kpis: [], metrics: []
+        }
   };
 
   /*********** STATUS BADGES ************/

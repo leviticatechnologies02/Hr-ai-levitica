@@ -18,56 +18,15 @@ import {
 } from 'lucide-react';
 
 // Mock data for AI-driven insights
-const mockAnomalyData = [
-  { id: 1, type: 'Attendance', description: 'Unusual login pattern detected', employee: 'John Doe', department: 'Engineering', severity: 'high', date: '2024-04-15', status: 'pending', confidence: 92 },
-  { id: 2, type: 'Leave', description: 'Sudden spike in leave applications', department: 'Sales', severity: 'medium', date: '2024-04-14', status: 'reviewed', confidence: 78 },
-  { id: 3, type: 'Expense', description: 'Suspicious expense claim detected', employee: 'Jane Smith', department: 'Marketing', severity: 'high', date: '2024-04-13', status: 'pending', confidence: 95 },
-  { id: 4, type: 'Attendance', description: 'Multiple late arrivals', employee: 'Mike Johnson', department: 'HR', severity: 'low', date: '2024-04-12', status: 'resolved', confidence: 65 },
-  { id: 5, type: 'Policy', description: 'Policy violation detected', employee: 'Sarah Williams', department: 'Finance', severity: 'medium', date: '2024-04-11', status: 'pending', confidence: 82 },
-  { id: 6, type: 'Payroll', description: 'Payroll calculation anomaly detected', employee: 'Robert Chen', department: 'Engineering', severity: 'high', date: '2024-04-10', status: 'pending', confidence: 88 },
-  { id: 7, type: 'Attendance', description: 'Excessive overtime detected', employee: 'Lisa Wang', department: 'Operations', severity: 'medium', date: '2024-04-09', status: 'reviewed', confidence: 71 },
-  { id: 8, type: 'Expense', description: 'Duplicate expense claims found', employee: 'David Kim', department: 'Marketing', severity: 'low', date: '2024-04-08', status: 'resolved', confidence: 60 },
-];
+const mockAnomalyData = [];
 
-const mockAttritionRiskData = [
-  { id: 1, name: 'John Doe', department: 'Engineering', role: 'Senior Developer', riskScore: 85, riskLevel: 'high', lastPromotion: '2023-06-15', tenure: 2.5, engagement: 65, salaryPercentile: 75 },
-  { id: 2, name: 'Jane Smith', department: 'Marketing', role: 'Marketing Manager', riskScore: 72, riskLevel: 'medium', lastPromotion: '2022-11-20', tenure: 3.2, engagement: 58, salaryPercentile: 65 },
-  { id: 3, name: 'Mike Johnson', department: 'HR', role: 'HR Specialist', riskScore: 45, riskLevel: 'low', lastPromotion: '2024-01-15', tenure: 1.5, engagement: 82, salaryPercentile: 85 },
-  { id: 4, name: 'Sarah Williams', department: 'Finance', role: 'Financial Analyst', riskScore: 68, riskLevel: 'medium', lastPromotion: '2023-09-10', tenure: 2.8, engagement: 71, salaryPercentile: 70 },
-  { id: 5, name: 'Robert Brown', department: 'Sales', role: 'Sales Executive', riskScore: 91, riskLevel: 'high', lastPromotion: '2022-08-05', tenure: 4.1, engagement: 49, salaryPercentile: 55 },
-  { id: 6, name: 'Lisa Wang', department: 'Engineering', role: 'Tech Lead', riskScore: 79, riskLevel: 'medium', lastPromotion: '2023-03-20', tenure: 3.8, engagement: 62, salaryPercentile: 80 },
-  { id: 7, name: 'David Kim', department: 'Marketing', role: 'Content Strategist', riskScore: 56, riskLevel: 'low', lastPromotion: '2024-02-10', tenure: 1.8, engagement: 78, salaryPercentile: 72 },
-  { id: 8, name: 'Emily Chen', department: 'Operations', role: 'Operations Manager', riskScore: 83, riskLevel: 'high', lastPromotion: '2022-12-15', tenure: 3.5, engagement: 54, salaryPercentile: 68 },
-];
+const mockAttritionRiskData = [];
 
-const mockPredictiveData = [
-  { month: 'Jan', attrition: 3, payroll: 125000, leaves: 42, hiring: 8, training: 12 },
-  { month: 'Feb', attrition: 2, payroll: 128000, leaves: 38, hiring: 6, training: 10 },
-  { month: 'Mar', attrition: 4, payroll: 131000, leaves: 45, hiring: 9, training: 15 },
-  { month: 'Apr', attrition: 5, payroll: 135000, leaves: 48, hiring: 7, training: 14 },
-  { month: 'May', attrition: 7, payroll: 138000, leaves: 52, hiring: 10, training: 18 },
-  { month: 'Jun', attrition: 6, payroll: 142000, leaves: 50, hiring: 8, training: 16 },
-  { month: 'Jul', attrition: 8, payroll: 145000, leaves: 55, hiring: 12, training: 20 },
-  { month: 'Aug', attrition: 9, payroll: 148000, leaves: 58, hiring: 11, training: 22 },
-];
+const mockPredictiveData = [];
 
-const mockRecommendations = [
-  { id: 1, type: 'Retention', title: 'High attrition risk in Engineering', description: '3 employees with >80% flight risk score. Consider retention bonuses or promotions.', priority: 'high', impact: 'High', status: 'pending', cost: 25000, roi: 4.2 },
-  { id: 2, type: 'Hiring', title: 'Optimal hiring timing for Q3', description: 'Based on historical patterns and current workload, Q3 has 30% lower hiring costs.', priority: 'medium', impact: 'Medium', status: 'approved', cost: 15000, roi: 2.8 },
-  { id: 3, type: 'Policy', title: 'Leave policy optimization needed', description: 'High leave utilization in summer months. Consider flexible leave options.', priority: 'medium', impact: 'Medium', status: 'pending', cost: 5000, roi: 3.1 },
-  { id: 4, type: 'Budget', title: 'Budget overrun warning', description: 'Marketing department expenses 15% above budget. Review marketing campaigns.', priority: 'high', impact: 'High', status: 'in-progress', cost: 0, roi: 5.0 },
-  { id: 5, type: 'Training', title: 'Training needs identified', description: 'Skill gaps detected in 5 departments. AI/ML training recommended.', priority: 'low', impact: 'Low', status: 'pending', cost: 20000, roi: 2.5 },
-  { id: 6, type: 'Compensation', title: 'Salary benchmarking adjustment', description: 'Engineering salaries 8% below market average. Consider salary adjustments.', priority: 'high', impact: 'High', status: 'review', cost: 100000, roi: 3.8 },
-];
+const mockRecommendations = [];
 
-const mockNLPQueries = [
-  { id: 1, query: "Show me attrition in engineering last quarter", response: "Engineering had 4 attrition cases last quarter with an average cost of $85,000 per case. The main reasons were competitive offers (60%) and career growth (40%)." },
-  { id: 2, query: "What's the average time to hire for marketing roles?", response: "Average time to hire for marketing roles is 32 days. This is 5 days longer than the industry average of 27 days." },
-  { id: 3, query: "Which department has the highest expenses?", response: "Sales department has the highest expenses at $450,000 last quarter, which is 22% above budget. Main expenses include travel (45%) and client entertainment (30%)." },
-  { id: 4, query: "Show employee engagement trends", response: "Overall employee engagement dropped 8% in Q2. Engineering saw the largest decline at 12%, while HR maintained stable engagement at 82%." },
-  { id: 5, query: "Predict attrition for next quarter", response: "Based on current trends, predicted attrition for next quarter is 7-9 employees. High-risk departments: Engineering (3), Sales (2), Marketing (2)." },
-  { id: 6, query: "Show budget utilization by department", response: "Budget utilization: Engineering 95%, Sales 122%, Marketing 115%, HR 88%, Finance 92%. Sales and Marketing are over budget." },
-];
+const mockNLPQueries = [];
 
 const anomalyTypeColors = {
   high: '#ef4444',
@@ -82,9 +41,9 @@ const riskLevelColors = {
 };
 
 const AIModels = {
-  ANOMALY_DETECTION: { name: 'Anomaly Detection Model', accuracy: 92, version: '2.1.0' },
-  ATTRITION_PREDICTION: { name: 'Attrition Prediction Model', accuracy: 87, version: '3.0.1' },
-  FORECASTING: { name: 'HR Forecasting Model', accuracy: 85, version: '1.8.2' },
+  ANOMALY_DETECTION: { name: 'Anomaly Detection Model', accuracy: 0, version: '' },
+  ATTRITION_PREDICTION: { name: 'Attrition Prediction Model', accuracy: 0, version: '' },
+  FORECASTING: { name: 'HR Forecasting Model', accuracy: 0, version: '' },
   NLP: { name: 'Natural Language Processing', accuracy: 89, version: '2.0.0' },
   RECOMMENDATION: { name: 'Recommendation Engine', accuracy: 83, version: '1.5.0' }
 };
@@ -1013,20 +972,20 @@ function AIDrivenInsightsContent() {
 
   // Refresh data
   const refreshData = () => {
-    // Simulate data update
-    const newAnomaly = {
-      id: anomalyData.length + 1,
-      type: ['Attendance', 'Leave', 'Expense', 'Policy'][Math.floor(Math.random() * 4)],
-      description: `New anomaly detected - ${Math.random() > 0.5 ? 'pattern identified' : 'irregularity found'}`,
-      employee: ['John Doe', 'Jane Smith', 'Mike Johnson'][Math.floor(Math.random() * 3)],
-      department: ['Engineering', 'Sales', 'Marketing'][Math.floor(Math.random() * 3)],
-      severity: ['high', 'medium', 'low'][Math.floor(Math.random() * 3)],
-      date: new Date().toISOString().split('T')[0],
-      status: 'pending',
-      confidence: Math.floor(Math.random() * 30) + 70
-    };
+    // // Simulate data update
+    // const newAnomaly = {
+    //   id: anomalyData.length + 1,
+    //   type: ['Attendance', 'Leave', 'Expense', 'Policy'][Math.floor(Math.random() * 4)],
+    //   description: `New anomaly detected - ${Math.random() > 0.5 ? 'pattern identified' : 'irregularity found'}`,
+    //   employee: ['John Doe', 'Jane Smith', 'Mike Johnson'][Math.floor(Math.random() * 3)],
+    //   department: ['Engineering', 'Sales', 'Marketing'][Math.floor(Math.random() * 3)],
+    //   severity: ['high', 'medium', 'low'][Math.floor(Math.random() * 3)],
+    //   date: new Date().toISOString().split('T')[0],
+    //   status: 'pending',
+    //   confidence: Math.floor(Math.random() * 30) + 70
+    // };
 
-    setAnomalyData(prev => [newAnomaly, ...prev.slice(0, 9)]);
+    // setAnomalyData(prev => [newAnomaly, ...prev.slice(0, 9)]);
     addNotification('info', 'Data refreshed with new insights');
   };
 
@@ -1150,14 +1109,14 @@ function AIDrivenInsightsContent() {
 
   // Anomaly trend data
   const anomalyTrendData = [
-    { month: 'Jan', anomalies: 8, high: 3, resolved: 5 },
-    { month: 'Feb', anomalies: 5, high: 2, resolved: 3 },
-    { month: 'Mar', anomalies: 12, high: 5, resolved: 8 },
-    { month: 'Apr', anomalies: 9, high: 4, resolved: 6 },
-    { month: 'May', anomalies: 7, high: 3, resolved: 5 },
-    { month: 'Jun', anomalies: 10, high: 4, resolved: 7 },
-    { month: 'Jul', anomalies: 11, high: 5, resolved: 8 },
-    { month: 'Aug', anomalies: 9, high: 4, resolved: 6 },
+    { month: 'Jan', anomalies: 0, high: 0, resolved: 0 },
+    { month: 'Feb', anomalies: 0, high: 0, resolved: 0 },
+    { month: 'Mar', anomalies: 0, high: 0, resolved: 0 },
+    { month: 'Apr', anomalies: 0, high: 0, resolved: 0 },
+    { month: 'May', anomalies: 0, high: 0, resolved: 0 },
+    { month: 'Jun', anomalies: 0, high: 0, resolved: 0 },
+    { month: 'Jul', anomalies: 0, high: 0, resolved: 0 },
+    { month: 'Aug', anomalies: 0, high: 0, resolved: 0 },
   ];
 
   // ROI comparison data
@@ -1584,11 +1543,16 @@ function AIDrivenInsightsContent() {
                         <ResponsiveContainer width="100%" height={200}>
                           <PieChart>
                             <Pie
-                              data={[
+                              data={filteredAttritionRisk.length > 0
+  ?[
                                 { name: 'High Risk', value: filteredAttritionRisk.filter(e => e.riskLevel === 'high').length, color: '#ef4444' },
                                 { name: 'Medium Risk', value: filteredAttritionRisk.filter(e => e.riskLevel === 'medium').length, color: '#f59e0b' },
                                 { name: 'Low Risk', value: filteredAttritionRisk.filter(e => e.riskLevel === 'low').length, color: '#10b981' },
-                              ]}
+                              ]: [
+      { name: 'High Risk', value: 1, color: '#ef4444' },
+      { name: 'Medium Risk', value: 1, color: '#f59e0b' },
+      { name: 'Low Risk', value: 1, color: '#10b981' },
+    ]}
                               cx="50%"
                               cy="50%"
                               innerRadius={40}
