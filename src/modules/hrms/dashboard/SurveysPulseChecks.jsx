@@ -10,57 +10,20 @@ import {
   DoorClosed, Heart, QrCode as QrCodeIcon, X, File, FileSpreadsheet,
   ThumbsUp, ThumbsDown, CheckCircle, MinusCircle, Maximize2, Minimize2
 } from "lucide-react";
-
-const Modal = ({ title, isOpen, onClose, children, width = "600px" }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 3000
-    }}>
-      <div style={{
-        background: "#fff",
-        borderRadius: "12px",
-        width,
-        maxHeight: "90vh",
-        overflowY: "auto",
-        padding: "20px",
-        boxShadow: "0 10px 25px rgba(0,0,0,0.25)"
-      }}>
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px"
-        }}>
-          <h3 style={{ margin: 0 }}>{title}</h3>
-          <button
-            onClick={onClose}
-            style={{
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              fontSize: "20px",
-              color: "#666"
-            }}
-          >
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-};
+import StatCard from "../../../shared/components/StatCard";
+import Modal from "../../../shared/components/Modal";
+import ExportSurveyModal from "../modal/ExportSurveyModal";
+import SaveDraftModal from "../modal/SaveDraftModal";
+import CreateNewSurveyModal from "../modal/CreateNewSurveyModal";
+import AddSurveyQuestionModal from "../modal/AddSurveyQuestionModal";
+import EditSurveyQuestionModal from "../modal/EditSurveyQuestionModal";
+import LaunchSurveyModal from "../modal/LaunchSurveyModal";
+import ScheduleCampaignModal from "../modal/ScheduleCampaignModal";
+import SendReminderModal from "../modal/SendReminderModal";
+import SurveyQRCodeModal from "../modal/SurveyQRCodeModal";
+import AddStrategicObjectiveModal from "../modal/AddStrategicObjectiveModal";
 
 const SurveysPulseChecks = () => {
-  // State declarations
   const [activeTab, setActiveTab] = useState("create");
   const [surveyVisibility, setSurveyVisibility] = useState("anonymous");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -134,7 +97,6 @@ const SurveysPulseChecks = () => {
   const [correlationData, setCorrelationData] = useState(null);
   const [surveyCategory, setSurveyCategory] = useState("");
 
-  // Question Bank Management State
   const [questionBank, setQuestionBank] = useState([]);
 
   const [bscQuestionBank, setBscQuestionBank] = useState([]);
@@ -150,7 +112,6 @@ const SurveysPulseChecks = () => {
   const [filterType, setFilterType] = useState("all");
   const [sortBy, setSortBy] = useState("used");
 
-  // BSC State Variables
   const [bscPerspectives, setBscPerspectives] = useState([
     { id: "financial", name: "Financial", color: "#10b981", weight: 25, icon: TrendingUp },
     { id: "customer", name: "Customer", color: "#3b82f6", weight: 25, icon: Users },
@@ -184,7 +145,6 @@ const SurveysPulseChecks = () => {
     includeBscData: true
   });
 
-  // Initialize with current date/time for scheduling
   useEffect(() => {
     const now = new Date();
     const tomorrow = new Date(now);
@@ -193,7 +153,6 @@ const SurveysPulseChecks = () => {
     setScheduleDate(tomorrow.toISOString().split('T')[0]);
     setScheduleTime("09:00");
 
-    // Load drafts from localStorage
     const savedDrafts = localStorage.getItem('surveyDrafts');
     if (savedDrafts) {
       try {
@@ -203,7 +162,6 @@ const SurveysPulseChecks = () => {
       }
     }
 
-    // Load surveys from localStorage
     const savedSurveys = localStorage.getItem('surveys');
     if (savedSurveys) {
       try {
@@ -213,7 +171,6 @@ const SurveysPulseChecks = () => {
       }
     }
 
-    // Load BSC objectives
     const savedBscObjectives = localStorage.getItem('bscObjectives');
     if (savedBscObjectives) {
       try {
@@ -223,10 +180,9 @@ const SurveysPulseChecks = () => {
       }
     }
 
-    // Load question banks
     const savedQuestionBank = localStorage.getItem('questionBank');
     const savedBscQuestionBank = localStorage.getItem('bscQuestionBank');
-    
+
     if (savedQuestionBank) {
       try {
         setQuestionBank(JSON.parse(savedQuestionBank));
@@ -234,7 +190,7 @@ const SurveysPulseChecks = () => {
         console.error("Error loading question bank:", e);
       }
     }
-    
+
     if (savedBscQuestionBank) {
       try {
         setBscQuestionBank(JSON.parse(savedBscQuestionBank));
@@ -244,28 +200,23 @@ const SurveysPulseChecks = () => {
     }
   }, []);
 
-  // Save drafts to localStorage when they change
   useEffect(() => {
     localStorage.setItem('surveyDrafts', JSON.stringify(drafts));
   }, [drafts]);
 
-  // Save surveys to localStorage when they change
   useEffect(() => {
     localStorage.setItem('surveys', JSON.stringify(surveys));
   }, [surveys]);
 
-  // Save BSC objectives
   useEffect(() => {
     localStorage.setItem('bscObjectives', JSON.stringify(bscObjectives));
   }, [bscObjectives]);
 
-  // Save question banks
   useEffect(() => {
     localStorage.setItem('questionBank', JSON.stringify(questionBank));
     localStorage.setItem('bscQuestionBank', JSON.stringify(bscQuestionBank));
   }, [questionBank, bscQuestionBank]);
 
-  // Data arrays
   const questionTypes = [
     { id: "rating", label: "Rating Scale", icon: Star, description: "1-5 or 1-10 rating scale" },
     { id: "nps", label: "NPS", icon: TrendingUp, description: "Net Promoter Score (0-10)" },
@@ -286,7 +237,6 @@ const SurveysPulseChecks = () => {
     { id: "wellness", name: "Wellness Pulse Check", questions: 6, estimatedTime: "3 min", usage: "Bi-weekly", icon: Heart }
   ];
 
-  // BSC Templates
   const bscSurveyTemplates = [
     {
       id: "bsc-strategic",
@@ -369,7 +319,6 @@ const SurveysPulseChecks = () => {
     trendData: []
   };
 
-  // BSC Correlation Data
   const bscCorrelationData = {
     perspectives: ["Financial", "Customer", "Internal", "Learning"],
     correlations: []
@@ -379,15 +328,14 @@ const SurveysPulseChecks = () => {
   const minEngagement = Math.min(...analyticsData.trendData.map(m => m.engagement));
 
   const barColors = [
-    "#3b82f6", // blue
-    "#10b981", // green
-    "#f59e0b", // amber
-    "#8b5cf6", // purple
-    "#ef4444", // red
-    "#14b8a6"  // teal
+    "#3b82f6", 
+    "#10b981", 
+    "#f59e0b", 
+    "#8b5cf6", 
+    "#ef4444", 
+    "#14b8a6"  
   ];
 
-  // Core Functionality Handlers
   const handleAddQuestion = (type) => {
     const newQuestion = {
       id: Date.now(),
@@ -423,15 +371,12 @@ const SurveysPulseChecks = () => {
     setSelectedTemplate(template);
     setSurveyTitle(`${template.name} Survey`);
 
-    // Set perspective for BSC templates
     if (template.perspectives && template.perspectives[0] !== "all") {
       setSelectedPerspective(template.perspectives[0]);
     }
 
-    // Load appropriate questions based on template
     let templateQuestions = [];
     if (template.id.includes("bsc-")) {
-      // Load BSC questions
       templateQuestions = bscQuestionBank
         .filter(q => template.perspectives[0] === "all" || q.perspective === template.perspectives[0])
         .slice(0, 3)
@@ -444,7 +389,6 @@ const SurveysPulseChecks = () => {
           options: q.type === "multiple" ? ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] : []
         }));
     } else {
-      // Load standard questions
       templateQuestions = [
         {
           id: Date.now(),
@@ -483,20 +427,17 @@ const SurveysPulseChecks = () => {
       scale: question.type === "rating" ? 5 : question.type === "nps" ? 10 : 5
     };
     setQuestions([...questions, newQuestion]);
-    
-    // Update usage count in question bank
+
     if (question.perspective) {
-      // BSC question
-      setBscQuestionBank(prev => prev.map(q => 
+      setBscQuestionBank(prev => prev.map(q =>
         q.id === question.id ? { ...q, used: (q.used || 0) + 1, lastUsed: new Date().toISOString().split('T')[0] } : q
       ));
     } else {
-      // Standard question
-      setQuestionBank(prev => prev.map(q => 
+      setQuestionBank(prev => prev.map(q =>
         q.id === question.id ? { ...q, used: (q.used || 0) + 1, lastUsed: new Date().toISOString().split('T')[0] } : q
       ));
     }
-    
+
     showNotification(`Question added from bank`, "success");
   };
 
@@ -536,7 +477,6 @@ const SurveysPulseChecks = () => {
       type: "success"
     });
 
-    // Reset form
     setSurveyTitle("");
     setQuestions([]);
     setSurveyDescription("");
@@ -575,7 +515,6 @@ const SurveysPulseChecks = () => {
     setShowExportModal(true);
   };
 
-  // Generate PDF Content
   const generatePDFContent = () => {
     const now = new Date();
     const dateStr = now.toLocaleDateString();
@@ -669,7 +608,6 @@ const SurveysPulseChecks = () => {
     return content;
   };
 
-  // Download PDF
   const handleExportPDF = () => {
     const content = generatePDFContent();
     const blob = new Blob([content], { type: 'text/plain' });
@@ -686,11 +624,9 @@ const SurveysPulseChecks = () => {
     setShowExportModal(false);
   };
 
-  // Generate Excel Content
   const generateExcelData = () => {
     const data = [];
 
-    // Header
     data.push(["SURVEY EXPORT REPORT", "", "", ""]);
     data.push(["Export Date", new Date().toLocaleString(), "", ""]);
     data.push(["Survey Title", surveyTitle || "Untitled Survey", "", ""]);
@@ -777,7 +713,6 @@ const SurveysPulseChecks = () => {
     return data;
   };
 
-  // Download Excel
   const handleExportExcel = () => {
     const data = generateExcelData();
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -802,7 +737,6 @@ const SurveysPulseChecks = () => {
     setShowExportModal(false);
   };
 
-  // Combined export handler
   const handleExport = () => {
     if (exportType === "pdf") {
       handleExportPDF();
@@ -858,7 +792,6 @@ const SurveysPulseChecks = () => {
       setScheduledSurveys([...scheduledSurveys, surveySchedule]);
       showNotification(`Survey scheduled for ${new Date(surveySchedule.scheduledFor).toLocaleString()}`, "success");
     } else {
-      // Immediate launch
       handleLaunchSurvey();
     }
 
@@ -911,13 +844,11 @@ const SurveysPulseChecks = () => {
     showNotification(`Survey duplicated as "${duplicatedSurvey.title}"`, "success");
   };
 
-  // FIXED: Proper view survey functionality
   const handleViewSurvey = (survey) => {
     setSelectedSurvey(survey);
     setIsViewMode(true);
     setShowViewModal(true);
 
-    // Load survey data into form
     setSurveyTitle(survey.title);
     setQuestions(survey.questions || []);
     setSurveyVisibility(survey.visibility || "anonymous");
@@ -956,14 +887,11 @@ const SurveysPulseChecks = () => {
     showNotification("All notifications marked as read", "success");
   };
 
-  // FIXED: Share link functionality
   const handleShareSurvey = () => {
-    // Generate a unique link based on survey title and current timestamp
     const surveyId = selectedSurvey?.id || Date.now();
     const link = `https://survey.company.com/survey/${surveyId}/${surveyTitle.replace(/\s+/g, "-").toLowerCase()}`;
     setShareLink(link);
 
-    // Try to copy to clipboard
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(link)
         .then(() => {
@@ -971,22 +899,17 @@ const SurveysPulseChecks = () => {
         })
         .catch(err => {
           console.error('Failed to copy: ', err);
-          // Fallback for older browsers
           copyToClipboardFallback(link);
         });
     } else {
-      // Fallback for older browsers
       copyToClipboardFallback(link);
     }
   };
 
-  // Fallback clipboard function
   const copyToClipboardFallback = (text) => {
     const textArea = document.createElement("textarea");
     textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.left = "-999999px";
-    textArea.style.top = "-999999px";
+    textArea.className = "fixed -left-[999999px] -top-[999999px]";
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
@@ -1076,7 +999,6 @@ const SurveysPulseChecks = () => {
     }
   };
 
-  // BSC Functions
   const handlePerspectiveChange = (perspectiveId) => {
     setSelectedPerspective(perspectiveId);
     showNotification(`Filtering by ${perspectiveId === "all" ? "All Perspectives" : perspectiveId}`, "info");
@@ -1120,7 +1042,6 @@ const SurveysPulseChecks = () => {
     showNotification(`Switched to ${analysisView === "standard" ? "BSC Analysis" : "Standard Analysis"} view`, "info");
   };
 
-  // Question Bank Management Functions
   const handleEditQuestion = (question) => {
     setEditingQuestion(question);
     setNewQuestionText(question.question);
@@ -1137,7 +1058,6 @@ const SurveysPulseChecks = () => {
     }
 
     if (editingQuestion.perspective) {
-      // Update BSC question
       setBscQuestionBank(prev => prev.map(q =>
         q.id === editingQuestion.id ? {
           ...q,
@@ -1149,7 +1069,6 @@ const SurveysPulseChecks = () => {
         } : q
       ));
     } else {
-      // Update standard question
       setQuestionBank(prev => prev.map(q =>
         q.id === editingQuestion.id ? {
           ...q,
@@ -1197,7 +1116,6 @@ const SurveysPulseChecks = () => {
     }
   };
 
-  // FIXED: Add new question to bank function
   const handleAddNewQuestionToBank = () => {
     if (!newQuestionText.trim()) {
       showNotification("Question text cannot be empty", "warning");
@@ -1215,23 +1133,19 @@ const SurveysPulseChecks = () => {
       createdAt: new Date().toISOString().split('T')[0]
     };
 
-    // Check if we should add to BSC question bank
     if (selectedPerspective !== "all" && selectedPerspective !== "bsc") {
-      // Add to BSC question bank with perspective
       newQuestion.perspective = selectedPerspective;
       setBscQuestionBank(prev => [...prev, newQuestion]);
     } else {
-      // Add to standard question bank
       setQuestionBank(prev => [...prev, newQuestion]);
     }
 
-    // Reset form
     setNewQuestionText("");
     setNewQuestionType("rating");
     setNewQuestionCategory("");
     setNewQuestionTags([]);
     setTagInput("");
-    
+
     showNotification("Question added to bank", "success");
     setShowEditQuestionModal(false);
   };
@@ -1247,7 +1161,6 @@ const SurveysPulseChecks = () => {
     setNewQuestionTags(newQuestionTags.filter(tag => tag !== tagToRemove));
   };
 
-  // Preview Functions
   const handlePreviewResponse = (questionId, response) => {
     setPreviewResponses({
       ...previewResponses,
@@ -1263,7 +1176,7 @@ const SurveysPulseChecks = () => {
   const handleSubmitPreview = () => {
     const answeredQuestions = Object.keys(previewResponses).length;
     const totalQuestions = questions.length;
-    
+
     if (answeredQuestions < totalQuestions) {
       showNotification(`You have answered ${answeredQuestions} out of ${totalQuestions} questions. Please complete all questions before submitting.`, "warning");
     } else {
@@ -1272,29 +1185,24 @@ const SurveysPulseChecks = () => {
     }
   };
 
-  // Filter and sort questions
   const filteredQuestions = [...questionBank, ...bscQuestionBank].filter(q => {
-    // Filter by search query
     if (searchQuery && !q.question.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    
-    // Filter by category
+
     if (filterCategory !== "all" && q.category !== filterCategory) {
       return false;
     }
-    
-    // Filter by type
+
     if (filterType !== "all" && q.type !== filterType) {
       return false;
     }
-    
-    // Filter by perspective
+
     if (selectedPerspective !== "all") {
       if (selectedPerspective === "bsc" && !q.perspective) return false;
       if (selectedPerspective !== "bsc" && q.perspective !== selectedPerspective) return false;
     }
-    
+
     return true;
   }).sort((a, b) => {
     switch (sortBy) {
@@ -1316,26 +1224,19 @@ const SurveysPulseChecks = () => {
 
   const showNotification = (message, type = "info") => {
     const notification = document.createElement('div');
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
-      color: white;
-      border-radius: 8px;
-      z-index: 1000;
-      animation: slideIn 0.3s ease-out;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      min-width: 300px;
-      max-width: 400px;
-      font-family: 'Inter', sans-serif;
-    `;
+    const bgClass = type === 'success' ? 'bg-emerald-500' : type === 'warning' ? 'bg-amber-500' : 'bg-blue-500';
+    notification.className = `fixed top-5 right-5 px-5 py-3 text-white rounded-lg z-[1000] shadow-md min-w-[300px] max-w-[400px] font-sans transition-all duration-300 translate-x-full opacity-0 ${bgClass}`;
     notification.textContent = message;
     document.body.appendChild(notification);
 
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        notification.className = `fixed top-5 right-5 px-5 py-3 text-white rounded-lg z-[1000] shadow-md min-w-[300px] max-w-[400px] font-sans transition-all duration-300 translate-x-0 opacity-100 ${bgClass}`;
+      });
+    });
+
     setTimeout(() => {
-      notification.style.animation = 'slideIn 0.3s ease-out reverse';
+      notification.className = `fixed top-5 right-5 px-5 py-3 text-white rounded-lg z-[1000] shadow-md min-w-[300px] max-w-[400px] font-sans transition-all duration-300 translate-x-full opacity-0 ${bgClass}`;
       setTimeout(() => {
         if (notification.parentNode) {
           document.body.removeChild(notification);
@@ -1344,437 +1245,17 @@ const SurveysPulseChecks = () => {
     }, 3000);
   };
 
-  // Inline Styles
-  const styles = {
-    container: {
-      background: "#f8fafc",
-      minHeight: "100vh",
-      padding: "24px",
-      fontFamily: "'Inter', sans-serif"
-    },
-    header: {
-      background: "white",
-      padding: "24px",
-      borderRadius: "12px",
-      marginBottom: "24px",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    },
-    mainTitle: {
-      fontSize: "24px",
-      fontWeight: "600",
-      color: "#1e293b",
-      margin: "0 0 8px 0",
-      display: "flex",
-      alignItems: "center",
-      gap: "12px"
-    },
-    subtitle: {
-      fontSize: "14px",
-      color: "#64748b",
-      margin: "0"
-    },
-    headerActions: {
-      display: "flex",
-      gap: "12px",
-      alignItems: "center",
-      position: "relative"
-    },
-    notificationsButton: {
-      position: "relative",
-      cursor: "pointer",
-      padding: "8px",
-      borderRadius: "8px",
-      border: "1px solid #e5e7eb",
-      background: "white",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    },
-    notificationsBadge: {
-      position: "absolute",
-      top: "-5px",
-      right: "-5px",
-      background: "#ef4444",
-      color: "white",
-      borderRadius: "50%",
-      width: "18px",
-      height: "18px",
-      fontSize: "10px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    },
-    notificationsPanel: {
-      position: "absolute",
-      top: "100%",
-      right: 0,
-      background: "white",
-      border: "1px solid #e5e7eb",
-      borderRadius: "8px",
-      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-      width: "300px",
-      maxHeight: "400px",
-      overflow: "auto",
-      zIndex: 1000
-    },
-    notificationItem: {
-      padding: "12px",
-      borderBottom: "1px solid #f3f4f6",
-      cursor: "pointer",
-      transition: "background 0.2s",
-      background: "white"
-    },
-    navTabs: {
-      display: "flex",
-      gap: "4px",
-      background: "#f1f5f9",
-      padding: "4px",
-      borderRadius: "8px",
-      marginBottom: "24px"
-    },
-    navTab: {
-      flex: 1,
-      padding: "12px 16px",
-      borderRadius: "6px",
-      border: "none",
-      background: "transparent",
-      cursor: "pointer",
-      fontSize: "14px",
-      fontWeight: "500",
-      color: "#64748b",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px",
-      transition: "all 0.2s"
-    },
-    activeNavTab: {
-      background: "white",
-      color: "#3b82f6",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-    },
-    sectionCard: {
-      background: "white",
-      padding: "24px",
-      borderRadius: "12px",
-      marginBottom: "24px",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
-    },
-    sectionTitle: {
-      fontSize: "18px",
-      fontWeight: "600",
-      color: "#1e293b",
-      margin: "0 0 20px 0",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px"
-    },
-    grid2Col: {
-      display: "grid",
-      gridTemplateColumns: "repeat(2, 1fr)",
-      gap: "20px",
-      marginBottom: "24px"
-    },
-    grid3Col: {
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: "16px",
-      marginBottom: "24px"
-    },
-    grid4Col: {
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: "16px",
-      marginBottom: "24px"
-    },
-    formGroup: {
-      marginBottom: "16px"
-    },
-    label: {
-      display: "block",
-      fontSize: "14px",
-      fontWeight: "500",
-      color: "#374151",
-      marginBottom: "6px"
-    },
-    select: {
-      width: "100%",
-      padding: "10px 12px",
-      borderRadius: "6px",
-      border: "1px solid #d1d5db",
-      fontSize: "14px",
-      background: "white",
-      cursor: "pointer"
-    },
-    input: {
-      width: "100%",
-      padding: "10px 12px",
-      borderRadius: "6px",
-      border: "1px solid #d1d5db",
-      fontSize: "14px",
-      cursor: "text",
-      boxSizing: "border-box"
-    },
-    textarea: {
-      width: "100%",
-      padding: "10px 12px",
-      borderRadius: "6px",
-      border: "1px solid #d1d5db",
-      fontSize: "14px",
-      minHeight: "80px",
-      resize: "vertical",
-      cursor: "text",
-      boxSizing: "border-box"
-    },
-    checkboxGroup: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "10px",
-      marginTop: "8px"
-    },
-    checkboxLabel: {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      fontSize: "14px",
-      cursor: "pointer"
-    },
-    radioGroup: {
-      display: "flex",
-      gap: "16px",
-      marginTop: "8px"
-    },
-    radioLabel: {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      fontSize: "14px",
-      cursor: "pointer"
-    },
-    button: {
-      padding: "10px 20px",
-      borderRadius: "6px",
-      border: "1px solid #d1d5db",
-      background: "white",
-      cursor: "pointer",
-      fontSize: "14px",
-      fontWeight: "500",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      transition: "all 0.2s",
-      minHeight: "40px"
-    },
-    primaryButton: {
-      background: "#3b82f6",
-      color: "white",
-      borderColor: "#3b82f6"
-    },
-    secondaryButton: {
-      background: "#eff6ff",
-      color: "#3b82f6",
-      borderColor: "#3b82f6"
-    },
-    successButton: {
-      background: "#10b981",
-      color: "white",
-      borderColor: "#10b981"
-    },
-    warningButton: {
-      background: "#f59e0b",
-      color: "white",
-      borderColor: "#f59e0b"
-    },
-    dangerButton: {
-      background: "#ef4444",
-      color: "white",
-      borderColor: "#ef4444"
-    },
-    outlineButton: {
-      background: "white",
-      color: "#3b82f6",
-      borderColor: "#3b82f6"
-    },
-    chip: {
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "4px 12px",
-      borderRadius: "20px",
-      fontSize: "12px",
-      fontWeight: "500",
-      background: "#f1f5f9",
-      color: "#64748b",
-      marginRight: "8px",
-      marginBottom: "8px"
-    },
-    card: {
-      background: "white",
-      padding: "16px",
-      borderRadius: "8px",
-      border: "1px solid #e2e8f0",
-      marginBottom: "12px",
-      cursor: "pointer",
-      transition: "all 0.2s"
-    },
-    selectedCard: {
-      borderColor: "#3b82f6",
-      background: "#f0f9ff",
-      boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)"
-    },
-    questionCard: {
-      background: "#f8fafc",
-      padding: "16px",
-      borderRadius: "8px",
-      border: "1px solid #e2e8f0",
-      marginBottom: "12px",
-      position: "relative"
-    },
-    metricCard: {
-      background: "white",
-      padding: "20px",
-      borderRadius: "12px",
-      border: "1px solid #e2e8f0",
-      textAlign: "center"
-    },
-    actionButtons: {
-      display: "flex",
-      gap: "12px",
-      marginTop: "24px",
-      justifyContent: "flex-end",
-      flexWrap: "wrap"
-    },
-    buttonGroup: {
-      display: "flex",
-      gap: "8px",
-      marginTop: "8px"
-    },
-    smallButton: {
-      padding: "6px 12px",
-      fontSize: "12px"
-    },
-    searchBox: {
-      padding: "8px 12px",
-      borderRadius: "6px",
-      border: "1px solid #d1d5db",
-      fontSize: "14px",
-      width: "300px",
-      cursor: "text"
-    },
-    previewContainer: {
-      background: "#f9fafb",
-      padding: "20px",
-      borderRadius: "8px",
-      border: "2px dashed #d1d5db",
-      minHeight: "200px"
-    },
-    draftsList: {
-      marginTop: "20px",
-      paddingTop: "20px",
-      borderTop: "1px solid #e5e7eb"
-    },
-    draftItem: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: "12px",
-      border: "1px solid #e5e7eb",
-      borderRadius: "6px",
-      marginBottom: "8px",
-      background: "#f9fafb"
-    },
-    bscPerspectiveCard: {
-      padding: "12px",
-      borderRadius: "8px",
-      marginBottom: "8px",
-      borderLeft: "4px solid"
-    },
-    exportPreview: {
-      background: "#f9fafb",
-      padding: "16px",
-      borderRadius: "8px",
-      border: "1px solid #e5e7eb",
-      marginTop: "16px",
-      maxHeight: "200px",
-      overflowY: "auto",
-      fontSize: "12px",
-      fontFamily: "monospace"
-    },
-    tag: {
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "2px 8px",
-      borderRadius: "12px",
-      fontSize: "10px",
-      background: "#dbeafe",
-      color: "#1e40af",
-      marginRight: "4px",
-      marginBottom: "4px"
-    },
-    previewQuestion: {
-      marginBottom: "24px",
-      padding: "20px",
-      background: "white",
-      borderRadius: "8px",
-      border: "1px solid #e5e7eb"
-    }
-  };
-
-  // Add CSS for animations
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-      .spin {
-        animation: spin 1s linear infinite;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .fade-in {
-        animation: fadeIn 0.3s ease-out;
-      }
-      @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      .slide-in {
-        animation: slideIn 0.3s ease-out;
-      }
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-      }
-      .pulse {
-        animation: pulse 0.3s ease-in-out;
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
-  // Render Functions
   const renderCreateSurvey = () => (
     <div className="fade-in">
-      <div style={styles.sectionCard}>
-        <h4 style={styles.sectionTitle}><Plus size={20} />Survey Creation</h4>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Plus size={20} />Survey Creation</h4>
 
-        <div style={styles.grid2Col}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Survey Title *</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Survey Title *</label>
             <input
               type="text"
-              style={styles.input}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="Enter survey title"
               value={surveyTitle}
               onChange={(e) => setSurveyTitle(e.target.value)}
@@ -1782,10 +1263,10 @@ const SurveysPulseChecks = () => {
             />
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>BSC Perspective (Optional)</label>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">BSC Perspective (Optional)</label>
             <select
-              style={styles.select}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
               value={selectedPerspective}
               onChange={(e) => setSelectedPerspective(e.target.value)}
               disabled={isViewMode}
@@ -1798,11 +1279,11 @@ const SurveysPulseChecks = () => {
           </div>
         </div>
 
-        <div style={styles.grid2Col}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Visibility Mode</label>
-            <div style={styles.radioGroup}>
-              <label style={styles.radioLabel}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Visibility Mode</label>
+            <div className="flex flex-col gap-2.5 mt-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-slate-700">
                 <input
                   type="radio"
                   checked={surveyVisibility === "anonymous"}
@@ -1811,7 +1292,7 @@ const SurveysPulseChecks = () => {
                 />
                 <span>Anonymous</span>
               </label>
-              <label style={styles.radioLabel}>
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-slate-700">
                 <input
                   type="radio"
                   checked={surveyVisibility === "identified"}
@@ -1823,21 +1304,17 @@ const SurveysPulseChecks = () => {
             </div>
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Strategic Alignment</label>
-            <div style={{ display: "flex", gap: "8px" }}>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Strategic Alignment</label>
+            <div className="flex gap-2">
               {selectedPerspective !== "all" && (
-                <span style={{
-                  ...styles.chip,
-                  background: bscPerspectives.find(p => p.id === selectedPerspective)?.color + "20",
-                  color: bscPerspectives.find(p => p.id === selectedPerspective)?.color,
-                  border: `1px solid ${bscPerspectives.find(p => p.id === selectedPerspective)?.color}`
-                }}>
+                <span
+                  className={`bg-[${bscPerspectives.find(p => p.id === selectedPerspective)?.color}20] text-[${bscPerspectives.find(p => p.id === selectedPerspective)?.color}] border-[${bscPerspectives.find(p => p.id === selectedPerspective)?.color}]`}>
                   {bscPerspectives.find(p => p.id === selectedPerspective)?.name}
                 </span>
               )}
               <button
-                style={{ ...styles.button, ...styles.smallButton }}
+                className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                 onClick={() => setShowBscModal(true)}
                 disabled={isViewMode}
               >
@@ -1847,10 +1324,10 @@ const SurveysPulseChecks = () => {
           </div>
         </div>
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Survey Description</label>
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Survey Description</label>
           <textarea
-            style={styles.textarea}
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[100px] resize-y"
             placeholder="Describe the purpose of this survey..."
             rows={3}
             value={surveyDescription}
@@ -1860,27 +1337,27 @@ const SurveysPulseChecks = () => {
         </div>
       </div>
 
-      <div style={styles.sectionCard}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h4 style={styles.sectionTitle}><FileText size={20} />Survey Questions ({questions.length})</h4>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <div className="flex justify-between items-center mb-5">
+          <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><FileText size={20} />Survey Questions ({questions.length})</h4>
           {!isViewMode && (
-            <div style={styles.buttonGroup}>
+            <div className="flex gap-2 mt-2">
               <button
-                style={{ ...styles.button, ...styles.secondaryButton }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 onClick={handleToggleQuestionBank}
               >
                 <BookOpen size={16} /> Question Bank
               </button>
               {questions.length > 0 && (
                 <button
-                  style={{ ...styles.button, ...styles.secondaryButton }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   onClick={handleClearSurvey}
                 >
                   <Trash2 size={16} /> Clear All
                 </button>
               )}
               <button
-                style={{ ...styles.button, ...styles.primaryButton }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
                 onClick={() => setShowAddQuestionModal(true)}
               >
                 <Plus size={16} /> Add Question
@@ -1890,40 +1367,32 @@ const SurveysPulseChecks = () => {
         </div>
 
         {showQuestionBank && !isViewMode && (
-          <div style={{ marginBottom: "24px", animation: "fadeIn 0.3s ease-out" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h5 style={{ ...styles.label, fontSize: "16px", margin: 0 }}>Question Types</h5>
+          <div className="mb-6 animate-[fadeIn_0.3s_ease-out]">
+            <div className="flex justify-between items-center mb-4">
+              <h5 className="text-base font-semibold text-slate-800 m-0">Question Types</h5>
               <input
                 type="text"
-                style={styles.searchBox}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Search questions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            <div style={styles.grid3Col}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
               {questionTypes.map(type => (
                 <div
                   key={type.id}
-                  style={styles.card}
+                  className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-4"
                   onClick={() => handleAddQuestion(type.id)}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                    <div style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "8px",
-                      background: "#dbeafe",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                       <type.icon size={20} color="#3b82f6" />
                     </div>
                     <div>
-                      <div style={{ fontWeight: "600", fontSize: "14px" }}>{type.label}</div>
-                      <div style={{ fontSize: "12px", color: "#6b7280" }}>{type.description}</div>
+                      <div className="font-semibold text-sm">{type.label}</div>
+                      <div className="text-xs text-slate-500">{type.description}</div>
                     </div>
                   </div>
                 </div>
@@ -1931,31 +1400,27 @@ const SurveysPulseChecks = () => {
             </div>
 
             {selectedPerspective !== "all" && (
-              <div style={{ marginTop: "24px" }}>
-                <h5 style={{ ...styles.label, fontSize: "16px", marginBottom: "16px" }}>
+              <div className="mt-6">
+                <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">
                   <Target size={16} /> BSC Questions - {bscPerspectives.find(p => p.id === selectedPerspective)?.name}
                 </h5>
                 {bscQuestionBank
                   .filter(q => q.perspective === selectedPerspective)
                   .map(q => (
-                    <div key={q.id} style={styles.questionCard}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: "500", marginBottom: "4px" }}>{q.question}</div>
-                          <div style={{ display: "flex", gap: "8px", fontSize: "12px", color: "#6b7280" }}>
-                            <span style={{
-                              ...styles.chip,
-                              background: bscPerspectives.find(p => p.id === q.perspective)?.color + "20",
-                              color: bscPerspectives.find(p => p.id === q.perspective)?.color
-                            }}>
+                    <div key={q.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-3">
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="font-medium mb-1">{q.question}</div>
+                          <div className="flex gap-2 text-xs text-slate-500">
+                            <span className="text-sm">
                               {q.perspective}
                             </span>
-                            <span style={styles.chip}>{q.type}</span>
-                            <span style={styles.chip}>Used {q.used} times</span>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">{q.type}</span>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">Used {q.used} times</span>
                           </div>
                         </div>
                         <button
-                          style={{ ...styles.button, ...styles.smallButton }}
+                          className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                           onClick={() => handleAddFromQuestionBank(q)}
                         >
                           <Plus size={12} /> Add
@@ -1966,21 +1431,21 @@ const SurveysPulseChecks = () => {
               </div>
             )}
 
-            <div style={{ marginTop: "24px" }}>
-              <h5 style={{ ...styles.label, fontSize: "16px", marginBottom: "16px" }}>Question Bank</h5>
+            <div className="mt-6">
+              <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">Question Bank</h5>
               {questionBank.map(q => (
-                <div key={q.id} style={styles.questionCard}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: "500", marginBottom: "4px" }}>{q.question}</div>
-                      <div style={{ display: "flex", gap: "8px", fontSize: "12px", color: "#6b7280" }}>
-                        <span style={styles.chip}>{q.type}</span>
-                        <span style={styles.chip}>{q.category}</span>
-                        <span style={styles.chip}>Used {q.used} times</span>
+                <div key={q.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="font-medium mb-1">{q.question}</div>
+                      <div className="flex gap-2 text-xs text-slate-500">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">{q.type}</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">{q.category}</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">Used {q.used} times</span>
                       </div>
                     </div>
                     <button
-                      style={{ ...styles.button, ...styles.smallButton }}
+                      className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                       onClick={() => handleAddFromQuestionBank(q)}
                     >
                       <Plus size={12} /> Add
@@ -1995,14 +1460,14 @@ const SurveysPulseChecks = () => {
         {questions.length > 0 ? (
           <div>
             {questions.map((q, index) => (
-              <div key={q.id} style={styles.questionCard}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                      <span style={{ fontWeight: "600", color: "#3b82f6" }}>Q{index + 1}</span>
+              <div key={q.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-3">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-blue-500">Q{index + 1}</span>
                       <input
                         type="text"
-                        style={{ ...styles.input, flex: 1 }}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none flex-1"
                         placeholder="Enter your question here..."
                         value={q.question}
                         onChange={(e) => !isViewMode && handleQuestionChange(q.id, "question", e.target.value)}
@@ -2012,10 +1477,10 @@ const SurveysPulseChecks = () => {
 
                     {/* Question type specific inputs */}
                     {q.type === "rating" && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px" }}>
-                        <span style={{ fontSize: "13px" }}>Scale:</span>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-[13px]">Scale:</span>
                         <select
-                          style={{ ...styles.select, width: "100px" }}
+                          className="text-sm"
                           value={q.scale}
                           onChange={(e) => !isViewMode && handleQuestionChange(q.id, "scale", parseInt(e.target.value))}
                           disabled={isViewMode}
@@ -2029,13 +1494,13 @@ const SurveysPulseChecks = () => {
                     )}
 
                     {q.type === "multiple" && (
-                      <div style={{ marginTop: "12px" }}>
-                        <div style={{ fontSize: "13px", marginBottom: "8px" }}>Options:</div>
+                      <div className="mt-3">
+                        <div className="text-[13px] mb-2">Options:</div>
                         {q.options.map((option, optIndex) => (
-                          <div key={optIndex} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                          <div key={optIndex} className="flex gap-2 mb-2">
                             <input
                               type="text"
-                              style={{ ...styles.input, flex: 1 }}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none flex-1"
                               value={option}
                               onChange={(e) => {
                                 if (isViewMode) return;
@@ -2047,7 +1512,7 @@ const SurveysPulseChecks = () => {
                             />
                             {!isViewMode && (
                               <button
-                                style={{ ...styles.button, ...styles.smallButton }}
+                                className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                                 onClick={() => {
                                   const newOptions = q.options.filter((_, i) => i !== optIndex);
                                   handleQuestionChange(q.id, "options", newOptions);
@@ -2060,7 +1525,7 @@ const SurveysPulseChecks = () => {
                         ))}
                         {!isViewMode && (
                           <button
-                            style={{ ...styles.button, ...styles.outlineButton, ...styles.smallButton }}
+                            className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-blue-600 transition hover:bg-slate-50"
                             onClick={() => {
                               const newOptions = [...q.options, `Option ${q.options.length + 1}`];
                               handleQuestionChange(q.id, "options", newOptions);
@@ -2073,9 +1538,9 @@ const SurveysPulseChecks = () => {
                     )}
                   </div>
                   {!isViewMode && (
-                    <div style={styles.buttonGroup}>
+                    <div className="flex gap-2 mt-2">
                       <button
-                        style={{ ...styles.button, ...styles.smallButton }}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                         onClick={() => handleRemoveQuestion(q.id)}
                       >
                         <Trash2 size={14} />
@@ -2083,8 +1548,8 @@ const SurveysPulseChecks = () => {
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px" }}>
-                  <label style={{ ...styles.checkboxLabel, fontSize: "13px" }}>
+                <div className="flex justify-between items-center mt-3">
+                  <label className="text-sm">
                     <input
                       type="checkbox"
                       checked={q.required}
@@ -2093,7 +1558,7 @@ const SurveysPulseChecks = () => {
                     />
                     <span>Required question</span>
                   </label>
-                  <span style={{ fontSize: "12px", color: "#6b7280" }}>
+                  <span className="text-xs text-slate-500">
                     {q.type.charAt(0).toUpperCase() + q.type.slice(1)} Question
                   </span>
                 </div>
@@ -2101,33 +1566,33 @@ const SurveysPulseChecks = () => {
             ))}
           </div>
         ) : (
-          <div style={styles.previewContainer}>
-            <div style={{ textAlign: "center", color: "#6b7280" }}>
-              <FileText size={48} style={{ marginBottom: "16px", opacity: 0.5 }} />
-              <p style={{ marginBottom: "8px" }}>No questions added yet</p>
-              <p style={{ fontSize: "14px" }}>Click "Add Question" to start building your survey</p>
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="text-center text-slate-500">
+              <FileText size={48} className="mb-4 opacity-50 mx-auto" />
+              <p className="mb-2">No questions added yet</p>
+              <p className="text-sm">Click "Add Question" to start building your survey</p>
             </div>
           </div>
         )}
       </div>
 
       {!isViewMode && (
-        <div style={styles.sectionCard}>
-          <h4 style={styles.sectionTitle}><Clock size={20} />Survey Settings</h4>
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+          <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Clock size={20} />Survey Settings</h4>
 
-          <div style={styles.grid3Col}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Survey Expiry</label>
-              <div style={{ display: "flex", gap: "8px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Survey Expiry</label>
+              <div className="flex gap-2">
                 <input
                   type="number"
-                  style={styles.input}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="7"
                   value={surveyExpiry.value}
                   onChange={(e) => setSurveyExpiry({ ...surveyExpiry, value: parseInt(e.target.value) || 7 })}
                 />
                 <select
-                  style={styles.select}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   value={surveyExpiry.unit}
                   onChange={(e) => setSurveyExpiry({ ...surveyExpiry, unit: e.target.value })}
                 >
@@ -2138,10 +1603,10 @@ const SurveysPulseChecks = () => {
               </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Reminder Settings</label>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Reminder Settings</label>
               <select
-                style={styles.select}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 value={`${reminderSettings.frequency}`}
                 onChange={(e) => handleUpdateReminderSettings("frequency", parseInt(e.target.value))}
               >
@@ -2152,10 +1617,10 @@ const SurveysPulseChecks = () => {
               </select>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Completion Message</label>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Completion Message</label>
               <select
-                style={styles.select}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 value={completionMessage}
                 onChange={(e) => setCompletionMessage(e.target.value)}
               >
@@ -2167,10 +1632,10 @@ const SurveysPulseChecks = () => {
             </div>
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Survey Logic & Skip Patterns</label>
-            <div style={styles.checkboxGroup}>
-              <label style={styles.checkboxLabel}>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Survey Logic & Skip Patterns</label>
+            <div className="flex flex-col gap-2.5 mt-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-slate-700">
                 <input
                   type="checkbox"
                   checked={surveyLogic.skipLogic}
@@ -2178,7 +1643,7 @@ const SurveysPulseChecks = () => {
                 />
                 <span>Enable skip logic based on responses</span>
               </label>
-              <label style={styles.checkboxLabel}>
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-slate-700">
                 <input
                   type="checkbox"
                   checked={surveyLogic.randomize}
@@ -2186,7 +1651,7 @@ const SurveysPulseChecks = () => {
                 />
                 <span>Randomize question order</span>
               </label>
-              <label style={styles.checkboxLabel}>
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-slate-700">
                 <input
                   type="checkbox"
                   checked={surveyLogic.progressBar}
@@ -2201,24 +1666,22 @@ const SurveysPulseChecks = () => {
 
       {/* BSC Objectives Section */}
       {bscObjectives.length > 0 && (
-        <div style={styles.sectionCard}>
-          <h4 style={styles.sectionTitle}><Target size={20} />Strategic Objectives Alignment</h4>
-          <div style={styles.grid3Col}>
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+          <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Target size={20} />Strategic Objectives Alignment</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             {bscObjectives.map(obj => (
-              <div key={obj.id} style={{
-                ...styles.card,
-                borderLeft: `4px solid ${bscPerspectives.find(p => p.id === obj.perspective)?.color || "#3b82f6"}`
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div key={obj.id}
+                className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 mb-1">
+                <div className="flex justify-between items-start">
                   <div>
-                    <div style={{ fontWeight: "600", marginBottom: "8px" }}>{obj.name}</div>
-                    <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                    <div className="font-semibold mb-2">{obj.name}</div>
+                    <div className="text-xs text-slate-500">
                       {bscPerspectives.find(p => p.id === obj.perspective)?.name || "Strategic"}
                     </div>
                     {obj.kpis.length > 0 && (
-                      <div style={{ marginTop: "8px" }}>
-                        <div style={{ fontSize: "11px", color: "#374151", fontWeight: "500" }}>KPIs:</div>
-                        <div style={{ fontSize: "11px", color: "#6b7280" }}>
+                      <div className="mt-2">
+                        <div className="text-[11px] text-slate-700 font-medium">KPIs:</div>
+                        <div className="text-[11px] text-slate-500">
                           {obj.kpis.slice(0, 2).join(", ")}
                           {obj.kpis.length > 2 && ` +${obj.kpis.length - 2} more`}
                         </div>
@@ -2227,7 +1690,7 @@ const SurveysPulseChecks = () => {
                   </div>
                   {!isViewMode && (
                     <button
-                      style={{ ...styles.button, ...styles.smallButton }}
+                      className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                       onClick={() => handleDeleteBscObjective(obj.id)}
                     >
                       <Trash2 size={12} />
@@ -2241,68 +1704,56 @@ const SurveysPulseChecks = () => {
       )}
 
       {/* Active Surveys Section */}
-      <div style={styles.sectionCard}>
-        <h4 style={styles.sectionTitle}><BarChart3 size={20} />Active Surveys</h4>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><BarChart3 size={20} />Active Surveys</h4>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Survey Title</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Questions</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Responses</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Perspective</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Status</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Actions</th>
+              <tr className="border-b border-slate-200">
+                <th className="text-left p-3 font-medium text-slate-700">Survey Title</th>
+                <th className="text-left p-3 font-medium text-slate-700">Questions</th>
+                <th className="text-left p-3 font-medium text-slate-700">Responses</th>
+                <th className="text-left p-3 font-medium text-slate-700">Perspective</th>
+                <th className="text-left p-3 font-medium text-slate-700">Status</th>
+                <th className="text-left p-3 font-medium text-slate-700">Actions</th>
               </tr>
             </thead>
             <tbody>
               {surveys.map(survey => (
-                <tr key={survey.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                  <td style={{ padding: "12px", fontWeight: "500" }}>{survey.title}</td>
-                  <td style={{ padding: "12px" }}>{Array.isArray(survey.questions) ? survey.questions.length : survey.questions || 0}</td>
-                  <td style={{ padding: "12px" }}>{survey.responses}</td>
-                  <td style={{ padding: "12px" }}>
+                <tr key={survey.id} className="border-b border-slate-100">
+                  <td className="p-3 font-medium">{survey.title}</td>
+                  <td className="p-3">{Array.isArray(survey.questions) ? survey.questions.length : survey.questions || 0}</td>
+                  <td className="p-3">{survey.responses}</td>
+                  <td className="p-3">
                     {survey.perspective ? (
-                      <span style={{
-                        ...styles.chip,
-                        background: bscPerspectives.find(p => p.id === survey.perspective)?.color + "20",
-                        color: bscPerspectives.find(p => p.id === survey.perspective)?.color
-                      }}>
+                      <span className="text-sm">
                         {bscPerspectives.find(p => p.id === survey.perspective)?.name}
                       </span>
                     ) : (
-                      <span style={styles.chip}>General</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">General</span>
                     )}
                   </td>
-                  <td style={{ padding: "12px" }}>
-                    <span style={{
-                      ...styles.chip,
-                      background: survey.status === "active" ? "#d1fae5" :
-                        survey.status === "completed" ? "#dbeafe" :
-                          survey.status === "paused" ? "#fef3c7" : "#f3f4f6",
-                      color: survey.status === "active" ? "#065f46" :
-                        survey.status === "completed" ? "#1e40af" :
-                          survey.status === "paused" ? "#92400e" : "#6b7280"
-                    }}>
+                  <td className="p-3">
+                    <span className="text-sm">
                       {survey.status}
                     </span>
                   </td>
-                  <td style={{ padding: "12px" }}>
-                    <div style={{ display: "flex", gap: "8px" }}>
+                  <td className="p-3">
+                    <div className="flex gap-2">
                       <button
-                        style={{ ...styles.button, ...styles.smallButton }}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                         onClick={() => handleViewSurvey(survey)}
                       >
                         <Eye size={12} />
                       </button>
                       <button
-                        style={{ ...styles.button, ...styles.smallButton }}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                         onClick={() => handleDuplicateSurvey(survey)}
                       >
                         <Copy size={12} />
                       </button>
                       <button
-                        style={{ ...styles.button, ...styles.smallButton }}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                         onClick={() => handleSurveyAction(survey.id,
                           survey.status === "active" ? "pause" :
                             survey.status === "paused" ? "resume" : "close")}
@@ -2311,13 +1762,13 @@ const SurveysPulseChecks = () => {
                           survey.status === "paused" ? "▶" : "✓"}
                       </button>
                       <button
-                        style={{ ...styles.button, ...styles.smallButton }}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                         onClick={() => handleDeleteSurvey(survey.id)}
                       >
                         <Trash2 size={12} />
                       </button>
                       <button
-                        style={{ ...styles.button, ...styles.smallButton }}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                         onClick={() => {
                           setSelectedSurvey(survey);
                           setShowExportModal(true);
@@ -2336,37 +1787,31 @@ const SurveysPulseChecks = () => {
 
       {/* Drafts Section */}
       {drafts.length > 0 && (
-        <div style={styles.sectionCard}>
-          <h4 style={styles.sectionTitle}><Save size={20} />Saved Drafts</h4>
-          <div style={styles.draftsList}>
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+          <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Save size={20} />Saved Drafts</h4>
+          <div className="flex flex-col gap-3">
             {drafts.map(draft => (
-              <div key={draft.id} style={styles.draftItem}>
+              <div key={draft.id} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100">
                 <div>
-                  <div style={{ fontWeight: "500" }}>{draft.title}</div>
-                  <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                  <div className="font-medium">{draft.title}</div>
+                  <div className="text-xs text-slate-500">
                     {draft.questions?.length || 0} questions • Last saved: {draft.lastSaved}
                     {draft.perspective && draft.perspective !== "all" && (
-                      <span style={{
-                        ...styles.chip,
-                        marginLeft: "8px",
-                        background: bscPerspectives.find(p => p.id === draft.perspective)?.color + "20",
-                        color: bscPerspectives.find(p => p.id === draft.perspective)?.color,
-                        fontSize: "10px"
-                      }}>
+                      <span className="text-sm">
                         {bscPerspectives.find(p => p.id === draft.perspective)?.name}
                       </span>
                     )}
                   </div>
                 </div>
-                <div style={styles.buttonGroup}>
+                <div className="flex gap-2 mt-2">
                   <button
-                    style={{ ...styles.button, ...styles.smallButton }}
+                    className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                     onClick={() => handleLoadDraft(draft)}
                   >
                     <Eye size={12} /> Load
                   </button>
                   <button
-                    style={{ ...styles.button, ...styles.smallButton }}
+                    className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                     onClick={() => handleDeleteDraft(draft.id)}
                   >
                     <Trash2 size={12} />
@@ -2382,27 +1827,24 @@ const SurveysPulseChecks = () => {
 
   const renderDistributeSurvey = () => (
     <div className="fade-in">
-      <div style={styles.sectionCard}>
-        <h4 style={styles.sectionTitle}><Send size={20} />Survey Distribution</h4>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Send size={20} />Survey Distribution</h4>
 
-        <div style={styles.grid2Col}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Distribution Method</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Distribution Method</label>
+            <div className="flex flex-col gap-3">
               {distributionMethods.map(method => (
                 <div
                   key={method.id}
-                  style={{
-                    ...styles.card,
-                    ...(distributionMethod === method.id ? styles.selectedCard : {})
-                  }}
+
                   onClick={() => !isViewMode && setDistributionMethod(method.id)}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="flex items-center gap-3">
                     <method.icon size={20} color={distributionMethod === method.id ? "#3b82f6" : "#6b7280"} />
                     <div>
-                      <div style={{ fontWeight: "500" }}>{method.label}</div>
-                      <div style={{ fontSize: "12px", color: "#6b7280" }}>{method.description}</div>
+                      <div className="font-medium">{method.label}</div>
+                      <div className="text-xs text-slate-500">{method.description}</div>
                     </div>
                   </div>
                 </div>
@@ -2410,45 +1852,42 @@ const SurveysPulseChecks = () => {
             </div>
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Scheduling</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Scheduling</label>
+            <div className="flex flex-col gap-3">
               {schedulingOptions.map(option => (
                 <div
                   key={option.id}
-                  style={{
-                    ...styles.card,
-                    ...(scheduling === option.id ? styles.selectedCard : {})
-                  }}
+
                   onClick={() => !isViewMode && setScheduling(option.id)}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="flex items-center gap-3">
                     <Calendar size={20} color={scheduling === option.id ? "#3b82f6" : "#6b7280"} />
-                    <div style={{ fontWeight: "500" }}>{option.label}</div>
+                    <div className="font-medium">{option.label}</div>
                   </div>
                 </div>
               ))}
             </div>
 
             {scheduling === "scheduled" && (
-              <div style={{ marginTop: "16px" }}>
-                <div style={styles.grid2Col}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Schedule Date</label>
+              <div className="mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Schedule Date</label>
                     <input
                       type="date"
-                      style={styles.input}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       value={scheduleDate}
                       onChange={(e) => !isViewMode && setScheduleDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
                       disabled={isViewMode}
                     />
                   </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Schedule Time</label>
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Schedule Time</label>
                     <input
                       type="time"
-                      style={styles.input}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       value={scheduleTime}
                       onChange={(e) => !isViewMode && setScheduleTime(e.target.value)}
                       disabled={isViewMode}
@@ -2459,10 +1898,10 @@ const SurveysPulseChecks = () => {
             )}
 
             {scheduling === "recurring" && (
-              <div style={{ marginTop: "16px" }}>
-                <label style={styles.label}>Recurrence Pattern</label>
+              <div className="mt-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Recurrence Pattern</label>
                 <select
-                  style={styles.select}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   value={recurrencePattern}
                   onChange={(e) => !isViewMode && setRecurrencePattern(e.target.value)}
                   disabled={isViewMode}
@@ -2471,7 +1910,7 @@ const SurveysPulseChecks = () => {
                     <option key={recurrence.id} value={recurrence.id}>{recurrence.label}</option>
                   ))}
                 </select>
-                <div style={{ marginTop: "12px", padding: "12px", background: "#f0f9ff", borderRadius: "6px", fontSize: "13px", color: "#1e40af" }}>
+                <div className="mt-3 p-3 bg-sky-50 rounded-md text-[13px] text-blue-800">
                   This survey will be automatically sent {recurrencePattern === "weekly" ? "every week" :
                     recurrencePattern === "monthly" ? "every month" :
                       recurrencePattern === "quarterly" ? "every quarter" :
@@ -2482,22 +1921,18 @@ const SurveysPulseChecks = () => {
           </div>
         </div>
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Target Audience</label>
-          <div style={styles.grid3Col}>
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Target Audience</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
             {targetAudiences.map(audience => (
               <div
                 key={audience.id}
-                style={{
-                  ...styles.card,
-                  ...(selectedAudience === audience.id ? styles.selectedCard : {})
-                }}
+
                 onClick={() => !isViewMode && setSelectedAudience(audience.id)}
               >
-                <div style={{ textAlign: "center" }}>
-                  <UsersIcon size={24} style={{ marginBottom: "8px", color: selectedAudience === audience.id ? "#3b82f6" : "#6b7280" }} />
-                  <div style={{ fontWeight: "500", marginBottom: "4px" }}>{audience.label}</div>
-                  <div style={{ fontSize: "12px", color: "#6b7280" }}>{audience.count} employees</div>
+                <div className="text-center">
+                  <div className="font-medium mb-1">{audience.label}</div>
+                  <div className="text-xs text-slate-500">{audience.count} employees</div>
                 </div>
               </div>
             ))}
@@ -2505,71 +1940,71 @@ const SurveysPulseChecks = () => {
         </div>
       </div>
 
-      <div style={styles.sectionCard}>
-        <h4 style={styles.sectionTitle}><Bell size={20} />Distribution & Participation Tracking</h4>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Bell size={20} />Distribution & Participation Tracking</h4>
 
-        <div style={styles.grid4Col}>
-          <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#3b82f6", marginBottom: "8px" }}>0</div>
-            <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Total Recipients</div>
-            <div style={{ fontSize: "12px", color: "#10b981" }}>0% target audience</div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+            <div className="text-3xl font-bold text-blue-500 mb-2">0</div>
+            <div className="text-sm text-slate-500 mb-1">Total Recipients</div>
+            <div className="text-xs text-emerald-500">0% target audience</div>
           </div>
-          <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#10b981", marginBottom: "8px" }}>0</div>
-            <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Emails Sent</div>
-            <div style={{ fontSize: "12px", color: "#6b7280" }}>0% delivery rate</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+            <div className="text-3xl font-bold text-emerald-500 mb-2">0</div>
+            <div className="text-sm text-slate-500 mb-1">Emails Sent</div>
+            <div className="text-xs text-slate-500">0% delivery rate</div>
           </div>
-          <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#f59e0b", marginBottom: "8px" }}>0</div>
-            <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Opened</div>
-            <div style={{ fontSize: "12px", color: "#10b981" }}>0% open rate</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+            <div className="text-3xl font-bold text-amber-500 mb-2">0</div>
+            <div className="text-sm text-slate-500 mb-1">Opened</div>
+            <div className="text-xs text-emerald-500">0% open rate</div>
           </div>
-          <div style={styles.metricCard}>
-            <div style={{ fontSize: "32px", fontWeight: "700", color: "#8b5cf6", marginBottom: "8px" }}>0</div>
-            <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Started</div>
-            <div style={{ fontSize: "12px", color: "#f59e0b" }}>0% start rate</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+            <div className="text-3xl font-bold text-purple-500 mb-2">0</div>
+            <div className="text-sm text-slate-500 mb-1">Started</div>
+            <div className="text-xs text-amber-500">0% start rate</div>
           </div>
         </div>
 
-        <div style={{ marginTop: "24px", padding: "16px", background: "#f0f9ff", borderRadius: "8px", border: "1px solid #bae6fd" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h5 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>Survey Completion Status</h5>
-            <span style={{ ...styles.chip, background: "#d1fae5", color: "#065f46" }}>
+        <div className="mt-6 p-4 bg-sky-50 rounded-lg border border-sky-200">
+          <div className="flex justify-between items-center mb-4">
+            <h5 className="m-0 text-base font-semibold">Survey Completion Status</h5>
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block">
               {Math.round(0)}% Completion Rate
             </span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
-            <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "700", color: "#3b82f6", marginBottom: "4px" }}>0</div>
-              <div style={{ fontSize: "12px", color: "#6b7280" }}>Completed</div>
+          <div className="grid grid-cols-4 gap-3">
+            <div className="p-3 bg-white rounded-md text-center">
+              <div className="text-2xl font-bold text-blue-500 mb-1">0</div>
+              <div className="text-xs text-slate-500">Completed</div>
             </div>
-            <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "700", color: "#f59e0b", marginBottom: "4px" }}>0</div>
-              <div style={{ fontSize: "12px", color: "#6b7280" }}>In Progress</div>
+            <div className="p-3 bg-white rounded-md text-center">
+              <div className="text-2xl font-bold text-amber-500 mb-1">0</div>
+              <div className="text-xs text-slate-500">In Progress</div>
             </div>
-            <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "700", color: "#ef4444", marginBottom: "4px" }}>0</div>
-              <div style={{ fontSize: "12px", color: "#6b7280" }}>Not Started</div>
+            <div className="p-3 bg-white rounded-md text-center">
+              <div className="text-2xl font-bold text-red-500 mb-1">0</div>
+              <div className="text-xs text-slate-500">Not Started</div>
             </div>
-            <div style={{ padding: "12px", background: "white", borderRadius: "6px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "700", color: "#6b7280", marginBottom: "4px" }}>0</div>
-              <div style={{ fontSize: "12px", color: "#6b7280" }}>Bounced</div>
+            <div className="p-3 bg-white rounded-md text-center">
+              <div className="text-2xl font-bold text-slate-500 mb-1">0</div>
+              <div className="text-xs text-slate-500">Bounced</div>
             </div>
           </div>
-          <div style={{ marginTop: "16px", padding: "12px", background: "white", borderRadius: "6px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "500" }}>Reminder Status</span>
-              <span style={{ fontSize: "14px", color: "#6b7280" }}>0 of 0 reminders sent</span>
+          <div className="mt-4 p-3 bg-white rounded-md">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">Reminder Status</span>
+              <span className="text-sm text-slate-500">0 of 0 reminders sent</span>
             </div>
-            <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{ width: "0%", height: "100%", background: "#3b82f6", borderRadius: "4px" }}></div>
+            <div className="h-2 bg-slate-200 rounded-sm overflow-hidden">
+              <div className="w-0 h-full bg-blue-500 rounded-sm"></div>
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: "24px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        <div className="mt-6 flex flex-wrap gap-3">
           <button
-            style={{ ...styles.button, ...styles.primaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
             onClick={() => setShowLaunchModal(true)}
             disabled={isViewMode}
           >
@@ -2577,14 +2012,14 @@ const SurveysPulseChecks = () => {
           </button>
 
           <button
-            style={{ ...styles.button, ...styles.secondaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             onClick={() => setShowScheduleModal(true)}
             disabled={isViewMode}
           >
             <Calendar size={16} /> Schedule Campaign
           </button>
           <button
-            style={{ ...styles.button, ...styles.secondaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             onClick={() => setShowReminderModal(true)}
             disabled={isViewMode}
           >
@@ -2592,13 +2027,13 @@ const SurveysPulseChecks = () => {
           </button>
 
           <button
-            style={{ ...styles.button, ...styles.secondaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             onClick={handleShareSurvey}
           >
             <Share2 size={16} /> Share Link
           </button>
           <button
-            style={{ ...styles.button, ...styles.secondaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             onClick={handleGenerateQRCode}
           >
             <QrCodeIcon size={16} /> Generate QR
@@ -2610,15 +2045,15 @@ const SurveysPulseChecks = () => {
 
   const renderAnalytics = () => (
     <div className="fade-in">
-      <div style={styles.sectionCard}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h4 style={styles.sectionTitle}>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <div className="flex justify-between items-center mb-5">
+          <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
             <BarChart3 size={20} />
             {analysisView === "standard" ? "Survey Analytics Dashboard" : "BSC Performance Dashboard"}
           </h4>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="flex gap-2">
             <button
-              style={{ ...styles.button, ...styles.secondaryButton }}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               onClick={handleToggleAnalysisView}
             >
               {analysisView === "standard" ? (
@@ -2632,7 +2067,7 @@ const SurveysPulseChecks = () => {
               )}
             </button>
             <button
-              style={{ ...styles.button, ...styles.primaryButton }}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
               onClick={() => setShowExportModal(true)}
             >
               <DownloadCloud size={16} /> Export Data
@@ -2643,15 +2078,10 @@ const SurveysPulseChecks = () => {
         {analysisView === "bsc" ? (
           <>
             {/* BSC Perspective Selection */}
-            <div style={{ marginBottom: "24px" }}>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2">
                 <button
-                  style={{
-                    ...styles.button,
-                    ...(selectedPerspective === "all" ? styles.primaryButton : {}),
-                    fontSize: "12px",
-                    padding: "6px 12px"
-                  }}
+                  className="text-xs px-3 py-1.5"
                   onClick={() => handlePerspectiveChange("all")}
                 >
                   All Perspectives
@@ -2659,14 +2089,7 @@ const SurveysPulseChecks = () => {
                 {bscPerspectives.map(perspective => (
                   <button
                     key={perspective.id}
-                    style={{
-                      ...styles.button,
-                      background: selectedPerspective === perspective.id ? perspective.color : "white",
-                      color: selectedPerspective === perspective.id ? "white" : perspective.color,
-                      borderColor: perspective.color,
-                      fontSize: "12px",
-                      padding: "6px 12px"
-                    }}
+                    className="text-sm"
                     onClick={() => handlePerspectiveChange(perspective.id)}
                   >
                     {perspective.name} ({perspective.weight}%)
@@ -2676,27 +2099,24 @@ const SurveysPulseChecks = () => {
             </div>
 
             {/* BSC Metrics Overview */}
-            <div style={styles.grid4Col}>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
               {bscPerspectives.map(perspective => {
                 const metric = bscMetrics[perspective.id];
                 const Icon = perspective.icon;
                 return (
-                  <div key={perspective.id} style={{
-                    ...styles.metricCard,
-                    border: selectedPerspective === perspective.id ? `2px solid ${perspective.color}` : "1px solid #e2e8f0",
-                    background: selectedPerspective === perspective.id ? `${perspective.color}10` : "white"
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "8px" }}>
+                  <div key={perspective.id}
+                    className={`border-[${selectedPerspective === perspective.id ? perspective.color : "transparent"}] bg-[${selectedPerspective === perspective.id ? perspective.color + "10" : "white"}]`}>
+                    <div className="flex items-center justify-center gap-2 mb-2">
                       <Icon size={20} color={perspective.color} />
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: perspective.color }}>
+                      <div className={`text-sm font-semibold text-[${perspective.color}]`}>
                         {perspective.name}
                       </div>
                     </div>
-                    <div style={{ fontSize: "32px", fontWeight: "700", color: perspective.color, marginBottom: "4px" }}>
+                    <div className={`text-3xl font-bold mb-1 text-[${perspective.color}]`}>
                       {metric.score}
                     </div>
-                    <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Performance Score</div>
-                    <div style={{ fontSize: "12px", color: metric.trend === "up" ? "#10b981" : metric.trend === "down" ? "#ef4444" : "#6b7280" }}>
+                    <div className="text-sm text-slate-500 mb-1">Performance Score</div>
+                    <div className={`text-xs ${metric.trend === "up" ? "text-emerald-500" : metric.trend === "down" ? "text-red-500" : "text-slate-500"}`}>
                       {metric.trend === "up" ? "↑ 5% from last quarter" : metric.trend === "down" ? "↓ 3% from last quarter" : "↔ No change"}
                     </div>
                   </div>
@@ -2705,15 +2125,15 @@ const SurveysPulseChecks = () => {
             </div>
 
             {/* BSC Correlation Matrix */}
-            <div style={{ marginTop: "24px", marginBottom: "24px" }}>
-              <h5 style={{ ...styles.label, fontSize: "16px", marginBottom: "16px" }}>Perspective Correlation Matrix</h5>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ borderCollapse: "collapse", width: "100%" }}>
+            <div className="my-6">
+              <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">Perspective Correlation Matrix</h5>
+              <div className="overflow-x-auto">
+                <table className="border-collapse w-full">
                   <thead>
                     <tr>
-                      <th style={{ padding: "8px", background: "#f8fafc" }}></th>
+                      <th className="p-2 bg-slate-50"></th>
                       {bscCorrelationData.perspectives.map(perspective => (
-                        <th key={perspective} style={{ padding: "8px", background: "#f8fafc", textAlign: "center" }}>
+                        <th key={perspective} className="p-2 bg-slate-50 text-center">
                           {perspective}
                         </th>
                       ))}
@@ -2722,19 +2142,13 @@ const SurveysPulseChecks = () => {
                   <tbody>
                     {bscCorrelationData.correlations.map((row, rowIndex) => (
                       <tr key={rowIndex}>
-                        <td style={{ padding: "8px", background: "#f8fafc", fontWeight: "500" }}>
+                        <td className="p-2 bg-slate-50 font-medium">
                           {bscCorrelationData.perspectives[rowIndex]}
                         </td>
                         {row.map((correlation, colIndex) => (
                           <td
                             key={colIndex}
-                            style={{
-                              padding: "12px",
-                              textAlign: "center",
-                              background: `rgba(59, 130, 246, ${correlation * 0.7})`,
-                              color: correlation > 0.7 ? "white" : "#1e293b",
-                              fontWeight: "600"
-                            }}
+                            className={`p-3 text-center font-semibold ${correlation > 0.7 ? "text-white" : "text-slate-800"}`}
                           >
                             {correlation.toFixed(2)}
                           </td>
@@ -2744,61 +2158,49 @@ const SurveysPulseChecks = () => {
                   </tbody>
                 </table>
               </div>
-              <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "8px" }}>
+              <div className="text-xs text-slate-500 mt-2">
                 Note: Higher correlation values indicate stronger relationships between perspectives
               </div>
             </div>
 
             {/* BSC Objectives Progress */}
             {bscObjectives.length > 0 && (
-              <div style={{ marginTop: "24px" }}>
-                <h5 style={{ ...styles.label, fontSize: "16px", marginBottom: "16px" }}>Strategic Objectives Progress</h5>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="mt-6">
+                <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">Strategic Objectives Progress</h5>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
                     <thead>
-                      <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Objective</th>
-                        <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Perspective</th>
-                        <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>KPIs</th>
-                        <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Progress</th>
-                        <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Status</th>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left p-3 font-medium text-slate-700">Objective</th>
+                        <th className="text-left p-3 font-medium text-slate-700">Perspective</th>
+                        <th className="text-left p-3 font-medium text-slate-700">KPIs</th>
+                        <th className="text-left p-3 font-medium text-slate-700">Progress</th>
+                        <th className="text-left p-3 font-medium text-slate-700">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {bscObjectives.map(obj => {
                         const progress = Math.floor(Math.random() * 100);
                         return (
-                          <tr key={obj.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                            <td style={{ padding: "12px", fontWeight: "500" }}>{obj.name}</td>
-                            <td style={{ padding: "12px" }}>
-                              <span style={{
-                                ...styles.chip,
-                                background: bscPerspectives.find(p => p.id === obj.perspective)?.color + "20",
-                                color: bscPerspectives.find(p => p.id === obj.perspective)?.color
-                              }}>
+                          <tr key={obj.id} className="border-b border-slate-100">
+                            <td className="p-3 font-medium">{obj.name}</td>
+                            <td className="p-3">
+                              <span className="text-sm">
                                 {bscPerspectives.find(p => p.id === obj.perspective)?.name}
                               </span>
                             </td>
-                            <td style={{ padding: "12px" }}>{obj.kpis.length}</td>
-                            <td style={{ padding: "12px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <div style={{ width: "100px", height: "8px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
-                                  <div style={{
-                                    width: `${progress}%`,
-                                    height: "100%",
-                                    background: progress >= 70 ? "#10b981" : progress >= 40 ? "#f59e0b" : "#ef4444",
-                                    borderRadius: "4px"
-                                  }}></div>
+                            <td className="p-3">{obj.kpis.length}</td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-[100px] h-2 bg-slate-200 rounded-sm overflow-hidden">
+                                  <div className={`h-full rounded-sm ${progress >= 70 ? "bg-emerald-500" : progress >= 40 ? "bg-amber-500" : "bg-red-500"}`}
+                                  ></div>
                                 </div>
-                                <span style={{ fontSize: "14px" }}>{progress}%</span>
+                                <span className="text-sm">{progress}%</span>
                               </div>
                             </td>
-                            <td style={{ padding: "12px" }}>
-                              <span style={{
-                                ...styles.chip,
-                                background: progress >= 70 ? "#d1fae5" : progress >= 40 ? "#fef3c7" : "#fee2e2",
-                                color: progress >= 70 ? "#065f46" : progress >= 40 ? "#92400e" : "#dc2626"
-                              }}>
+                            <td className="p-3">
+                              <span className="text-sm">
                                 {progress >= 70 ? "On Track" : progress >= 40 ? "Needs Attention" : "At Risk"}
                               </span>
                             </td>
@@ -2814,36 +2216,36 @@ const SurveysPulseChecks = () => {
         ) : (
           <>
             {/* Standard Analytics View */}
-            <div style={styles.grid4Col}>
-              <div style={styles.metricCard}>
-                <div style={{ fontSize: "32px", fontWeight: "700", color: "#3b82f6", marginBottom: "8px" }}>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div className="text-3xl font-bold text-blue-500 mb-2">
                   {analyticsData.responseRate}%
                 </div>
-                <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Response Rate</div>
-                <div style={{ fontSize: "12px", color: "#10b981" }}></div>
+                <div className="text-sm text-slate-500 mb-1">Response Rate</div>
+                <div className="text-xs text-emerald-500"></div>
               </div>
-              <div style={styles.metricCard}>
-                <div style={{ fontSize: "32px", fontWeight: "700", color: "#10b981", marginBottom: "8px" }}>
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div className="text-3xl font-bold text-emerald-500 mb-2">
                   {analyticsData.completionRate}%
                 </div>
-                <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Completion Rate</div>
-                <div style={{ fontSize: "12px", color: "#10b981" }}></div>
+                <div className="text-sm text-slate-500 mb-1">Completion Rate</div>
+                <div className="text-xs text-emerald-500"></div>
               </div>
-              <div style={styles.metricCard}>
-                <div style={{ fontSize: "32px", fontWeight: "700", color: "#8b5cf6", marginBottom: "8px" }}>
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div className="text-3xl font-bold text-purple-500 mb-2">
                   {analyticsData.averageNPS}
                 </div>
-                <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Average NPS Score</div>
-                <div style={{ fontSize: "12px", color: analyticsData.averageNPS >= 50 ? "#10b981" : "#f59e0b" }}>
+                <div className="text-sm text-slate-500 mb-1">Average NPS Score</div>
+                <div className={`text-xs ${analyticsData.averageNPS >= 50 ? "text-emerald-500" : "text-amber-500"}`}>
                   {analyticsData.averageNPS >= 50 ? "Excellent" : analyticsData.averageNPS >= 0 ? "Good" : "Needs Improvement"}
                 </div>
               </div>
-              <div style={styles.metricCard}>
-                <div style={{ fontSize: "32px", fontWeight: "700", color: "#f59e0b", marginBottom: "8px" }}>
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div className="text-3xl font-bold text-amber-500 mb-2">
                   {analyticsData.totalResponses}
                 </div>
-                <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>Total Responses</div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>Out of 0 recipients</div>
+                <div className="text-sm text-slate-500 mb-1">Total Responses</div>
+                <div className="text-xs text-slate-500">Out of 0 recipients</div>
               </div>
             </div>
           </>
@@ -2852,55 +2254,37 @@ const SurveysPulseChecks = () => {
 
       {analysisView === "standard" && (
         <>
-          <div style={styles.sectionCard}>
-            <h4 style={styles.sectionTitle}><PieChart size={20} />Department Comparison</h4>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><PieChart size={20} />Department Comparison</h4>
 
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                    <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Department</th>
-                    <th style={{ textAlign: "center", padding: "12px", fontWeight: "500", color: "#374151" }}>Response Rate</th>
-                    <th style={{ textAlign: "center", padding: "12px", fontWeight: "500", color: "#374151" }}>Satisfaction Score</th>
-                    <th style={{ textAlign: "center", padding: "12px", fontWeight: "500", color: "#374151" }}>Trend</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left p-3 font-medium text-slate-700">Department</th>
+                    <th className="text-center p-3 font-medium text-slate-700">Response Rate</th>
+                    <th className="text-center p-3 font-medium text-slate-700">Satisfaction Score</th>
+                    <th className="text-center p-3 font-medium text-slate-700">Trend</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analyticsData.departmentComparison.map(dept => (
-                    <tr key={dept.department} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                      <td style={{ padding: "12px", fontWeight: "500" }}>{dept.department}</td>
-                      <td style={{ padding: "12px", textAlign: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                          <div style={{ fontSize: "14px", fontWeight: "600" }}>{dept.responseRate}%</div>
-                          <div style={{
-                            width: "60px",
-                            height: "6px",
-                            background: "#e5e7eb",
-                            borderRadius: "3px",
-                            overflow: "hidden"
-                          }}>
-                            <div style={{
-                              width: `${dept.responseRate}%`,
-                              height: "100%",
-                              background: "#3b82f6",
-                              borderRadius: "3px"
-                            }}></div>
+                    <tr key={dept.department} className="border-b border-slate-100">
+                      <td className="p-3 font-medium">{dept.department}</td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="text-sm font-semibold">{dept.responseRate}%</div>
+                          <div className="w-[60px] h-1.5 bg-slate-200 rounded-[3px] overflow-hidden">
+                            <div className={`h-full bg-blue-500 rounded-[3px] w-[${dept.responseRate}%]`}></div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: "12px", textAlign: "center" }}>
-                        <div style={{
-                          display: "inline-block",
-                          padding: "4px 12px",
-                          background: dept.satisfaction >= 4 ? "#d1fae5" : "#fef3c7",
-                          color: dept.satisfaction >= 4 ? "#065f46" : "#92400e",
-                          borderRadius: "12px",
-                          fontWeight: "600"
-                        }}>
+                      <td className="p-3 text-center">
+                        <div className={`inline-block px-3 py-1 rounded-full font-semibold ${dept.satisfaction >= 4 ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                           {dept.satisfaction}/5
                         </div>
                       </td>
-                      <td style={{ padding: "12px", textAlign: "center" }}>
+                      <td className="p-3 text-center">
                         <TrendingUp size={16} color={dept.responseRate > 85 ? "#10b981" : "#f59e0b"} />
                       </td>
                     </tr>
@@ -2910,23 +2294,23 @@ const SurveysPulseChecks = () => {
             </div>
           </div>
 
-          <div style={styles.sectionCard}>
-            <h4 style={styles.sectionTitle}><LineChart size={20} />Trend Analysis</h4>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+            <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><LineChart size={20} />Trend Analysis</h4>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div className="flex justify-between items-center mb-5">
               <div>
-                <div style={{ fontSize: "14px", color: "#6b7280" }}>Engagement Score Trend</div>
-                <div style={{ fontSize: "24px", fontWeight: "600" }}>0/5</div>
+                <div className="text-sm text-slate-500">Engagement Score Trend</div>
+                <div className="text-2xl font-semibold">0/5</div>
               </div>
-              <div style={{ display: "flex", gap: "12px" }}>
+              <div className="flex gap-3">
                 <button
-                  style={{ ...styles.button, ...styles.secondaryButton }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   onClick={() => setShowExportModal(true)}
                 >
                   <Download size={16} /> Export Data
                 </button>
                 <button
-                  style={{ ...styles.button, ...styles.secondaryButton }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   onClick={handleFilterAnalytics}
                 >
                   <Filter size={16} /> Filter
@@ -2934,58 +2318,31 @@ const SurveysPulseChecks = () => {
               </div>
             </div>
 
-            <div style={{
-              display: "flex",
-              height: "200px",
-              alignItems: "flex-end",
-              gap: "20px",
-              padding: "20px 0",
-              borderTop: "1px solid #e5e7eb"
-            }}>
+            <div className="flex h-[200px] items-end gap-5 py-5 border-t border-slate-200">
               {analyticsData.trendData.map((month, index) => {
                 const isMax = month.engagement === maxEngagement;
                 const isMin = month.engagement === minEngagement;
 
                 return (
-                  <div key={month.month} style={{ flex: 1, textAlign: "center" }}>
+                  <div key={month.month} className="flex-1 text-center">
                     <div
                       title={`Engagement: ${month.engagement}\nResponse Rate: ${month.responseRate}%`}
-                      style={{
-                        height: `${(month.engagement - 3) * 45}px`,
-                        background: `linear-gradient(to top, ${barColors[index % barColors.length]}, #e0f2fe)`,
-                        borderRadius: "6px 6px 0 0",
-                        marginBottom: "8px",
-                        position: "relative",
-                        transition: "all 0.3s ease",
-                        boxShadow: isMax
-                          ? "0 0 0 2px #22c55e"
-                          : isMin
-                            ? "0 0 0 2px #ef4444"
-                            : "none"
-                      }}
+                      className={`relative mb-2 transition-all duration-300 ease-in rounded-t-md ${isMax ? "ring-2 ring-green-500" : isMin ? "ring-2 ring-red-500" : ""}`}
                     >
                       {(isMax || isMin) && (
                         <div
-                          style={{
-                            position: "absolute",
-                            top: "-22px",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            fontSize: "11px",
-                            fontWeight: "600",
-                            color: isMax ? "#16a34a" : "#dc2626"
-                          }}
+                          className={`absolute -top-5 left-1/2 -translate-x-1/2 text-[11px] font-semibold ${isMax ? "text-green-600" : "text-red-600"}`}
                         >
                           {isMax ? "▲ Peak" : "▼ Low"}
                         </div>
                       )}
                     </div>
 
-                    <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                    <div className="text-xs text-slate-500">
                       {month.month}
                     </div>
 
-                    <div style={{ fontSize: "14px", fontWeight: "600" }}>
+                    <div className="text-sm font-semibold">
                       {month.engagement}
                     </div>
                   </div>
@@ -2996,12 +2353,12 @@ const SurveysPulseChecks = () => {
         </>
       )}
 
-      <div style={styles.sectionCard}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h4 style={styles.sectionTitle}><MessageSquare size={20} />Sentiment Analysis</h4>
-          <div style={{ display: "flex", gap: "8px" }}>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <div className="flex justify-between items-center mb-5">
+          <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><MessageSquare size={20} />Sentiment Analysis</h4>
+          <div className="flex gap-2">
             <button
-              style={{ ...styles.button, ...styles.primaryButton }}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
               onClick={() => {
                 setExportType("pdf");
                 setShowExportModal(true);
@@ -3010,7 +2367,7 @@ const SurveysPulseChecks = () => {
               <File size={16} /> Export PDF
             </button>
             <button
-              style={{ ...styles.button, ...styles.secondaryButton }}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               onClick={() => {
                 setExportType("excel");
                 setShowExportModal(true);
@@ -3021,59 +2378,45 @@ const SurveysPulseChecks = () => {
           </div>
         </div>
 
-        <div style={styles.grid2Col}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
           <div>
-            <h5 style={{ ...styles.label, fontSize: "16px", marginBottom: "16px" }}>Word Cloud</h5>
-            <div style={{
-              background: "#f9fafb",
-              padding: "24px",
-              borderRadius: "8px",
-              minHeight: "200px",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "8px",
-              alignItems: "center",
-              justifyContent: "center"
-            }}>
+            <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">Word Cloud</h5>
+            <div className="bg-slate-50 p-6 rounded-lg min-h-[200px] flex flex-wrap gap-2 items-center justify-center">
               {[].map(word => (
-                <span key={word} style={{
-                  fontSize: `${Math.random() * 20 + 14}px`,
-                  fontWeight: "600",
-                  color: "#3b82f6",
-                  opacity: Math.random() * 0.5 + 0.5
-                }}>
+                <span key={word}
+                  className={`text-[${Math.random() * 20 + 14}px] opacity-[${Math.random() * 0.5 + 0.5}]`}>
                   {word}
                 </span>
               ))}
             </div>
           </div>
           <div>
-            <h5 style={{ ...styles.label, fontSize: "16px", marginBottom: "16px" }}>Sentiment Breakdown</h5>
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                <span style={{ fontSize: "14px" }}>Positive</span>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#10b981" }}>0%</span>
+            <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">Sentiment Breakdown</h5>
+            <div className="mb-5">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm">Positive</span>
+                <span className="text-sm font-semibold text-emerald-500">0%</span>
               </div>
-              <div style={{ height: "12px", background: "#e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
-                <div style={{ width: "0%", height: "100%", background: "#10b981", borderRadius: "6px" }}></div>
-              </div>
-            </div>
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                <span style={{ fontSize: "14px" }}>Neutral</span>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#6b7280" }}>0%</span>
-              </div>
-              <div style={{ height: "12px", background: "#e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
-                <div style={{ width: "0%", height: "100%", background: "#6b7280", borderRadius: "6px" }}></div>
+              <div className="h-3 bg-slate-200 rounded-md overflow-hidden">
+                <div className="w-0 h-full bg-emerald-500 rounded-md"></div>
               </div>
             </div>
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                <span style={{ fontSize: "14px" }}>Negative</span>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#ef4444" }}>0%</span>
+            <div className="mb-5">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm">Neutral</span>
+                <span className="text-sm font-semibold text-slate-500">0%</span>
               </div>
-              <div style={{ height: "12px", background: "#e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
-                <div style={{ width: "0%", height: "100%", background: "#ef4444", borderRadius: "6px" }}></div>
+              <div className="h-3 bg-slate-200 rounded-md overflow-hidden">
+                <div className="w-0 h-full bg-slate-500 rounded-md"></div>
+              </div>
+            </div>
+            <div className="mb-5">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm">Negative</span>
+                <span className="text-sm font-semibold text-red-500">0%</span>
+              </div>
+              <div className="h-3 bg-slate-200 rounded-md overflow-hidden">
+                <div className="w-0 h-full bg-red-500 rounded-md"></div>
               </div>
             </div>
           </div>
@@ -3084,13 +2427,13 @@ const SurveysPulseChecks = () => {
 
   const renderTemplates = () => (
     <div className="fade-in">
-      <div style={styles.sectionCard}>
-        <h4 style={styles.sectionTitle}><BookOpen size={20} />Survey Templates</h4>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><BookOpen size={20} />Survey Templates</h4>
 
-        <div style={{ marginBottom: "24px" }}>
+        <div className="mb-6">
           <input
             type="text"
-            style={styles.searchBox}
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -3098,50 +2441,37 @@ const SurveysPulseChecks = () => {
         </div>
 
         {/* BSC Templates Section */}
-        <div style={{ marginBottom: "32px" }}>
-          <h5 style={{ ...styles.sectionTitle, fontSize: "16px", marginBottom: "16px" }}>
+        <div className="mb-8">
+          <h5 className="flex items-center gap-2 text-base font-semibold text-slate-800 mb-4">
             <Target size={18} /> Balanced Scorecard Templates
           </h5>
-          <div style={styles.grid3Col}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             {bscSurveyTemplates.map(template => {
               const Icon = template.icon;
               return (
                 <div
                   key={template.id}
-                  style={{
-                    ...styles.card,
-                    borderLeft: `4px solid ${template.perspectives[0] === "all" ? "#10b981" :
-                      bscPerspectives.find(p => p.id === template.perspectives[0])?.color || "#6b7280"
-                      }`
-                  }}
+                  className="bg-white border border-slate-200 rounded-xl shadow-sm p-3 flex flex-col h-full cursor-pointer transition-shadow hover:shadow-md"
                   onClick={() => handleUseTemplate(template.id)}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                    <div style={{
-                      width: "48px",
-                      height: "48px",
-                      borderRadius: "10px",
-                      background: "#f0f9ff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center flex-shrink-0">
                       <Icon size={24} color="#0ea5e9" />
                     </div>
                     <div>
-                      <div style={{ fontWeight: "600", fontSize: "16px" }}>{template.name}</div>
-                      <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                      <div className="font-semibold text-base">{template.name}</div>
+                      <div className="text-[13px] text-slate-500">
                         {template.questions} questions • {template.estimatedTime}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ ...styles.chip, background: "#e0f2fe", color: "#0369a1" }}>
+                  <div className="flex justify-between items-center flex-wrap gap-2 mt-auto pt-4">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block bg-sky-100 text-sky-700 whitespace-nowrap">
                       {template.perspectives[0] === "all" ? "Multi-Perspective" :
                         bscPerspectives.find(p => p.id === template.perspectives[0])?.name}
                     </span>
                     <button
-                      style={{ ...styles.button, ...styles.outlineButton, ...styles.smallButton }}
+                      className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-blue-600 transition hover:bg-slate-50 whitespace-nowrap flex-shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleUseTemplate(template.id);
@@ -3158,43 +2488,35 @@ const SurveysPulseChecks = () => {
 
         {/* Standard Templates Section */}
         <div>
-          <h5 style={{ ...styles.sectionTitle, fontSize: "16px", marginBottom: "16px" }}>
+          <h5 className="flex items-center gap-2 text-base font-semibold text-slate-800 mb-4">
             <Users size={18} /> Standard Templates
           </h5>
-          <div style={styles.grid3Col}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             {surveyTemplates.map(template => {
               const Icon = template.icon;
               return (
                 <div
                   key={template.id}
-                  style={styles.card}
+                  className="bg-white border border-slate-200 rounded-xl shadow-sm p-3 flex flex-col h-full cursor-pointer transition-shadow hover:shadow-md"
                   onClick={() => handleUseTemplate(template.id)}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                    <div style={{
-                      width: "48px",
-                      height: "48px",
-                      borderRadius: "10px",
-                      background: "#dbeafe",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
                       <Icon size={24} color="#3b82f6" />
                     </div>
                     <div>
-                      <div style={{ fontWeight: "600", fontSize: "16px" }}>{template.name}</div>
-                      <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                      <div className="font-semibold text-base">{template.name}</div>
+                      <div className="text-[13px] text-slate-500">
                         {template.questions} questions • {template.estimatedTime}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ ...styles.chip, background: "#d1fae5", color: "#065f46" }}>
+                  <div className="flex justify-between items-center flex-wrap gap-2 mt-auto pt-4">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block bg-emerald-100 text-emerald-800 whitespace-nowrap">
                       {template.usage}
                     </span>
                     <button
-                      style={{ ...styles.button, ...styles.outlineButton, ...styles.smallButton }}
+                      className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-blue-600 transition hover:bg-slate-50 whitespace-nowrap flex-shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleUseTemplate(template.id);
@@ -3214,21 +2536,21 @@ const SurveysPulseChecks = () => {
 
   const renderQuestionBankSection = () => (
     <div className="fade-in">
-      <div style={styles.sectionCard}>
-        <h4 style={styles.sectionTitle}><Database size={20} />Question Bank Management</h4>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Database size={20} />Question Bank Management</h4>
 
         {/* Filters and Controls */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+        <div className="flex justify-between items-center mb-6">
           <input
             type="text"
-            style={styles.searchBox}
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Search questions by keyword..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="flex gap-2">
             <button
-              style={{ ...styles.button, ...styles.primaryButton }}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
               onClick={() => {
                 setEditingQuestion(null);
                 setNewQuestionText("");
@@ -3245,11 +2567,11 @@ const SurveysPulseChecks = () => {
         </div>
 
         {/* Filter Controls */}
-        <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "14px", fontWeight: "500" }}>Category:</span>
+        <div className="flex flex-wrap gap-3 mb-5">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Category:</span>
             <select
-              style={{ ...styles.select, width: "150px" }}
+              className="text-sm"
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
             >
@@ -3259,11 +2581,11 @@ const SurveysPulseChecks = () => {
               ))}
             </select>
           </div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "14px", fontWeight: "500" }}>Type:</span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Type:</span>
             <select
-              style={{ ...styles.select, width: "150px" }}
+              className="text-sm"
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
             >
@@ -3273,11 +2595,11 @@ const SurveysPulseChecks = () => {
               ))}
             </select>
           </div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "14px", fontWeight: "500" }}>Sort by:</span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Sort by:</span>
             <select
-              style={{ ...styles.select, width: "150px" }}
+              className="text-sm"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -3286,11 +2608,11 @@ const SurveysPulseChecks = () => {
               <option value="alphabetical">Alphabetical</option>
             </select>
           </div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "14px", fontWeight: "500" }}>Perspective:</span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Perspective:</span>
             <select
-              style={{ ...styles.select, width: "150px" }}
+              className="text-sm"
               value={selectedPerspective}
               onChange={(e) => setSelectedPerspective(e.target.value)}
             >
@@ -3304,100 +2626,88 @@ const SurveysPulseChecks = () => {
         </div>
 
         {/* Question Count */}
-        <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: "14px", color: "#6b7280" }}>
+        <div className="mb-4 flex justify-between items-center">
+          <span className="text-sm text-slate-500">
             Showing {filteredQuestions.length} questions
           </span>
-          <span style={{ fontSize: "14px", color: "#3b82f6", fontWeight: "500" }}>
+          <span className="text-sm text-blue-500 font-medium">
             Total: {questionBank.length + bscQuestionBank.length} questions in bank
           </span>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Question</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Type</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Category</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Perspective</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Times Used</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Last Used</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Tags</th>
-                <th style={{ textAlign: "left", padding: "12px", fontWeight: "500", color: "#374151" }}>Actions</th>
+              <tr className="border-b border-slate-200">
+                <th className="text-left p-3 font-medium text-slate-700">Question</th>
+                <th className="text-left p-3 font-medium text-slate-700">Type</th>
+                <th className="text-left p-3 font-medium text-slate-700">Category</th>
+                <th className="text-left p-3 font-medium text-slate-700">Perspective</th>
+                <th className="text-left p-3 font-medium text-slate-700">Times Used</th>
+                <th className="text-left p-3 font-medium text-slate-700">Last Used</th>
+                <th className="text-left p-3 font-medium text-slate-700">Tags</th>
+                <th className="text-left p-3 font-medium text-slate-700">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredQuestions.map(q => (
-                <tr key={q.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                  <td style={{ padding: "12px", fontWeight: "500" }}>{q.question}</td>
-                  <td style={{ padding: "12px" }}>
-                    <span style={{
-                      ...styles.chip,
-                      background: q.type === "rating" ? "#fef3c7" :
-                        q.type === "nps" ? "#dbeafe" :
-                          q.type === "open" ? "#d1fae5" : "#f3f4f6",
-                      color: q.type === "rating" ? "#92400e" :
-                        q.type === "nps" ? "#1e40af" :
-                          q.type === "open" ? "#065f46" : "#6b7280"
-                    }}>
+                <tr key={q.id} className="border-b border-slate-100">
+                  <td className="p-3 font-medium">{q.question}</td>
+                  <td className="p-3">
+                    <span className="text-sm">
                       {q.type.toUpperCase()}
                     </span>
                   </td>
-                  <td style={{ padding: "12px" }}>
-                    <span style={styles.chip}>{q.category}</span>
+                  <td className="p-3">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">{q.category}</span>
                   </td>
-                  <td style={{ padding: "12px" }}>
+                  <td className="p-3">
                     {q.perspective ? (
-                      <span style={{
-                        ...styles.chip,
-                        background: bscPerspectives.find(p => p.id === q.perspective)?.color + "20",
-                        color: bscPerspectives.find(p => p.id === q.perspective)?.color
-                      }}>
+                      <span className="text-sm">
                         {bscPerspectives.find(p => p.id === q.perspective)?.name}
                       </span>
                     ) : (
-                      <span style={styles.chip}>General</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold inline-block border border-slate-200 bg-slate-100 text-slate-700">General</span>
                     )}
                   </td>
-                  <td style={{ padding: "12px", fontWeight: "600", textAlign: "center" }}>{q.used || 0}</td>
-                  <td style={{ padding: "12px", fontSize: "12px", color: "#6b7280" }}>
+                  <td className="p-3 font-semibold text-center">{q.used || 0}</td>
+                  <td className="p-3 text-xs text-slate-500">
                     {q.lastUsed || "Never"}
                   </td>
-                  <td style={{ padding: "12px" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                  <td className="p-3">
+                    <div className="flex flex-wrap gap-1">
                       {q.tags && q.tags.map(tag => (
-                        <span key={tag} style={styles.tag}>
+                        <span key={tag} className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                           {tag}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td style={{ padding: "12px" }}>
-                    <div style={{ display: "flex", gap: "8px" }}>
+                  <td className="p-3">
+                    <div className="flex gap-2">
                       <button
-                        style={{ ...styles.button, ...styles.smallButton, ...styles.primaryButton }}
+                        className="text-sm"
                         onClick={() => handleAddFromQuestionBank(q)}
                         title="Add to current survey"
                       >
                         <Plus size={12} /> Add
                       </button>
                       <button
-                        style={{ ...styles.button, ...styles.smallButton, ...styles.secondaryButton }}
+                        className="text-sm"
                         onClick={() => handleEditQuestion(q)}
                         title="Edit question"
                       >
                         <Edit size={12} />
                       </button>
                       <button
-                        style={{ ...styles.button, ...styles.smallButton, ...styles.secondaryButton }}
+                        className="text-sm"
                         onClick={() => handleDuplicateQuestionInBank(q)}
                         title="Duplicate question"
                       >
                         <Copy size={12} />
                       </button>
                       <button
-                        style={{ ...styles.button, ...styles.smallButton, ...styles.dangerButton }}
+                        className="text-sm"
                         onClick={() => handleDeleteQuestionFromBank(q)}
                         title="Delete question"
                       >
@@ -3410,13 +2720,13 @@ const SurveysPulseChecks = () => {
             </tbody>
           </table>
         </div>
-        
+
         {filteredQuestions.length === 0 && (
-          <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
-            <Database size={48} style={{ marginBottom: "16px", opacity: 0.5 }} />
+          <div className="text-center p-10 text-slate-500">
+            <Database size={48} className="mb-4 opacity-50 mx-auto" />
             <p>No questions found matching your filters.</p>
             <button
-              style={{ ...styles.button, ...styles.primaryButton, marginTop: "16px" }}
+              className="text-sm"
               onClick={() => {
                 setSearchQuery("");
                 setFilterCategory("all");
@@ -3432,7 +2742,6 @@ const SurveysPulseChecks = () => {
     </div>
   );
 
-  // Enhanced Preview Modal Component
   const renderPreviewModal = () => {
     if (!showPreview) return null;
 
@@ -3441,65 +2750,33 @@ const SurveysPulseChecks = () => {
     const progressPercentage = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
 
     return (
-      <div style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: isPreviewFullscreen ? "white" : "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 4000,
-        padding: isPreviewFullscreen ? "0" : "20px"
-      }}>
-        <div style={{
-          background: "white",
-          padding: isPreviewFullscreen ? "0" : "24px",
-          borderRadius: isPreviewFullscreen ? "0" : "12px",
-          maxWidth: isPreviewFullscreen ? "100%" : "800px",
-          width: isPreviewFullscreen ? "100%" : "90%",
-          maxHeight: isPreviewFullscreen ? "100vh" : "90vh",
-          overflow: "auto",
-          position: "relative"
-        }}>
+      <div className={`fixed inset-0 flex items-center justify-center z-[4000] ${isPreviewFullscreen ? "bg-white p-0" : "bg-black/50 p-5"}`}>
+        <div className={`bg-white overflow-auto relative ${isPreviewFullscreen ? "p-0 rounded-none max-w-full w-full max-h-screen" : "p-6 rounded-xl max-w-[800px] w-[90%] max-h-[90vh]"}`}>
           {/* Preview Header */}
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "20px",
-            paddingBottom: "16px",
-            borderBottom: "1px solid #e5e7eb",
-            position: isPreviewFullscreen ? "sticky" : "static",
-            top: 0,
-            background: "white",
-            zIndex: 10
-          }}>
+          <div className={`flex justify-between items-center mb-5 pb-4 border-b border-slate-200 bg-white z-10 ${isPreviewFullscreen ? "sticky top-0" : "static"}`}>
             <div>
-              <h4 style={{ margin: 0, fontSize: "20px", fontWeight: "600" }}>Survey Preview</h4>
-              <p style={{ margin: "4px 0 0 0", fontSize: "14px", color: "#6b7280" }}>
+              <h4 className="m-0 text-xl font-semibold">Survey Preview</h4>
+              <p className="mt-1 mb-0 text-sm text-slate-500">
                 Test how your survey will appear to participants
               </p>
             </div>
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="flex gap-2">
               <button
-                style={{ ...styles.button, ...styles.secondaryButton }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 onClick={() => setIsPreviewFullscreen(!isPreviewFullscreen)}
                 title={isPreviewFullscreen ? "Exit fullscreen" : "Fullscreen"}
               >
                 {isPreviewFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
               <button
-                style={{ ...styles.button, ...styles.secondaryButton }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 onClick={handleResetPreview}
                 title="Reset responses"
               >
                 <RefreshCw size={16} />
               </button>
               <button
-                style={{ ...styles.button, ...styles.secondaryButton }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 onClick={() => setShowPreview(false)}
               >
                 ✕ Close
@@ -3508,67 +2785,46 @@ const SurveysPulseChecks = () => {
           </div>
 
           {/* Progress Bar */}
-          <div style={{ marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "500" }}>Progress</span>
-              <span style={{ fontSize: "14px", color: "#3b82f6", fontWeight: "600" }}>
+          <div className="mb-6">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium">Progress</span>
+              <span className="text-sm text-blue-500 font-semibold">
                 {answeredQuestions}/{totalQuestions} questions ({progressPercentage}%)
               </span>
             </div>
-            <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{
-                width: `${progressPercentage}%`,
-                height: "100%",
-                background: "#3b82f6",
-                borderRadius: "4px",
-                transition: "width 0.3s ease"
-              }}></div>
+            <div className="h-2 bg-slate-200 rounded-sm overflow-hidden">
+              <div className={`h-full bg-blue-500 rounded-sm transition-[width] duration-300 ease-in w-[${progressPercentage}%]`}></div>
             </div>
           </div>
 
           {/* Survey Preview Content */}
-          <div style={{ background: "#f9fafb", padding: "24px", borderRadius: "8px" }}>
+          <div className="bg-slate-50 p-6 rounded-lg">
             {/* Survey Header */}
-            <div style={{ textAlign: "center", marginBottom: "32px" }}>
-              <h3 style={{ marginBottom: "12px", fontSize: "24px", fontWeight: "600" }}>
+            <div className="text-center mb-8">
+              <h3 className="mb-3 text-2xl font-semibold">
                 {surveyTitle || "Survey Title"}
               </h3>
               {selectedPerspective !== "all" && (
-                <div style={{
-                  padding: "8px 16px",
-                  background: bscPerspectives.find(p => p.id === selectedPerspective)?.color + "20",
-                  color: bscPerspectives.find(p => p.id === selectedPerspective)?.color,
-                  borderRadius: "20px",
-                  display: "inline-block",
-                  marginBottom: "16px",
-                  fontSize: "14px",
-                  fontWeight: "500"
-                }}>
+                <div className="px-4 py-2 rounded-full inline-block mb-4 text-sm font-medium"
+                  className={`bg-[${bscPerspectives.find(p => p.id === selectedPerspective)?.color}20] text-[${bscPerspectives.find(p => p.id === selectedPerspective)?.color}]`}>
                   {bscPerspectives.find(p => p.id === selectedPerspective)?.name} Perspective
                 </div>
               )}
-              <p style={{ color: "#6b7280", fontSize: "16px", lineHeight: "1.6", maxWidth: "600px", margin: "0 auto" }}>
+              <p className="text-slate-500 text-base leading-relaxed max-w-[600px] mx-auto">
                 {surveyDescription || "Survey description goes here. This is where you explain the purpose of the survey to participants."}
               </p>
-              
+
               {/* Survey Info */}
-              <div style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "24px",
-                marginTop: "20px",
-                fontSize: "14px",
-                color: "#6b7280"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div className="flex justify-center gap-6 mt-5 text-sm text-slate-500">
+                <div className="flex items-center gap-1.5">
                   <Clock size={16} />
                   <span>Estimated time: {Math.ceil(questions.length * 0.5)} minutes</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div className="flex items-center gap-1.5">
                   <FileText size={16} />
                   <span>{questions.length} questions</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div className="flex items-center gap-1.5">
                   <Users size={16} />
                   <span>{surveyVisibility === "anonymous" ? "Anonymous" : "Identified"}</span>
                 </div>
@@ -3579,33 +2835,19 @@ const SurveysPulseChecks = () => {
             {questions.length > 0 ? (
               <div>
                 {questions.map((q, index) => (
-                  <div key={q.id} style={{
-                    ...styles.previewQuestion,
-                    borderLeft: previewResponses[q.id] ? "4px solid #10b981" : "1px solid #e5e7eb"
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                          <div style={{
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "50%",
-                            background: "#3b82f6",
-                            color: "white",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "14px",
-                            fontWeight: "600"
-                          }}>
+                  <div key={q.id} className="text-sm">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-semibold">
                             {index + 1}
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: "600", fontSize: "16px", marginBottom: "4px" }}>
+                          <div className="flex-1">
+                            <div className="font-semibold text-base mb-1">
                               {q.question || "Your question here"}
                             </div>
                             {q.required && (
-                              <span style={{ fontSize: "12px", color: "#ef4444", fontWeight: "500" }}>
+                              <span className="text-xs text-red-500 font-medium">
                                 * Required
                               </span>
                             )}
@@ -3614,19 +2856,11 @@ const SurveysPulseChecks = () => {
 
                         {/* Response Indicators */}
                         {previewResponses[q.id] && (
-                          <div style={{
-                            padding: "8px 12px",
-                            background: "#d1fae5",
-                            borderRadius: "6px",
-                            marginBottom: "12px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px"
-                          }}>
+                          <div className="px-3 py-2 bg-emerald-100 rounded-md mb-3 inline-flex items-center gap-1.5">
                             <CheckCircle size={14} color="#059669" />
-                            <span style={{ fontSize: "12px", color: "#059669", fontWeight: "500" }}>
-                              Answered: {typeof previewResponses[q.id] === 'object' 
-                                ? JSON.stringify(previewResponses[q.id]) 
+                            <span className="text-xs text-emerald-600 font-medium">
+                              Answered: {typeof previewResponses[q.id] === 'object'
+                                ? JSON.stringify(previewResponses[q.id])
                                 : previewResponses[q.id]}
                             </span>
                           </div>
@@ -3634,35 +2868,22 @@ const SurveysPulseChecks = () => {
 
                         {/* Question type specific inputs */}
                         {q.type === "rating" && (
-                          <div style={{ marginTop: "16px" }}>
-                            <div style={{ fontSize: "14px", marginBottom: "12px", color: "#374151" }}>
+                          <div className="mt-4">
+                            <div className="text-sm mb-3 text-slate-700">
                               Select a rating from 1 to {q.scale}:
                             </div>
-                            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <div className="flex flex-wrap gap-2">
                               {Array.from({ length: q.scale }).map((_, i) => (
                                 <button
                                   key={i}
-                                  style={{
-                                    ...styles.button,
-                                    width: "50px",
-                                    height: "50px",
-                                    padding: 0,
-                                    background: previewResponses[q.id] === i + 1 ? "#3b82f6" : "white",
-                                    color: previewResponses[q.id] === i + 1 ? "white" : "#374151",
-                                    borderColor: previewResponses[q.id] === i + 1 ? "#3b82f6" : "#d1d5db",
-                                    fontWeight: "600",
-                                    fontSize: "16px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center"
-                                  }}
+                                  className="text-sm"
                                   onClick={() => handlePreviewResponse(q.id, i + 1)}
                                 >
                                   {i + 1}
                                 </button>
                               ))}
                             </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "12px", color: "#6b7280" }}>
+                            <div className="flex justify-between mt-2 text-xs text-slate-500">
                               <span>Poor</span>
                               <span>Excellent</span>
                             </div>
@@ -3670,54 +2891,32 @@ const SurveysPulseChecks = () => {
                         )}
 
                         {q.type === "nps" && (
-                          <div style={{ marginTop: "16px" }}>
-                            <div style={{ fontSize: "14px", marginBottom: "12px", color: "#374151" }}>
+                          <div className="mt-4">
+                            <div className="text-sm mb-3 text-slate-700">
                               How likely are you to recommend? (0 = Not likely, 10 = Extremely likely):
                             </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap" }}>
+                            <div className="flex justify-between flex-wrap">
                               {Array.from({ length: 11 }).map((_, i) => (
                                 <button
                                   key={i}
-                                  style={{
-                                    ...styles.button,
-                                    width: "40px",
-                                    height: "40px",
-                                    padding: 0,
-                                    background: previewResponses[q.id] === i ? "#3b82f6" : "white",
-                                    color: previewResponses[q.id] === i ? "white" : "#374151",
-                                    borderColor: previewResponses[q.id] === i ? "#3b82f6" : "#d1d5db",
-                                    fontWeight: "600",
-                                    fontSize: "14px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center"
-                                  }}
+                                  className="text-sm"
                                   onClick={() => handlePreviewResponse(q.id, i)}
                                 >
                                   {i}
                                 </button>
                               ))}
                             </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "12px", color: "#6b7280" }}>
+                            <div className="flex justify-between mt-2 text-xs text-slate-500">
                               <span>Not at all likely</span>
                               <span>Extremely likely</span>
                             </div>
-                            
+
                             {/* NPS Categories */}
                             {previewResponses[q.id] !== undefined && (
-                              <div style={{ marginTop: "16px" }}>
-                                <div style={{
-                                  padding: "12px",
-                                  background: previewResponses[q.id] <= 6 ? "#fef3c7" :
-                                            previewResponses[q.id] <= 8 ? "#fef9c3" : "#d1fae5",
-                                  borderRadius: "6px",
-                                  textAlign: "center",
-                                  fontWeight: "500",
-                                  color: previewResponses[q.id] <= 6 ? "#92400e" :
-                                        previewResponses[q.id] <= 8 ? "#854d0e" : "#065f46"
-                                }}>
+                              <div className="mt-4">
+                                <div className={`p-3 rounded-md text-center font-medium ${previewResponses[q.id] <= 6 ? "bg-amber-100 text-amber-800" : previewResponses[q.id] <= 8 ? "bg-yellow-100 text-yellow-800" : "bg-emerald-100 text-emerald-800"}`}>
                                   {previewResponses[q.id] <= 6 ? "Detractor" :
-                                   previewResponses[q.id] <= 8 ? "Passive" : "Promoter"}
+                                    previewResponses[q.id] <= 8 ? "Passive" : "Promoter"}
                                 </div>
                               </div>
                             )}
@@ -3725,24 +2924,13 @@ const SurveysPulseChecks = () => {
                         )}
 
                         {q.type === "multiple" && (
-                          <div style={{ marginTop: "16px" }}>
-                            <div style={{ fontSize: "14px", marginBottom: "12px", color: "#374151" }}>
+                          <div className="mt-4">
+                            <div className="text-sm mb-3 text-slate-700">
                               Select all that apply:
                             </div>
                             <div>
                               {q.options && q.options.map((option, optIndex) => (
-                                <label key={optIndex} style={{
-                                  ...styles.checkboxLabel,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  padding: "12px",
-                                  marginBottom: "8px",
-                                  background: previewResponses[q.id]?.includes(option) ? "#eff6ff" : "white",
-                                  border: `1px solid ${previewResponses[q.id]?.includes(option) ? "#3b82f6" : "#d1d5db"}`,
-                                  borderRadius: "6px",
-                                  cursor: "pointer",
-                                  transition: "all 0.2s"
-                                }}>
+                                <label key={optIndex} className={`flex items-center p-3 mb-2 rounded-md cursor-pointer transition-all duration-200 border ${previewResponses[q.id]?.includes(option) ? "bg-blue-50 border-blue-500" : "bg-white border-gray-300"}`}>
                                   <input
                                     type="checkbox"
                                     checked={previewResponses[q.id]?.includes(option) || false}
@@ -3756,9 +2944,9 @@ const SurveysPulseChecks = () => {
                                       }
                                       handlePreviewResponse(q.id, newResponses);
                                     }}
-                                    style={{ marginRight: "12px" }}
+                                    className="mr-3"
                                   />
-                                  <span style={{ fontSize: "14px" }}>{option}</span>
+                                  <span className="text-sm">{option}</span>
                                 </label>
                               ))}
                             </div>
@@ -3766,57 +2954,37 @@ const SurveysPulseChecks = () => {
                         )}
 
                         {q.type === "open" && (
-                          <div style={{ marginTop: "16px" }}>
-                            <div style={{ fontSize: "14px", marginBottom: "12px", color: "#374151" }}>
+                          <div className="mt-4">
+                            <div className="text-sm mb-3 text-slate-700">
                               Your response:
                             </div>
                             <textarea
-                              style={{
-                                ...styles.textarea,
-                                width: "100%",
-                                minHeight: "100px",
-                                borderColor: previewResponses[q.id] ? "#10b981" : "#d1d5db"
-                              }}
+                              className="text-sm"
                               placeholder="Type your answer here..."
                               value={previewResponses[q.id] || ""}
                               onChange={(e) => handlePreviewResponse(q.id, e.target.value)}
                             />
-                            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                            <div className="text-xs text-slate-500 mt-1">
                               Minimum 10 characters recommended
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Question Metadata */}
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: "16px",
-                      paddingTop: "12px",
-                      borderTop: "1px solid #e5e7eb"
-                    }}>
-                      <div style={{ display: "flex", gap: "12px", fontSize: "12px", color: "#6b7280" }}>
-                        <span style={{
-                          ...styles.chip,
-                          background: "#e0f2fe",
-                          color: "#0369a1"
-                        }}>
+                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-200">
+                      <div className="flex gap-3 text-xs text-slate-500">
+                        <span className="text-sm">
                           {q.type.charAt(0).toUpperCase() + q.type.slice(1)}
                         </span>
                         {q.required && (
-                          <span style={{
-                            ...styles.chip,
-                            background: "#fee2e2",
-                            color: "#dc2626"
-                          }}>
+                          <span className="text-sm">
                             Required
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                      <div className="text-xs text-slate-500">
                         Question {index + 1} of {questions.length}
                       </div>
                     </div>
@@ -3824,25 +2992,20 @@ const SurveysPulseChecks = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ textAlign: "center", padding: "60px 0", color: "#6b7280" }}>
-                <FileText size={64} style={{ marginBottom: "16px", opacity: 0.5 }} />
-                <p style={{ fontSize: "18px", marginBottom: "8px" }}>No questions added yet</p>
-                <p style={{ fontSize: "14px" }}>Add questions to see the preview</p>
+              <div className="text-center py-15 text-slate-500">
+                <FileText size={64} className="mb-4 opacity-50 mx-auto" />
+                <p className="text-lg mb-2">No questions added yet</p>
+                <p className="text-sm">Add questions to see the preview</p>
               </div>
             )}
 
             {/* Survey Footer */}
             {questions.length > 0 && (
-              <div style={{
-                marginTop: "32px",
-                paddingTop: "24px",
-                borderTop: "1px solid #e5e7eb",
-                textAlign: "center"
-              }}>
-                <div style={{ marginBottom: "20px" }}>
-                  <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
+              <div className="mt-8 pt-6 border-t border-slate-200 text-center">
+                <div className="mb-5">
+                  <div className="text-sm text-slate-500 mb-2">
                     {answeredQuestions === totalQuestions ? (
-                      <span style={{ color: "#10b981", fontWeight: "500" }}>
+                      <span className="text-emerald-500 font-medium">
                         ✓ All questions answered! Ready to submit.
                       </span>
                     ) : (
@@ -3852,41 +3015,29 @@ const SurveysPulseChecks = () => {
                     )}
                   </div>
                 </div>
-                
-                <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
+
+                <div className="flex justify-center gap-4">
                   <button
-                    style={{ ...styles.button, ...styles.secondaryButton }}
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     onClick={handleResetPreview}
                   >
                     <RefreshCw size={16} /> Reset All Responses
                   </button>
                   <button
-                    style={{
-                      ...styles.button,
-                      ...styles.primaryButton,
-                      opacity: answeredQuestions === totalQuestions ? 1 : 0.6
-                    }}
+                    className="text-sm"
                     onClick={handleSubmitPreview}
                     disabled={answeredQuestions !== totalQuestions}
                   >
                     <CheckCircle size={16} /> Submit Survey
                   </button>
                 </div>
-                
-                <div style={{
-                  marginTop: "20px",
-                  padding: "12px",
-                  background: "#f0f9ff",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  color: "#0369a1",
-                  textAlign: "left"
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+
+                <div className="mt-5 p-3 bg-sky-50 rounded-lg text-xs text-sky-700 text-left">
+                  <div className="flex items-center gap-2 mb-1">
                     <Bell size={14} />
-                    <span style={{ fontWeight: "500" }}>Preview Mode</span>
+                    <span className="font-medium">Preview Mode</span>
                   </div>
-                  <p style={{ margin: 0 }}>
+                  <p className="m-0">
                     This is a preview of how your survey will appear to participants. Responses are not saved.
                   </p>
                 </div>
@@ -3898,287 +3049,27 @@ const SurveysPulseChecks = () => {
     );
   };
 
-  // Export Modal Component
   const renderExportModal = () => (
-    <Modal
-      title="Export Survey Data"
+    <ExportSurveyModal
       isOpen={showExportModal}
       onClose={() => setShowExportModal(false)}
-      width="700px"
-    >
-      <div style={{ marginBottom: "20px" }}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Export Format</label>
-          <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
-            <div
-              style={{
-                ...styles.card,
-                flex: 1,
-                border: `2px solid ${exportType === "pdf" ? "#ef4444" : "#e5e7eb"}`,
-                cursor: "pointer"
-              }}
-              onClick={() => setExportType("pdf")}
-            >
-              <div style={{ textAlign: "center" }}>
-                <File size={32} color={exportType === "pdf" ? "#ef4444" : "#6b7280"} />
-                <div style={{ marginTop: "8px", fontWeight: "600" }}>PDF</div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>Portable Document Format</div>
-              </div>
-            </div>
-            <div
-              style={{
-                ...styles.card,
-                flex: 1,
-                border: `2px solid ${exportType === "excel" ? "#10b981" : "#e5e7eb"}`,
-                cursor: "pointer"
-              }}
-              onClick={() => setExportType("excel")}
-            >
-              <div style={{ textAlign: "center" }}>
-                <FileSpreadsheet size={32} color={exportType === "excel" ? "#10b981" : "#6b7280"} />
-                <div style={{ marginTop: "8px", fontWeight: "600" }}>Excel (CSV)</div>
-                <div style={{ fontSize: "12px", color: "#6b7280" }}>Spreadsheet Format</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Include Data Sections</label>
-          <div style={styles.checkboxGroup}>
-            <label style={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={exportData.includeQuestions}
-                onChange={(e) => setExportData({ ...exportData, includeQuestions: e.target.checked })}
-              />
-              <span>Survey Questions ({questions.length} questions)</span>
-            </label>
-            <label style={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={exportData.includeAnalytics}
-                onChange={(e) => setExportData({ ...exportData, includeAnalytics: e.target.checked })}
-              />
-              <span>Analytics & Performance Data</span>
-            </label>
-            <label style={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={exportData.includeBscData}
-                onChange={(e) => setExportData({ ...exportData, includeBscData: e.target.checked })}
-              />
-              <span>BSC Objectives & Metrics</span>
-            </label>
-            <label style={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={exportData.includeResponses}
-                onChange={(e) => setExportData({ ...exportData, includeResponses: e.target.checked })}
-              />
-              <span>Response Summary</span>
-            </label>
-          </div>
-        </div>
-
-        <div style={styles.exportPreview}>
-          <div style={{ fontSize: "11px", color: "#6b7280", marginBottom: "8px" }}>Preview:</div>
-          <div style={{ fontSize: "10px", lineHeight: "1.4" }}>
-            {exportType === "pdf" ?
-              "PDF Document with selected sections will be generated for download." :
-              "CSV/Excel file with structured data will be generated for download."}
-            <br /><br />
-            <strong>File Name:</strong> {(selectedSurvey?.title || surveyTitle || "survey").replace(/\s+/g, '_')}_survey_report_{new Date().getTime()}.{exportType === "pdf" ? "txt" : "csv"}
-            <br />
-            <strong>Size:</strong> {exportType === "pdf" ? "~500 KB" : "~100 KB"}
-          </div>
-        </div>
-
-        <div style={{
-          background: exportType === "pdf" ? "#fef2f2" : "#f0f9ff",
-          padding: "12px",
-          borderRadius: "8px",
-          marginTop: "16px",
-          border: `1px solid ${exportType === "pdf" ? "#fecaca" : "#bae6fd"}`
-        }}>
-          <div style={{ fontSize: "13px", fontWeight: "500", color: exportType === "pdf" ? "#dc2626" : "#0ea5e9" }}>
-            {exportType === "pdf" ? "PDF Export" : "Excel Export"} Ready
-          </div>
-          <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-            {exportType === "pdf"
-              ? "PDF format is best for sharing reports and presentations."
-              : "Excel format is best for data analysis and further processing."}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-        <button
-          style={styles.button}
-          onClick={() => setShowExportModal(false)}
-        >
-          Cancel
-        </button>
-        <button
-          style={{
-            ...styles.button,
-            ...styles.primaryButton,
-            background: exportType === "pdf" ? "#ef4444" : "#10b981"
-          }}
-          onClick={handleExport}
-        >
-          {exportType === "pdf" ? <File size={16} /> : <FileSpreadsheet size={16} />}
-          Export {exportType === "pdf" ? "PDF" : "Excel"}
-        </button>
-      </div>
-    </Modal>
+      questions={questions} surveyTitle={surveyTitle} selectedSurvey={selectedSurvey} exportType={exportType} exportData={exportData} setExportType={setExportType} setExportData={setExportData} handleExport={handleExport}
+    />
   );
 
-  // Edit Question Modal
   const renderEditQuestionModal = () => (
-    <Modal
-      title={editingQuestion ? "Edit Question" : "Add New Question"}
+    <EditSurveyQuestionModal
       isOpen={showEditQuestionModal}
-      onClose={() => {
-        setShowEditQuestionModal(false);
-        setEditingQuestion(null);
-      }}
-      width="600px"
-    >
-      <div style={{ marginBottom: "20px" }}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Question Text *</label>
-          <textarea
-            style={{ ...styles.textarea, minHeight: "80px" }}
-            placeholder="Enter your question here..."
-            value={newQuestionText}
-            onChange={(e) => setNewQuestionText(e.target.value)}
-          />
-        </div>
-
-        <div style={styles.grid2Col}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Question Type</label>
-            <select
-              style={styles.select}
-              value={newQuestionType}
-              onChange={(e) => setNewQuestionType(e.target.value)}
-            >
-              {questionTypes.map(type => (
-                <option key={type.id} value={type.id}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Category</label>
-            <select
-              style={styles.select}
-              value={newQuestionCategory}
-              onChange={(e) => setNewQuestionCategory(e.target.value)}
-            >
-              <option value="">Select category</option>
-              {categories.filter(c => c !== "all").map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Tags</label>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-            <input
-              type="text"
-              style={styles.input}
-              placeholder="Add a tag..."
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-            />
-            <button
-              style={{ ...styles.button, ...styles.secondaryButton }}
-              onClick={handleAddTag}
-            >
-              <Plus size={14} /> Add
-            </button>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-            {newQuestionTags.map(tag => (
-              <span key={tag} style={{
-                ...styles.tag,
-                display: "flex",
-                alignItems: "center",
-                gap: "4px"
-              }}>
-                {tag}
-                <button
-                  onClick={() => handleRemoveTag(tag)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "10px",
-                    color: "#1e40af",
-                    padding: "0"
-                  }}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {editingQuestion && (
-          <div style={{
-            background: "#f9fafb",
-            padding: "12px",
-            borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            fontSize: "13px",
-            marginTop: "16px"
-          }}>
-            <div><strong>Question ID:</strong> {editingQuestion.id}</div>
-            <div><strong>Times Used:</strong> {editingQuestion.used || 0}</div>
-            <div><strong>Last Used:</strong> {editingQuestion.lastUsed || "Never"}</div>
-            {editingQuestion.perspective && (
-              <div><strong>BSC Perspective:</strong> {bscPerspectives.find(p => p.id === editingQuestion.perspective)?.name}</div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-        <button
-          style={styles.button}
-          onClick={() => {
-            setShowEditQuestionModal(false);
-            setEditingQuestion(null);
-          }}
-        >
-          Cancel
-        </button>
-        {editingQuestion ? (
-          <button
-            style={{ ...styles.button, ...styles.primaryButton }}
-            onClick={handleSaveEditedQuestion}
-          >
-            <Save size={16} /> Save Changes
-          </button>
-        ) : (
-          <button
-            style={{ ...styles.button, ...styles.successButton }}
-            onClick={handleAddNewQuestionToBank}
-          >
-            <Plus size={16} /> Add to Bank
-          </button>
-        )}
-      </div>
-    </Modal>
+      onClose={() => setShowEditQuestionModal(false)}
+      editingQuestion={editingQuestion} newQuestionText={newQuestionText} newQuestionType={newQuestionType} newQuestionCategory={newQuestionCategory} newQuestionTags={newQuestionTags} tagInput={tagInput} bscPerspectives={bscPerspectives} setEditingQuestion={setEditingQuestion} setNewQuestionText={setNewQuestionText} setNewQuestionType={setNewQuestionType} setNewQuestionCategory={setNewQuestionCategory} setTagInput={setTagInput} questionTypes={questionTypes}
+      categories={categories}
+      handleAddTag={handleAddTag}
+      handleRemoveTag={handleRemoveTag}
+      handleSaveEditedQuestion={handleSaveEditedQuestion}
+      handleAddNewQuestionToBank={handleAddNewQuestionToBank}
+    />
   );
 
-  // View Survey Modal
   const renderViewModal = () => (
     <Modal
       title={`View Survey: ${selectedSurvey?.title || 'Survey'}`}
@@ -4188,88 +3079,71 @@ const SurveysPulseChecks = () => {
         setIsViewMode(false);
         setSelectedSurvey(null);
       }}
-      width="800px"
+      size="lg"
     >
       {selectedSurvey && (
         <div>
-          <div style={{ marginBottom: "20px" }}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Survey Title</label>
-              <div style={{ padding: "10px", background: "#f9fafb", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+          <div className="mb-5">
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Survey Title</label>
+              <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200">
                 {selectedSurvey.title}
               </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Description</label>
-              <div style={{ padding: "10px", background: "#f9fafb", borderRadius: "6px", border: "1px solid #e5e7eb", minHeight: "60px" }}>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
+              <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200 min-h-[60px]">
                 {selectedSurvey.description || "No description"}
               </div>
             </div>
 
-            <div style={styles.grid2Col}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Status</label>
-                <div style={{
-                  padding: "6px 12px",
-                  background: selectedSurvey.status === "active" ? "#d1fae5" :
-                    selectedSurvey.status === "completed" ? "#dbeafe" :
-                    selectedSurvey.status === "paused" ? "#fef3c7" : "#f3f4f6",
-                  color: selectedSurvey.status === "active" ? "#065f46" :
-                    selectedSurvey.status === "completed" ? "#1e40af" :
-                    selectedSurvey.status === "paused" ? "#92400e" : "#6b7280",
-                  borderRadius: "20px",
-                  display: "inline-block",
-                  fontWeight: "500"
-                }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status</label>
+                <div className={`px-3 py-1.5 rounded-full inline-block font-medium ${selectedSurvey.status === "active" ? "bg-emerald-100 text-emerald-800" : selectedSurvey.status === "completed" ? "bg-blue-100 text-blue-800" : selectedSurvey.status === "paused" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"}`}>
                   {selectedSurvey.status}
                 </div>
               </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Created</label>
-                <div style={{ padding: "10px", background: "#f9fafb", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Created</label>
+                <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200">
                   {selectedSurvey.createdAt}
                 </div>
               </div>
             </div>
 
-            <div style={styles.grid2Col}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Questions</label>
-                <div style={{ padding: "10px", background: "#f9fafb", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Questions</label>
+                <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200">
                   {Array.isArray(selectedSurvey.questions) ? selectedSurvey.questions.length : selectedSurvey.questions || 0}
                 </div>
               </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Responses</label>
-                <div style={{ padding: "10px", background: "#f9fafb", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Responses</label>
+                <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200">
                   {selectedSurvey.responses || 0}
                 </div>
               </div>
             </div>
 
             {selectedSurvey.perspective && (
-              <div style={styles.formGroup}>
-                <label style={styles.label}>BSC Perspective</label>
-                <div style={{
-                  padding: "6px 12px",
-                  background: bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.color + "20",
-                  color: bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.color,
-                  borderRadius: "20px",
-                  display: "inline-block",
-                  fontWeight: "500"
-                }}>
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">BSC Perspective</label>
+                <div className="px-3 py-1.5 rounded-full inline-block font-medium"
+                  className={`bg-[${bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.color}20] text-[${bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.color}]`}>
                   {bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.name}
                 </div>
               </div>
             )}
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+          <div className="flex justify-end gap-3">
             <button
-              style={styles.button}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               onClick={() => {
                 setShowViewModal(false);
                 setIsViewMode(false);
@@ -4279,9 +3153,8 @@ const SurveysPulseChecks = () => {
               Close
             </button>
             <button
-              style={{ ...styles.button, ...styles.primaryButton }}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
               onClick={() => {
-                // Switch to edit mode
                 setIsViewMode(false);
                 setShowViewModal(false);
                 setActiveTab("create");
@@ -4306,77 +3179,35 @@ const SurveysPulseChecks = () => {
   const unreadNotifications = notifications.filter(n => !n.read).length;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
+    <div className="space-y-6 min-h-screen">
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h4 style={styles.mainTitle}>
-            <BarChart3 size={24} />
-            Survey & Pulse Check Management
-          </h4>
-          <p style={styles.subtitle}>
-            Create, distribute, and analyze employee surveys and pulse checks
-          </p>
+          <h1 className="text-2xl font-bold text-slate-800 mb-1">Survey & Pulse Check Management</h1>
+          <p className="text-slate-500 text-sm">Create, distribute, and analyze employee surveys and pulse checks</p>
         </div>
 
-        <div style={styles.headerActions}>
-          <div
-            style={styles.notificationsButton}
-            onClick={() => setShowNotifications(!showNotifications)}
-          >
-            <Bell size={20} />
+        <div className="flex gap-3">
+          <div className="relative cursor-pointer" onClick={() => setShowNotifications(!showNotifications)}>
+            <button className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50">
+              <Bell size={20} />
+            </button>
             {unreadNotifications > 0 && (
-              <span style={styles.notificationsBadge}>
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {unreadNotifications}
               </span>
             )}
           </div>
 
-          {showNotifications && (
-            <div className="slide-in" style={styles.notificationsPanel}>
-              <div style={{ padding: "12px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: "500" }}>Notifications</span>
-                <button
-                  style={{ ...styles.button, ...styles.smallButton }}
-                  onClick={handleMarkAllNotificationsRead}
-                >
-                  Mark all read
-                </button>
-              </div>
-              {notifications.map(notification => (
-                <div
-                  key={notification.id}
-                  style={{
-                    ...styles.notificationItem,
-                    background: notification.read ? "white" : "#f0f9ff"
-                  }}
-                  onClick={() => handleToggleNotification(notification.id)}
-                >
-                  <div style={{ fontSize: "14px" }}>{notification.message}</div>
-                  <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-                    {notification.type === "success" ? "✅" : notification.type === "warning" ? "⚠️" : "ℹ️"} {notification.time}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           <button
-            style={{ ...styles.button, ...styles.secondaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50"
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            {isRefreshing ? (
-              <>
-                <RefreshCw size={16} className="spin" /> Refreshing...
-              </>
-            ) : (
-              <>
-                <RefreshCw size={16} /> Refresh
-              </>
-            )}
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} /> {isRefreshing ? "Refreshing..." : "Refresh"}
           </button>
+
           <button
-            style={{ ...styles.button, ...styles.primaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-transparent bg-blue-600 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700"
             onClick={() => setShowNewSurveyModal(true)}
           >
             <Plus size={16} /> New Survey
@@ -4384,19 +3215,73 @@ const SurveysPulseChecks = () => {
         </div>
       </div>
 
-      <div style={styles.navTabs}>
+      {showNotifications && (
+        <div className="absolute right-6 top-24 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-[100] overflow-hidden">
+          <div className="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+            <span className="font-semibold text-sm">Notifications</span>
+            <button className="text-xs text-blue-600 font-semibold" onClick={handleMarkAllNotificationsRead}>Mark all read</button>
+          </div>
+          <div className="max-h-[300px] overflow-y-auto">
+            {notifications.map(notification => (
+              <div
+                key={notification.id}
+                className={`p-3 border-b border-slate-100 cursor-pointer transition ${notification.read ? "bg-white hover:bg-slate-50" : "bg-blue-50/50 hover:bg-blue-50"}`}
+                onClick={() => handleToggleNotification(notification.id)}
+              >
+                <div className="text-sm text-slate-800">{notification.message}</div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {notification.type === "success" ? "✅" : notification.type === "warning" ? "⚠️" : "ℹ️"} {notification.time}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          title="Active Surveys"
+          value={surveys.length}
+          icon="heroicons:chart-bar"
+          color="blue"
+          description="Currently running surveys"
+        />
+        <StatCard
+          title="Total Responses"
+          value={1245}
+          icon="heroicons:users"
+          color="green"
+          description="Across all surveys"
+        />
+        <StatCard
+          title="Avg. Response Rate"
+          value="78%"
+          icon="heroicons:arrow-trending-up"
+          color="purple"
+          description="Target: 70%"
+        />
+        <StatCard
+          title="Templates"
+          value={12}
+          icon="heroicons:document-duplicate"
+          color="orange"
+          description="Available templates"
+        />
+      </div>
+
+      <div className="flex border-b border-slate-200 mb-6 overflow-x-auto hide-scrollbar">
         {tabs.map(tab => {
-          const Icon = tab.icon;
+          const TabIcon = tab.icon;
           return (
             <button
               key={tab.id}
-              style={{
-                ...styles.navTab,
-                ...(activeTab === tab.id ? styles.activeNavTab : {})
-              }}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                }`}
               onClick={() => setActiveTab(tab.id)}
             >
-              <Icon size={16} />
+              <TabIcon size={18} />
               {tab.label}
             </button>
           );
@@ -4411,27 +3296,27 @@ const SurveysPulseChecks = () => {
 
       {/* Action Buttons */}
       {(activeTab === "create" || activeTab === "distribute") && !isViewMode && (
-        <div style={styles.actionButtons}>
+        <div className="flex flex-wrap justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
           <button
-            style={{ ...styles.button, ...styles.secondaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             onClick={() => setShowDraftModal(true)}
           >
             <Save size={16} /> Save as Draft
           </button>
           <button
-            style={{ ...styles.button, ...styles.outlineButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-blue-600 transition hover:bg-slate-50"
             onClick={() => setShowPreview(true)}
           >
             <Eye size={16} /> Preview
           </button>
           <button
-            style={{ ...styles.button, ...styles.primaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
             onClick={() => setShowLaunchModal(true)}
           >
             <Send size={16} /> Launch Survey
           </button>
           <button
-            style={{ ...styles.button, ...styles.successButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-sm font-semibold text-white transition hover:bg-emerald-700"
             onClick={() => setShowExportModal(true)}
           >
             <Download size={16} /> Export
@@ -4440,671 +3325,60 @@ const SurveysPulseChecks = () => {
       )}
 
       {/* All Modals */}
-      <Modal
-        title="Save Survey as Draft"
+      <SaveDraftModal
         isOpen={showDraftModal}
         onClose={() => setShowDraftModal(false)}
-      >
-        <p style={{ fontSize: "14px", color: "#374151", marginBottom: "16px" }}>
-          Your survey will be saved as a draft and will not be visible to employees.
-        </p>
+        questions={questions} surveyTitle={surveyTitle} draftNote={draftNote} bscPerspectives={bscPerspectives} selectedPerspective={selectedPerspective} setDraftNote={setDraftNote} handleSaveDraft={handleSaveDraft}
+      />
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Draft Notes (Optional)</label>
-          <textarea
-            style={{ ...styles.textarea, minHeight: "80px" }}
-            placeholder="Add notes for this draft version"
-            value={draftNote}
-            onChange={(e) => setDraftNote(e.target.value)}
-          />
-        </div>
-
-        <div
-          style={{
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            padding: "12px",
-            borderRadius: "8px",
-            fontSize: "13px"
-          }}
-        >
-          <div><strong>Survey Title:</strong> {surveyTitle || "Untitled Survey"}</div>
-          <div><strong>Total Questions:</strong> {questions.length}</div>
-          <div><strong>Perspective:</strong> {selectedPerspective === "all" ? "General" : bscPerspectives.find(p => p.id === selectedPerspective)?.name}</div>
-          <div><strong>Status:</strong> Draft</div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "12px",
-            marginTop: "20px"
-          }}
-        >
-          <button
-            style={styles.button}
-            onClick={() => setShowDraftModal(false)}
-          >
-            Cancel
-          </button>
-
-          <button
-            style={{ ...styles.button, ...styles.primaryButton }}
-            onClick={handleSaveDraft}
-          >
-            Save Draft
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
-        title="Create New Survey"
+      <CreateNewSurveyModal
         isOpen={showNewSurveyModal}
-        onClose={() => {
-          setShowNewSurveyModal(false);
-          setIsViewMode(false);
-        }}
-        width="700px"
-      >
-        <div style={{ marginBottom: "14px" }}>
-          <label style={styles.label}>Survey Title *</label>
-          <input
-            type="text"
-            style={styles.input}
-            placeholder="e.g. Employee Engagement Survey – Q2"
-            value={surveyTitle}
-            onChange={(e) => setSurveyTitle(e.target.value)}
-          />
-        </div>
+        onClose={() => setShowNewSurveyModal(false)}
+        questions={questions} surveyTitle={surveyTitle} surveyDescription={surveyDescription} isViewMode={isViewMode} bscPerspectives={bscPerspectives} selectedPerspective={selectedPerspective} setSurveyTitle={setSurveyTitle} setSurveyDescription={setSurveyDescription} setIsViewMode={setIsViewMode} setSelectedPerspective={setSelectedPerspective}
+        handleNewSurvey={handleNewSurvey}
+      />
 
-        <div style={{ marginBottom: "14px" }}>
-          <label style={styles.label}>Description (Optional)</label>
-          <textarea
-            style={{ ...styles.input, height: "80px" }}
-            placeholder="Brief description of the survey purpose"
-            value={surveyDescription}
-            onChange={(e) => setSurveyDescription(e.target.value)}
-          />
-        </div>
-
-        <div style={{ marginBottom: "14px" }}>
-          <label style={styles.label}>BSC Perspective</label>
-          <select
-            style={styles.input}
-            value={selectedPerspective}
-            onChange={(e) => setSelectedPerspective(e.target.value)}
-          >
-            <option value="all">General (No BSC Perspective)</option>
-            {bscPerspectives.map(p => (
-              <option key={p.id} value={p.id}>{p.name} Perspective</option>
-            ))}
-          </select>
-        </div>
-
-        <div
-          style={{
-            background: "#fff7ed",
-            border: "1px solid #fed7aa",
-            padding: "12px",
-            borderRadius: "8px",
-            fontSize: "13px",
-            color: "#92400e",
-            marginBottom: "20px"
-          }}
-        >
-          ⚠ Starting a new survey will remove:
-          <ul style={{ margin: "8px 0 0 16px" }}>
-            <li>All existing questions</li>
-            <li>Unsaved changes</li>
-            <li>Current analytics preview</li>
-          </ul>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-          <button
-            style={styles.button}
-            onClick={() => {
-              setShowNewSurveyModal(false);
-              setIsViewMode(false);
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            style={{
-              ...styles.button,
-              ...styles.primaryButton,
-              opacity: surveyTitle.trim() ? 1 : 0.6
-            }}
-            disabled={!surveyTitle.trim() || isViewMode}
-            onClick={() => {
-              handleNewSurvey();
-              setShowNewSurveyModal(false);
-            }}
-          >
-            Create Survey
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
-        title="Add Question"
+      <AddSurveyQuestionModal
         isOpen={showAddQuestionModal}
         onClose={() => setShowAddQuestionModal(false)}
-        width="900px"
-      >
-        <h5 style={{ marginBottom: "12px" }}>Choose Question Type</h5>
-        <div style={styles.grid3Col}>
-          {questionTypes.map(type => (
-            <div
-              key={type.id}
-              style={styles.card}
-              onClick={() => {
-                handleAddQuestion(type.id);
-                setShowAddQuestionModal(false);
-              }}
-            >
-              <div style={{ display: "flex", gap: "12px" }}>
-                <div style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "8px",
-                  background: "#dbeafe",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}>
-                  <type.icon size={20} color="#3b82f6" />
-                </div>
-                <div>
-                  <strong>{type.label}</strong>
-                  <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                    {type.description}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        searchQuery={searchQuery} questionBank={questionBank} bscQuestionBank={bscQuestionBank} bscPerspectives={bscPerspectives} setSearchQuery={setSearchQuery} handleAddQuestion={handleAddQuestion} questionTypes={questionTypes}
 
-        <h5 style={{ margin: "24px 0 12px" }}>Add from Question Bank</h5>
+        handleAddFromQuestionBank={handleAddFromQuestionBank}
+      />
 
-        <input
-          type="text"
-          style={{ ...styles.input, marginBottom: "12px" }}
-          placeholder="Search question bank..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-
-        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-          {[...questionBank, ...bscQuestionBank]
-            .filter(q =>
-              q.question.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map(q => (
-              <div key={q.id} style={styles.questionCard}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div>
-                    <div style={{ fontWeight: "500" }}>{q.question}</div>
-                    <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                      {q.perspective ? (
-                        <span style={{
-                          ...styles.chip,
-                          background: bscPerspectives.find(p => p.id === q.perspective)?.color + "20",
-                          color: bscPerspectives.find(p => p.id === q.perspective)?.color,
-                          marginRight: "4px"
-                        }}>
-                          {bscPerspectives.find(p => p.id === q.perspective)?.name}
-                        </span>
-                      ) : null}
-                      Used {q.used || 0} times
-                    </div>
-                  </div>
-                  <button
-                    style={{ ...styles.button, ...styles.smallButton }}
-                    onClick={() => {
-                      handleAddFromQuestionBank(q);
-                      setShowAddQuestionModal(false);
-                    }}
-                  >
-                    <Plus size={12} /> Add
-                  </button>
-                </div>
-              </div>
-            ))}
-        </div>
-      </Modal>
-
-      <Modal
-        title="Launch Survey"
+      <LaunchSurveyModal
         isOpen={showLaunchModal}
         onClose={() => setShowLaunchModal(false)}
-      >
-        <div
-          style={{
-            background: "#ecfeff",
-            border: "1px solid #67e8f9",
-            padding: "12px",
-            borderRadius: "8px",
-            fontSize: "14px",
-            color: "#155e75",
-            marginBottom: "16px"
-          }}
-        >
-          Launching the survey will immediately make it live for selected employees.
-        </div>
+        launchAudience={launchAudience} launchNotify={launchNotify} bscPerspectives={bscPerspectives} selectedPerspective={selectedPerspective} setLaunchAudience={setLaunchAudience} setLaunchNotify={setLaunchNotify} handleLaunchSurvey={handleLaunchSurvey}
+      />
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Survey Audience</label>
-          <select
-            style={styles.select}
-            value={launchAudience}
-            onChange={(e) => setLaunchAudience(e.target.value)}
-          >
-            <option value="all">All Employees</option>
-            <option value="department">Specific Departments</option>
-            <option value="location">Specific Locations</option>
-          </select>
-        </div>
-
-        <div style={{ marginTop: "12px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <input
-              type="checkbox"
-              checked={launchNotify}
-              onChange={(e) => setLaunchNotify(e.target.checked)}
-            />
-            <span style={{ fontSize: "14px" }}>
-              Notify employees via email & in-app notification
-            </span>
-          </label>
-        </div>
-
-        <div
-          style={{
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            padding: "12px",
-            borderRadius: "8px",
-            fontSize: "13px",
-            marginTop: "16px"
-          }}
-        >
-          <strong>Launch Summary</strong>
-          <div>Audience: <strong>{launchAudience}</strong></div>
-          <div>Status: <strong>Live immediately</strong></div>
-          <div>Notifications: <strong>{launchNotify ? "Yes" : "No"}</strong></div>
-          {selectedPerspective !== "all" && (
-            <div>BSC Perspective: <strong>{bscPerspectives.find(p => p.id === selectedPerspective)?.name}</strong></div>
-          )}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "12px",
-            marginTop: "20px"
-          }}
-        >
-          <button
-            style={styles.button}
-            onClick={() => setShowLaunchModal(false)}
-          >
-            Cancel
-          </button>
-
-          <button
-            style={{ ...styles.button, ...styles.primaryButton }}
-            onClick={handleLaunchSurvey}
-          >
-            <Send size={16} /> Launch Now
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
-        title="Schedule Survey Campaign"
+      <ScheduleCampaignModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
-      >
-        <div
-          style={{
-            background: "#eff6ff",
-            padding: "12px",
-            borderRadius: "8px",
-            fontSize: "14px",
-            color: "#1e40af",
-            marginBottom: "16px"
-          }}
-        >
-          Choose when and how often this survey should be sent to participants.
-        </div>
+        scheduling={scheduling} scheduleDate={scheduleDate} scheduleTime={scheduleTime} recurrencePattern={recurrencePattern} setScheduling={setScheduling} setScheduleDate={setScheduleDate} setScheduleTime={setScheduleTime} setRecurrencePattern={setRecurrencePattern}
+        handleScheduleSurvey={handleScheduleSurvey}
+      />
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Schedule Type</label>
-          <select
-            style={styles.select}
-            value={scheduling}
-            onChange={(e) => setScheduling(e.target.value)}
-          >
-            <option value="immediate">Send Immediately</option>
-            <option value="scheduled">Schedule for Later</option>
-            <option value="recurring">Recurring Campaign</option>
-          </select>
-        </div>
-
-        {scheduling === "scheduled" && (
-          <>
-            <div style={styles.grid2Col}>
-              <div>
-                <label style={styles.label}>Start Date</label>
-                <input
-                  type="date"
-                  style={styles.input}
-                  value={scheduleDate}
-                  onChange={(e) => setScheduleDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <div>
-                <label style={styles.label}>Start Time</label>
-                <input
-                  type="time"
-                  style={styles.input}
-                  value={scheduleTime}
-                  onChange={(e) => setScheduleTime(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <p style={{ fontSize: "12px", color: "#6b7280", marginTop: "8px" }}>
-              The survey will automatically launch at the selected date and time.
-            </p>
-          </>
-        )}
-
-        {scheduling === "recurring" && (
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Recurrence Pattern</label>
-            <select
-              style={styles.select}
-              value={recurrencePattern}
-              onChange={(e) => setRecurrencePattern(e.target.value)}
-            >
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-            </select>
-
-            <p style={{ fontSize: "12px", color: "#6b7280", marginTop: "6px" }}>
-              The survey will repeat automatically based on the selected frequency.
-            </p>
-          </div>
-        )}
-
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "12px",
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            fontSize: "13px"
-          }}
-        >
-          <strong>Schedule Summary</strong>
-          <div style={{ marginTop: "6px" }}>
-            Type: <strong>{scheduling}</strong>
-          </div>
-          {scheduling === "scheduled" && scheduleDate && (
-            <div>
-              Launch On: <strong>{scheduleDate} at {scheduleTime}</strong>
-            </div>
-          )}
-          {scheduling === "recurring" && (
-            <div>
-              Frequency: <strong>{recurrencePattern}</strong>
-            </div>
-          )}
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px", gap: "12px" }}>
-          <button
-            style={styles.button}
-            onClick={() => setShowScheduleModal(false)}
-          >
-            Cancel
-          </button>
-
-          <button
-            style={{ ...styles.button, ...styles.primaryButton }}
-            onClick={handleScheduleSurvey}
-          >
-            Confirm Schedule
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
-        title="Send Survey Reminder"
+      <SendReminderModal
         isOpen={showReminderModal}
         onClose={() => setShowReminderModal(false)}
-      >
-        <div
-          style={{
-            background: "#fff7ed",
-            padding: "12px",
-            borderRadius: "8px",
-            fontSize: "14px",
-            color: "#9a3412",
-            marginBottom: "16px"
-          }}
-        >
-          Reminders will be sent only to employees who haven't completed the survey.
-        </div>
+        reminderAudience={reminderAudience} reminderMessage={reminderMessage} reminderChannel={reminderChannel} setReminderAudience={setReminderAudience} setReminderMessage={setReminderMessage} setReminderChannel={setReminderChannel}
+        handleSendReminders={handleSendReminders}
+      />
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Reminder Audience</label>
-          <select
-            style={styles.select}
-            value={reminderAudience}
-            onChange={(e) => setReminderAudience(e.target.value)}
-          >
-            <option value="nonRespondents">Non-Respondents Only</option>
-            <option value="all">All Participants</option>
-            <option value="partial">Partially Completed</option>
-          </select>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Delivery Channel</label>
-          <select
-            style={styles.select}
-            value={reminderChannel}
-            onChange={(e) => setReminderChannel(e.target.value)}
-          >
-            <option value="email">Email</option>
-            <option value="sms">SMS</option>
-            <option value="inApp">In-App Notification</option>
-          </select>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Reminder Message</label>
-          <textarea
-            style={{ ...styles.input, minHeight: "80px" }}
-            placeholder="Optional custom reminder message"
-            value={reminderMessage}
-            onChange={(e) => setReminderMessage(e.target.value)}
-          />
-          <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-            If left blank, a default reminder message will be used.
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            padding: "12px",
-            borderRadius: "8px",
-            fontSize: "13px",
-            marginTop: "16px"
-          }}
-        >
-          <strong>Reminder Summary</strong>
-          <div>Audience: <strong>{reminderAudience}</strong></div>
-          <div>Channel: <strong>{reminderChannel}</strong></div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "12px",
-            marginTop: "20px"
-          }}
-        >
-          <button
-            style={styles.button}
-            onClick={() => setShowReminderModal(false)}
-          >
-            Cancel
-          </button>
-
-          <button
-            style={{ ...styles.button, ...styles.primaryButton }}
-            onClick={handleSendReminders}
-          >
-            Send Reminder
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
-        title="Survey QR Code"
+      <SurveyQRCodeModal
         isOpen={showQRCodeModal}
         onClose={() => setShowQRCodeModal(false)}
-      >
-        <div style={{ textAlign: "center" }}>
-          <div
-            style={{
-              width: "200px",
-              height: "200px",
-              background: "#f3f4f6",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-              fontWeight: "600",
-              fontSize: "14px",
-              color: "#6b7280"
-            }}
-          >
-            QR CODE PREVIEW
-            <div style={{ fontSize: "10px", marginTop: "8px" }}>
-              Scan to open: {shareLink || "Survey Link"}
-            </div>
-          </div>
-          <p style={{ fontSize: "14px", color: "#6b7280" }}>
-            Scan to open the survey
-          </p>
-          <div style={{ marginTop: "16px", fontSize: "12px", color: "#3b82f6", wordBreak: "break-all" }}>
-            {shareLink || "No link generated yet"}
-          </div>
-          <button
-            style={{ ...styles.button, ...styles.primaryButton, marginTop: "16px" }}
-            onClick={handleShareSurvey}
-          >
-            <Copy size={16} /> Copy Link
-          </button>
-        </div>
-      </Modal>
+        shareLink={shareLink}
+        handleShareSurvey={handleShareSurvey}
+      />
 
       {/* BSC Modal */}
-      <Modal
-        title="Add Strategic Objective"
+      <AddStrategicObjectiveModal
         isOpen={showBscModal}
         onClose={() => setShowBscModal(false)}
-        width="700px"
-      >
-        <div style={{ marginBottom: "16px" }}>
-          <label style={styles.label}>Objective Name *</label>
-          <input
-            type="text"
-            style={styles.input}
-            placeholder="e.g., Improve customer satisfaction score"
-            value={strategicAlignment.objective}
-            onChange={(e) => setStrategicAlignment({ ...strategicAlignment, objective: e.target.value })}
-          />
-        </div>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label style={styles.label}>BSC Perspective</label>
-          <select
-            style={styles.select}
-            value={selectedPerspective}
-            onChange={(e) => setSelectedPerspective(e.target.value)}
-          >
-            <option value="all">Strategic (All Perspectives)</option>
-            {bscPerspectives.map(p => (
-              <option key={p.id} value={p.id}>{p.name} ({p.weight}%)</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label style={styles.label}>Key Performance Indicators (KPIs)</label>
-          <textarea
-            style={{ ...styles.textarea, minHeight: "100px" }}
-            placeholder="Enter KPIs (one per line)"
-            value={strategicAlignment.kpis.join('\n')}
-            onChange={(e) => setStrategicAlignment({
-              ...strategicAlignment,
-              kpis: e.target.value.split('\n').filter(kpi => kpi.trim())
-            })}
-          />
-          <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-            Enter each KPI on a new line
-          </div>
-        </div>
-
-        <div style={{
-          background: "#f0f9ff",
-          padding: "16px",
-          borderRadius: "8px",
-          border: "1px solid #bae6fd",
-          marginBottom: "20px"
-        }}>
-          <div style={{ fontSize: "14px", fontWeight: "500", marginBottom: "8px" }}>
-            Strategic Alignment Summary
-          </div>
-          <div style={{ fontSize: "13px", color: "#374151" }}>
-            <div><strong>Perspective:</strong> {bscPerspectives.find(p => p.id === selectedPerspective)?.name || "Strategic"}</div>
-            <div><strong>KPIs:</strong> {strategicAlignment.kpis.length} defined</div>
-            <div><strong>Weight:</strong> {bscPerspectives.find(p => p.id === selectedPerspective)?.weight || 0}%</div>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-          <button
-            style={styles.button}
-            onClick={() => setShowBscModal(false)}
-          >
-            Cancel
-          </button>
-          <button
-            style={{ ...styles.button, ...styles.primaryButton }}
-            onClick={handleAddBscObjective}
-          >
-            <Target size={16} /> Add Objective
-          </button>
-        </div>
-      </Modal>
+        bscPerspectives={bscPerspectives} selectedPerspective={selectedPerspective} strategicAlignment={strategicAlignment} setSelectedPerspective={setSelectedPerspective} setStrategicAlignment={setStrategicAlignment} handleAddBscObjective={handleAddBscObjective}
+      />
 
       {/* Export Modal */}
       {renderExportModal()}
@@ -5123,23 +3397,13 @@ const SurveysPulseChecks = () => {
         isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
       >
-        <div style={{
-          fontSize: "14px",
-          color: "#374151",
-          marginBottom: "16px",
-          padding: "12px",
-          background: statusModal.type === "success" ? "#d1fae5" :
-            statusModal.type === "warning" ? "#fef3c7" : "#dbeafe",
-          borderRadius: "8px",
-          border: `1px solid ${statusModal.type === "success" ? "#10b981" :
-            statusModal.type === "warning" ? "#f59e0b" : "#3b82f6"}`
-        }}>
+        <div className={`text-sm text-slate-700 mb-4 p-3 rounded-lg border ${statusModal.type === "success" ? "bg-emerald-100 border-emerald-500" : statusModal.type === "warning" ? "bg-amber-100 border-amber-500" : "bg-blue-100 border-blue-500"}`}>
           {statusModal.message}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div className="flex justify-end">
           <button
-            style={{ ...styles.button, ...styles.primaryButton }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
             onClick={() => setStatusModal({ ...statusModal, open: false })}
           >
             OK
