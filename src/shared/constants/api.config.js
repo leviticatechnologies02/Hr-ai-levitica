@@ -88,6 +88,8 @@ export const API_ENDPOINTS = {
     PERMANENT_ADDRESS: '/address/',
     BANK_DETAILS: '/bank-details/',
     DOCUMENTS_UPLOAD: '/api/documents/upload',
+    BASIC_DETAILS: '/basic-details/',
+    CONTACT_DETAILS: '/contact-details/',
     SUBMIT: '/onboarding/',
   },
 
@@ -187,6 +189,28 @@ export const API_ENDPOINTS = {
     LIST: '/employees',
     MANAGERS: '/employees/managers',
     CREATE: '/employees',
+  },
+
+  // Super Admin
+  SUPER_ADMIN: {
+    USERS: '/api/admin/superadmin/users',
+    USER: (id) => `/api/admin/superadmin/users/${id}`,
+    ROLES: '/api/super-admin/roles/',
+    ROLE: (id) => `/api/super-admin/roles/${id}`,
+    ROLE_BULK_ASSIGN: '/api/super-admin/roles/assign/bulk',
+    ROLE_ASSIGNMENTS_BY_ROLE: (roleId) => `/api/super-admin/roles/assign/by-role/${roleId}`,
+    ROLE_ASSIGNMENTS_BY_USER: (userId) => `/api/super-admin/roles/assign/by-user/${userId}`,
+    ROLE_UNASSIGN: (assignmentId) => `/api/super-admin/roles/assign/${assignmentId}`,
+    TENANTS: '/api/super-admin/tenants/',
+    TENANT: (id) => `/api/super-admin/tenants/${id}`,
+    COMPANY_SETTINGS: '/api/super-admin/company-settings/',
+    COMPANY_SETTINGS_ITEM: (id) => `/api/super-admin/company-settings/${id}`,
+  },
+
+  // Billing / Subscriptions (records plan choice only — no payment gateway wired up)
+  BILLING: {
+    SUBSCRIBE: '/subscriptions/',
+    BY_EMAIL: (email) => `/subscriptions/by-email/${encodeURIComponent(email)}`,
   },
 
   // HR Automation
@@ -330,4 +354,3 @@ const apiConfig = {
 };
 
 export default apiConfig;
-

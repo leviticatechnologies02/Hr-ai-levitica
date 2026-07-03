@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../shared/constants/api.config';
+
+const authHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+};
 
 const RolesPermissions = () => {
   // ==================== MODULES & FEATURES ====================
@@ -152,121 +163,18 @@ const RolesPermissions = () => {
     }
   ];
 
-  // ==================== SAMPLE USERS ====================
-  const sampleUsers = [
-    { id: 1, name: 'John Doe', email: 'john@techcorp.com', currentRole: 'HR Admin', department: 'HR' },
-    { id: 2, name: 'Jane Smith', email: 'jane@techcorp.com', currentRole: 'Manager', department: 'Sales' },
-    { id: 3, name: 'Robert Johnson', email: 'robert@techcorp.com', currentRole: 'Employee', department: 'IT' },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@techcorp.com', currentRole: 'HR Manager', department: 'HR' },
-    { id: 5, name: 'Michael Brown', email: 'michael@techcorp.com', currentRole: 'Employee', department: 'Finance' },
-    { id: 6, name: 'Emily Davis', email: 'emily@techcorp.com', currentRole: 'Manager', department: 'Marketing' },
-    { id: 7, name: 'David Wilson', email: 'david@techcorp.com', currentRole: 'Employee', department: 'Operations' },
-    { id: 8, name: 'Lisa Miller', email: 'lisa@techcorp.com', currentRole: 'Employee', department: 'Customer Support' }
-  ];
+  // ==================== USERS (loaded from the real backend — see loadUsers()) ====================
+  const [sampleUsers, setSampleUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
 
   // ==================== STATE MANAGEMENT ====================
-  const [roles, setRoles] = useState([
-    {
-      id: 1,
-      name: 'Super Admin',
-      type: 'predefined',
-      description: 'Full system access across all tenants and modules',
-      hierarchyLevel: 100,
-      inheritsFrom: null,
-      dataLevel: 'all',
-      userCount: 3,
-      status: 'active',
-      createdAt: '2024-01-01',
-      permissions: generateFullPermissions(),
-      temporaryAssignments: [],
-      conflicts: []
-    },
-    {
-      id: 2,
-      name: 'HR Admin',
-      type: 'predefined',
-      description: 'HR operations management',
-      hierarchyLevel: 90,
-      inheritsFrom: 'Super Admin',
-      dataLevel: 'department',
-      userCount: 5,
-      status: 'active',
-      createdAt: '2024-01-15',
-      permissions: generateHRAdminPermissions(),
-      temporaryAssignments: [],
-      conflicts: []
-    },
-    {
-      id: 3,
-      name: 'HR Manager',
-      type: 'predefined',
-      description: 'Team management and basic HR operations',
-      hierarchyLevel: 80,
-      inheritsFrom: 'HR Admin',
-      dataLevel: 'team',
-      userCount: 12,
-      status: 'active',
-      createdAt: '2024-02-10',
-      permissions: generateHRManagerPermissions(),
-      temporaryAssignments: [],
-      conflicts: []
-    },
-    {
-      id: 4,
-      name: 'Manager',
-      type: 'predefined',
-      description: 'Team lead with limited HR access',
-      hierarchyLevel: 70,
-      inheritsFrom: 'HR Manager',
-      dataLevel: 'team',
-      userCount: 25,
-      status: 'active',
-      createdAt: '2024-03-05',
-      permissions: generateManagerPermissions(),
-      temporaryAssignments: [],
-      conflicts: []
-    },
-    {
-      id: 5,
-      name: 'Employee',
-      type: 'predefined',
-      description: 'Self-service access only',
-      hierarchyLevel: 60,
-      inheritsFrom: 'Manager',
-      dataLevel: 'own',
-      userCount: 150,
-      status: 'active',
-      createdAt: '2024-04-01',
-      permissions: generateEmployeePermissions(),
-      temporaryAssignments: [],
-      conflicts: []
-    },
-    {
-      id: 6,
-      name: 'Payroll Specialist',
-      type: 'custom',
-      description: 'Custom role for payroll processing',
-      hierarchyLevel: 75,
-      inheritsFrom: 'HR Admin',
-      dataLevel: 'department',
-      userCount: 4,
-      status: 'active',
-      createdAt: '2024-05-20',
-      permissions: generatePayrollSpecialistPermissions(),
-      temporaryAssignments: [
-        {
-          id: 1,
-          userId: 3,
-          userName: 'Robert Johnson',
-          startDate: '2024-12-01',
-          endDate: '2024-12-31',
-          reason: 'Temporary payroll coverage',
-          status: 'active'
-        }
-      ],
-      conflicts: []
-    }
-  ]);
+  // Loaded from the backend by loadRoles() below — see the note there about
+  // how the rich fields (hierarchyLevel, inheritsFrom, dataLevel,
+  // temporaryAssignments) are stored inside the `permissions` JSON blob,
+  // since that's the only place the backend currently has room for them.
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesError, setRolesError] = useState(null);
 
   // ==================== PERMISSION CACHE ====================
   const [permissionCache, setPermissionCache] = useState({});
@@ -511,6 +419,99 @@ const RolesPermissions = () => {
   );
 
   // ==================== PERMISSION HANDLERS ====================
+  // ==================== BACKEND DATA LOADING ====================
+  // Maps a backend Role row -> the rich shape this page works with.
+  // The backend only has role_name / description / permissions (JSON) /
+  // is_active — so hierarchyLevel, inheritsFrom, dataLevel, type and
+  // temporaryAssignments all live inside that JSON blob under `meta`.
+  const mapBackendRole = (row, assignmentCounts) => {
+    const meta = (row.permissions && row.permissions.meta) || {};
+    return {
+      id: row.id,
+      name: row.role_name,
+      description: row.description || '',
+      type: meta.type || 'custom',
+      hierarchyLevel: meta.hierarchyLevel ?? 50,
+      inheritsFrom: meta.inheritsFrom || null,
+      dataLevel: meta.dataLevel || 'own',
+      userCount: assignmentCounts[row.id] || 0,
+      status: row.is_active ? 'active' : 'inactive',
+      createdAt: row.created_at ? row.created_at.split('T')[0] : '',
+      permissions: (row.permissions && row.permissions.modulePermissions) || {},
+      temporaryAssignments: meta.temporaryAssignments || [],
+      conflicts: [],
+    };
+  };
+
+  const loadRoles = useCallback(async () => {
+    setRolesLoading(true);
+    setRolesError(null);
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.ROLES}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to load roles');
+      const data = await res.json();
+
+      // Get a live user-count per role from the assignment table.
+      const counts = {};
+      await Promise.all(
+        data.map(async (row) => {
+          try {
+            const assignRes = await fetch(
+              `${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.ROLE_ASSIGNMENTS_BY_ROLE(row.id)}`,
+              { headers: authHeaders() }
+            );
+            if (assignRes.ok) {
+              const assignments = await assignRes.json();
+              counts[row.id] = assignments.length;
+            }
+          } catch {
+            counts[row.id] = 0;
+          }
+        })
+      );
+
+      setRoles(data.map((row) => mapBackendRole(row, counts)));
+    } catch (err) {
+      console.error(err);
+      setRolesError(err.message || 'Failed to load roles');
+      toast.error('Failed to load roles from the server');
+    } finally {
+      setRolesLoading(false);
+    }
+  }, []);
+
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.USERS}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to load users');
+      const data = await res.json();
+      setSampleUsers(
+        data.map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          currentRole: u.role,
+          department: u.username || '—',
+        }))
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load users from the server');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRoles();
+    loadUsers();
+  }, [loadRoles, loadUsers]);
+
   const handlePermissionToggle = (moduleId, permissionId) => {
     setRolePermissions(prev => ({
       ...prev,
@@ -567,74 +568,132 @@ const RolesPermissions = () => {
   };
 
   // ==================== BULK ASSIGNMENT HANDLERS ====================
-  const handleBulkAssign = () => {
+  const handleBulkAssign = async () => {
     if (!selectedRole || selectedUsers.length === 0) return;
-    
-    console.log(`Bulk assigning ${selectedRole.name} to ${selectedUsers.length} users`);
-    
-    setRoles(roles.map(role => {
-      if (role.id === selectedRole.id) {
-        return {
-          ...role,
-          userCount: role.userCount + selectedUsers.length
-        };
+
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.ROLE_BULK_ASSIGN}`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ role_id: selectedRole.id, user_ids: selectedUsers }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to assign role');
       }
-      return role;
-    }));
-    
-    setShowBulkAssignModal(false);
-    setSelectedUsers([]);
+
+      toast.success(`Assigned "${selectedRole.name}" to ${selectedUsers.length} user(s)`);
+      setShowBulkAssignModal(false);
+      setSelectedUsers([]);
+      loadRoles(); // refresh userCount from the real assignment table
+    } catch (err) {
+      toast.error(err.message || 'Failed to assign role');
+    }
   };
 
   // ==================== ROLE CRUD OPERATIONS ====================
-  const handleAddRole = (e) => {
+  const handleAddRole = async (e) => {
     e.preventDefault();
 
-    const newEntry = {
-      ...newRole,
-      id: roles.length + 1,
-      userCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-      permissions: rolePermissions,
-      temporaryAssignments: [],
-      conflicts: detectConflicts({ ...newRole, permissions: rolePermissions })
-    };
+    try {
+      const payload = {
+        role_name: newRole.name,
+        description: newRole.description,
+        permissions: {
+          modulePermissions: rolePermissions,
+          meta: {
+            type: newRole.type,
+            hierarchyLevel: newRole.hierarchyLevel,
+            inheritsFrom: newRole.inheritsFrom || null,
+            dataLevel: newRole.dataLevel,
+            temporaryAssignments: [],
+          },
+        },
+      };
 
-    setRoles([...roles, newEntry]);
-    setShowAddModal(false);
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.ROLES}`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to create role');
+      }
 
-    setNewRole({
-      name: '',
-      description: '',
-      type: 'custom',
-      hierarchyLevel: 65,
-      inheritsFrom: '',
-      dataLevel: 'team',
-      status: 'active'
-    });
-    
-    setRolePermissions({});
+      toast.success(`Role "${newRole.name}" created`);
+      setShowAddModal(false);
+      setNewRole({
+        name: '',
+        description: '',
+        type: 'custom',
+        hierarchyLevel: 65,
+        inheritsFrom: '',
+        dataLevel: 'team',
+        status: 'active'
+      });
+      setRolePermissions({});
+      loadRoles();
+    } catch (err) {
+      toast.error(err.message || 'Failed to create role');
+    }
   };
 
-  const handleUpdateRole = (e) => {
+  const handleUpdateRole = async (e) => {
     e.preventDefault();
+    if (!selectedRole) return;
 
-    const updatedRole = {
-      ...selectedRole,
-      permissions: rolePermissions,
-      conflicts: detectConflicts({ ...selectedRole, permissions: rolePermissions })
-    };
+    try {
+      const payload = {
+        role_name: selectedRole.name,
+        description: selectedRole.description,
+        permissions: {
+          modulePermissions: rolePermissions,
+          meta: {
+            type: selectedRole.type,
+            hierarchyLevel: selectedRole.hierarchyLevel,
+            inheritsFrom: selectedRole.inheritsFrom || null,
+            dataLevel: selectedRole.dataLevel,
+            temporaryAssignments: selectedRole.temporaryAssignments || [],
+          },
+        },
+      };
 
-    setRoles(roles.map(r => r.id === selectedRole.id ? updatedRole : r));
-    
-    propagatePermissionChanges(selectedRole.id);
-    
-    setShowEditModal(false);
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.ROLE(selectedRole.id)}`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to update role');
+      }
+
+      toast.success(`Role "${selectedRole.name}" updated`);
+      setShowEditModal(false);
+      loadRoles();
+    } catch (err) {
+      toast.error(err.message || 'Failed to update role');
+    }
   };
 
-  const handleDeleteRole = () => {
-    setRoles(roles.filter(r => r.id !== selectedRole.id));
-    setShowDeleteModal(false);
+  const handleDeleteRole = async () => {
+    if (!selectedRole) return;
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.ROLE(selectedRole.id)}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to delete role');
+      }
+      toast.success(`Role "${selectedRole.name}" deactivated`);
+      setShowDeleteModal(false);
+      loadRoles();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete role');
+    }
   };
 
   // ==================== BADGE COMPONENTS ====================
@@ -734,6 +793,16 @@ const RolesPermissions = () => {
   return (
     
       <div className="container-fluid px-3 px-md-4 py-3">
+        <ToastContainer position="top-right" autoClose={3000} />
+
+        {rolesError && (
+          <div className="alert alert-danger" role="alert">
+            {rolesError}
+          </div>
+        )}
+        {rolesLoading && (
+          <div className="text-muted small mb-3">Loading roles…</div>
+        )}
 
         {/* ==================== HEADER ==================== */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">

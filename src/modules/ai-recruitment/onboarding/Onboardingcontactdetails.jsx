@@ -1,33 +1,62 @@
-import  { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Step 2 of the onboarding wizard. Like Basicdetails.jsx, there is no
+// dedicated backend endpoint for "contact details" alone — these fields
+// (mobile, email) get merged into the same "onboardingDraft" object in
+// localStorage that Final.jsx eventually POSTs to /onboarding/.
+//
+// NOTE on OTP: the backend has no OTP verification endpoint for onboarding
+// contact details (only unrelated OTP flows exist, for aptitude-assessment
+// login). The send/verify OTP below remains simulated on purpose — wiring
+// it to a real SMS/verification provider is outside this frontend's scope
+// and needs a backend endpoint to exist first.
+const DRAFT_KEY = "onboardingDraft";
+
 const Onboardingcontactdetails = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     mobile: "",
     email: "",
     homePhone: "",
     emergencyContact: "",
   });
-  const navigate = useNavigate();
-  const goToContactDetails = () => {
-        navigate("/onboardingcontactdetails");
-    };
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
 
-  // Handle input changes
+  // Pre-fill from existing draft (e.g. navigating back to this step)
+  useEffect(() => {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (raw) {
+      try {
+        const draft = JSON.parse(raw);
+        setFormData((prev) => ({
+          ...prev,
+          mobile: draft.mobile || "",
+          email: draft.email || "",
+          homePhone: draft.homePhone || "",
+          emergencyContact: draft.emergencyContact || "",
+        }));
+        if (draft.mobileVerified) setOtpVerified(true);
+      } catch {
+        // ignore malformed draft
+      }
+    }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // editing the mobile number after verification invalidates it
+    if (name === "mobile") {
+      setOtpSent(false);
+      setOtpVerified(false);
+    }
   };
 
-  // Send OTP
   const handleSendOtp = () => {
     if (formData.mobile.length !== 10) {
       toast.error("⚠️ Enter a valid 10-digit mobile number!");
@@ -37,7 +66,6 @@ const Onboardingcontactdetails = () => {
     toast.success(`📩 OTP sent to ${formData.mobile}`);
   };
 
-  // Verify OTP (mock)
   const handleVerifyOtp = () => {
     if (!otpSent) {
       toast.warning("Please send OTP first!");
@@ -47,7 +75,6 @@ const Onboardingcontactdetails = () => {
     toast.success("✅ Mobile number verified!");
   };
 
-  // Continue button
   const handleContinue = () => {
     const { mobile, email } = formData;
 
@@ -60,12 +87,20 @@ const Onboardingcontactdetails = () => {
       return;
     }
 
+    const existing = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+    const updated = {
+      ...existing,
+      ...formData,
+      mobileVerified: true,
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(updated));
+
     toast.success("✅ Contact details saved successfully!");
+    navigate("/onboardingPersonaldetails");
   };
 
-  // Back button
   const handleBack = () => {
-    toast.info("⬅️ Going back to previous step...");
+    navigate("/basicdetails");
   };
 
   return (
@@ -73,7 +108,6 @@ const Onboardingcontactdetails = () => {
       <ToastContainer position="top-right" autoClose={2000} />
 
       <div className="card p-4 shadow" style={{ width: "100%", maxWidth: "900px", margin: "0 auto" }}>
-        {/* Header */}
         <div className="d-flex align-items-center mb-3">
           <img
             src="./assets/img/icons/logo-1.png"
@@ -82,14 +116,13 @@ const Onboardingcontactdetails = () => {
             style={{ width: "50px", height: "50px" }}
           />
           <div>
-            <h6 className="mb-0">Onboarding Form: Chandu Thota</h6>
+            <h6 className="mb-0">Onboarding Form</h6>
             <small>Levitica Technologies Private Limited</small>
           </div>
         </div>
 
         <hr />
 
-        {/* Progress (slim like screenshot) */}
         <h6 className="text-primary">Contact Details</h6>
         <p className="text-end">Step 2 of 9</p>
         <div className="progress mb-3" style={{ height: "4px" }}>
@@ -104,7 +137,6 @@ const Onboardingcontactdetails = () => {
         </div>
         <p className="text-end">20% completed</p>
 
-        {/* Form Fields */}
         <div className="mb-3 w-50">
           <label className="form-label">
             Mobile Number <span className="text-danger">*</span>
@@ -123,6 +155,7 @@ const Onboardingcontactdetails = () => {
               type="button"
               className="btn btn-warning text-dark w-50"
               onClick={handleSendOtp}
+              disabled={otpVerified}
             >
               Send OTP <i className="fe fe-send  text-dark"></i>
             </button>
@@ -130,13 +163,13 @@ const Onboardingcontactdetails = () => {
               type="button"
               className="btn btn-primary btn-sm w-50"
               onClick={handleVerifyOtp}
+              disabled={otpVerified}
             >
-              I have an OTP
+              {otpVerified ? "Verified ✓" : "I have an OTP"}
             </button>
           </div>
         </div>
 
-        {/* Email */}
         <div className="mb-3">
           <label className="form-label">
             E-Mail Address <span className="text-danger">*</span>
@@ -155,7 +188,6 @@ const Onboardingcontactdetails = () => {
           </div>
         </div>
 
-        {/* Home Phone */}
         <div className="mb-3">
           <label className="form-label">Home Phone</label>
           <input
@@ -168,7 +200,6 @@ const Onboardingcontactdetails = () => {
           />
         </div>
 
-        {/* Emergency Contact */}
         <div className="mb-3">
           <label className="form-label">Emergency Contact</label>
           <input
@@ -181,44 +212,20 @@ const Onboardingcontactdetails = () => {
           />
         </div>
 
-        {/* Buttons */}
         <div style={{ marginTop: "25px", display: "flex", justifyContent: "space-between" }}>
-
-                    {/* Back Button */}
-                    <button
-                        onClick={() => navigate("/basicdetails")}
-                        style={{
-                            padding: "10px 25px",
-                            background: "#e5e7eb",
-                            border: "none",
-                            color: "#111",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            fontSize: "15px",
-                            fontWeight: 600
-                        }}
-                    >
-                        ← Back
-                    </button>
-
-                    {/* Continue Button */}
-                    <button
-                      onClick={() => navigate("/onboardingPersonaldetails")}
-                        style={{
-                            padding: "10px 25px",
-                            background: "#0066ff",
-                            border: "none",
-                            color: "white",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            fontSize: "15px",
-                            fontWeight: 600
-                        }}
-                    >
-                        Continue ➜
-                    </button>
-
-                </div>
+          <button
+            onClick={handleBack}
+            style={{ padding: "10px 25px", background: "#e5e7eb", border: "none", color: "#111", borderRadius: "8px", cursor: "pointer", fontSize: "15px", fontWeight: 600 }}
+          >
+            ← Back
+          </button>
+          <button
+            onClick={handleContinue}
+            style={{ padding: "10px 25px", background: "#0066ff", border: "none", color: "white", borderRadius: "8px", cursor: "pointer", fontSize: "15px", fontWeight: 600 }}
+          >
+            Continue ➜
+          </button>
+        </div>
       </div>
     </div>
   );

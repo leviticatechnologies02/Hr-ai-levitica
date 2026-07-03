@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Check, X, CreditCard, Lock, CheckCircle } from 'lucide-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { getUserRole } from "../../shared/utils/auth";
+import { BASE_URL, API_ENDPOINTS } from "../../shared/constants/api.config";
 import Navbar from '../landing/Navbar';
 import Footer from '../landing/Footer';
 
@@ -185,14 +188,56 @@ const PricingPage = () => {
     return `₹${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!email) {
+      toast.error('Please enter your email');
+      return;
+    }
+    if (!address || !city || !country) {
+      toast.error('Please fill in your billing address');
+      return;
+    }
+
     setProcessingPayment(true);
-    
-    setTimeout(() => {
-      setProcessingPayment(false);
+    try {
+      const payload = {
+        email,
+        plan_name: selectedPlan.name,
+        billing_cycle: isYearly ? 'yearly' : 'monthly',
+        address_line: address,
+        city,
+        state: state || null,
+        zip_code: zipCode || null,
+        country,
+        payment_method: paymentMethod,
+        subtotal,
+        tax_rate: taxRate,
+        tax_amount: taxAmount,
+        total_amount: totalDue,
+        currency: 'INR',
+      };
+
+      const response = await fetch(`${BASE_URL}${API_ENDPOINTS.BILLING.SUBSCRIBE}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : 'Failed to record subscription');
+      }
+
+      // NOTE: this only records the plan selection — no real payment
+      // gateway is wired up, so no money is actually charged yet.
       setShowSuccess(true);
-    }, 2000);
+    } catch (err) {
+      toast.error(err.message || 'Something went wrong, please try again');
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   const formatCardNumber = (value) => {
@@ -1188,6 +1233,7 @@ const PricingPage = () => {
         </div>
       </div>
       <Footer/>
+      <ToastContainer position="top-right" autoClose={3000} />
       {/* Payment Success Modal */}
       {showSuccess && (
         <div className="modal-overlay scale-in">
@@ -1204,12 +1250,12 @@ const PricingPage = () => {
               <div className="mb-4 d-flex align-items-center justify-content-center gap-2">
                 <CheckCircle size={28} color="#10B981" />
                 <h5 className="fw-semibold mb-0 text-success">
-                  Payment Successful!
+                  Plan Selected!
                 </h5>
               </div>
               
               <div className="bg-light rounded-3 p-4 mb-4">
-                <p className="text-muted mb-2">Payment Details</p>
+                <p className="text-muted mb-2">Order Summary</p>
                 <p className="fw-bold fs-5 mb-2" style={{ color: '#8B5CF6' }}>
                   {formatCurrency(totalDue)}
                 </p>
@@ -1219,8 +1265,9 @@ const PricingPage = () => {
               </div>
               
               <p className="text-muted mb-4">
-                Thank you for subscribing! A confirmation email has been sent to<br />
-                <span className="fw-semibold text-dark">{email}</span>
+                Your plan selection has been recorded for<br />
+                <span className="fw-semibold text-dark">{email}</span>. Our team will
+                follow up to complete payment.
               </p>
               
               <div className="mb-4">
