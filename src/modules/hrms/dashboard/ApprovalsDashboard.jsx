@@ -7,8 +7,8 @@ import React, {
 } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import * as XLSX from "xlsx";
+import StatCard from "../../../shared/components/StatCard";
 
-// Utility functions
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
   const options = { year: "numeric", month: "short", day: "numeric" };
@@ -19,7 +19,6 @@ const formatDateTime = (dateString, timeString) => {
   return `${formatDate(dateString)} at ${timeString}`;
 };
 
-// Status and Priority constants
 const STATUS_TYPES = {
   PENDING: "pending",
   APPROVED: "approved",
@@ -42,23 +41,36 @@ const REQUEST_TYPES = {
   EXPENSE: "expense",
 };
 
-// Initial data
-
-
-// Generate initial requests
 const generateInitialRequests = () => {
-  
-
-  
-  return [...baseRequests, ...delegatedRequests];
+  const baseReqs = [
+    { id: "REQ-001", title: "Annual Leave", type: REQUEST_TYPES.LEAVE, employeeId: "EMP001", employeeName: "John Doe", amount: null, priority: PRIORITY_TYPES.MEDIUM, status: STATUS_TYPES.PENDING, requestDate: new Date().toISOString(), description: "Family vacation" },
+    { id: "REQ-002", title: "New Laptop", type: REQUEST_TYPES.HARDWARE, employeeId: "EMP002", employeeName: "Jane Smith", amount: 2000, priority: PRIORITY_TYPES.HIGH, status: STATUS_TYPES.APPROVED, requestDate: new Date().toISOString(), description: "Replacement for broken laptop" }
+  ];
+  const delegatedReqs = [];
+  return [...baseReqs, ...delegatedReqs];
 };
 
-// Custom Hook for LocalStorage
+const initialApprovers = [
+  { id: "APP001", name: "Manager One", role: "Manager" },
+  { id: "APP002", name: "Director Two", role: "Director" }
+];
+const initialEmployees = [
+  { id: "EMP001", name: "John Doe", department: "Engineering" },
+  { id: "EMP002", name: "Jane Smith", department: "HR" }
+];
+
 const useLocalStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => {
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      if (item !== null) {
+        try {
+          return JSON.parse(item);
+        } catch (e) {
+          return item;
+        }
+      }
+      return initialValue;
     } catch (error) {
       console.error(error);
       return initialValue;
@@ -79,10 +91,8 @@ const useLocalStorage = (key, initialValue) => {
   return [storedValue, setValue];
 };
 
-// Main Component
 const ApprovalsDashboard = () => {
-  // State Management
-  const [userRole, setUserRole] = useLocalStorage("userRole", "employee");
+  const userRole = "approver";
   const [userId, setUserId] = useLocalStorage("userId", "EMP001");
   const [requests, setRequests] = useLocalStorage(
     "approvalRequests",
@@ -91,7 +101,6 @@ const ApprovalsDashboard = () => {
   const [approvers] = useState(initialApprovers);
   const [employees] = useState(initialEmployees);
 
-  // Form State
   const [newRequest, setNewRequest] = useState({
     type: REQUEST_TYPES.LEAVE,
     title: "",
@@ -103,7 +112,6 @@ const ApprovalsDashboard = () => {
     attachments: [],
   });
 
-  // Filter and Search State
   const [filters, setFilters] = useState({
     status: "all",
     type: "all",
@@ -114,7 +122,6 @@ const ApprovalsDashboard = () => {
   });
   const [searchTerm, setSearchTerm] = useState("");
 
-  // UI State
   const [selectedRequests, setSelectedRequests] = useState([]);
   const [activeTab, setActiveTab] = useState("pending");
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -124,16 +131,13 @@ const ApprovalsDashboard = () => {
   const [delegateTo, setDelegateTo] = useState("");
   const [notification, setNotification] = useState(null);
 
-  // Refs
   const fileInputRef = useRef(null);
 
-  // Statistics Calculation
   const stats = useMemo(() => {
     const userRequests = requests.filter((req) => {
       if (userRole === "employee") {
         return req.employeeId === userId;
       } else {
-        // For approvers, show requests assigned to them
         return req.approverId === userId || req.originalApproverId === userId;
       }
     });
@@ -151,13 +155,11 @@ const ApprovalsDashboard = () => {
       (req) => req.status === STATUS_TYPES.WITHDRAWN
     );
 
-    // Calculate SLA breaches
     const today = new Date().toISOString().split("T")[0];
     const slaBreaches = pending.filter((req) => {
       return req.slaDeadline && req.slaDeadline < today;
     });
 
-    // Priority breakdown
     const highPriority = pending.filter(
       (req) => req.priority === PRIORITY_TYPES.HIGH
     );
@@ -168,7 +170,6 @@ const ApprovalsDashboard = () => {
       (req) => req.priority === PRIORITY_TYPES.LOW
     );
 
-    // Calculate average approval time
     const approvedRequestsWithTime = approved.filter((req) => req.approvedDate);
     const totalApprovalTime = approvedRequestsWithTime.reduce((total, req) => {
       const submitted = new Date(req.submittedDate);
@@ -178,9 +179,9 @@ const ApprovalsDashboard = () => {
     const avgApprovalTime =
       approvedRequestsWithTime.length > 0
         ? Math.round(
-            totalApprovalTime /
-              (approvedRequestsWithTime.length * 24 * 60 * 60 * 1000)
-          )
+          totalApprovalTime /
+          (approvedRequestsWithTime.length * 24 * 60 * 60 * 1000)
+        )
         : 0;
 
     return {
@@ -197,20 +198,16 @@ const ApprovalsDashboard = () => {
     };
   }, [requests, userRole, userId]);
 
-  // Filter requests
   const filteredRequests = useMemo(() => {
     let filtered = requests.filter((request) => {
-      // Filter by user role
       if (userRole === "employee") {
         if (request.employeeId !== userId) return false;
       } else {
-        // For approvers, show requests assigned to them or delegated from them
         const isAssigned = request.approverId === userId;
         const isDelegatedFrom = request.originalApproverId === userId;
         if (!isAssigned && !isDelegatedFrom) return false;
       }
 
-      // Filter by active tab
       if (activeTab === "pending" && request.status !== STATUS_TYPES.PENDING)
         return false;
       if (activeTab === "approved" && request.status !== STATUS_TYPES.APPROVED)
@@ -223,7 +220,6 @@ const ApprovalsDashboard = () => {
       )
         return false;
 
-      // Apply filters
       if (filters.status !== "all" && request.status !== filters.status)
         return false;
       if (filters.type !== "all" && request.type !== filters.type) return false;
@@ -232,13 +228,11 @@ const ApprovalsDashboard = () => {
       if (filters.employee !== "all" && request.employeeId !== filters.employee)
         return false;
 
-      // Date range filter
       if (filters.dateFrom && request.submittedDate < filters.dateFrom)
         return false;
       if (filters.dateTo && request.submittedDate > filters.dateTo)
         return false;
 
-      // Search filter
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         return (
@@ -254,9 +248,7 @@ const ApprovalsDashboard = () => {
       return true;
     });
 
-    // Sort by priority and SLA
     return filtered.sort((a, b) => {
-      // Priority order: high > medium > low
       const priorityOrder = {
         [PRIORITY_TYPES.HIGH]: 3,
         [PRIORITY_TYPES.MEDIUM]: 2,
@@ -266,17 +258,14 @@ const ApprovalsDashboard = () => {
         return priorityOrder[b.priority] - priorityOrder[a.priority];
       }
 
-      // Then by SLA deadline (closest first)
       if (a.slaDeadline && b.slaDeadline) {
         return new Date(a.slaDeadline) - new Date(b.slaDeadline);
       }
 
-      // Then by submission date (newest first)
       return new Date(b.submittedDate) - new Date(a.submittedDate);
     });
   }, [requests, userRole, userId, activeTab, filters, searchTerm]);
 
-  // Get user's name
   const getUserName = () => {
     if (userRole === "employee") {
       const employee = employees.find((e) => e.id === userId);
@@ -287,20 +276,17 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Show notification
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Handle new request submission
   const handleSubmitRequest = () => {
     if (!newRequest.title.trim() || !newRequest.description.trim()) {
       showNotification("Please fill in all required fields", "error");
       return;
     }
 
-    // Validate dates for leave/travel requests
     if (
       (newRequest.type === REQUEST_TYPES.LEAVE ||
         newRequest.type === REQUEST_TYPES.TRAVEL) &&
@@ -310,7 +296,6 @@ const ApprovalsDashboard = () => {
       return;
     }
 
-    // Validate amount for purchase/training/travel/hardware/expense
     if (
       [
         REQUEST_TYPES.PURCHASE,
@@ -326,7 +311,7 @@ const ApprovalsDashboard = () => {
     }
 
     const employee = employees.find((e) => e.id === userId);
-    const approver = approvers[0]; // Default approver
+    const approver = approvers[0];
 
     const newId = `REQ${String(requests.length + 1).padStart(3, "0")}`;
     const today = new Date();
@@ -388,7 +373,6 @@ const ApprovalsDashboard = () => {
     showNotification("Request submitted successfully!");
   };
 
-  // Handle request withdrawal
   const handleWithdrawRequest = (requestId) => {
     if (window.confirm("Are you sure you want to withdraw this request?")) {
       const today = new Date();
@@ -396,38 +380,38 @@ const ApprovalsDashboard = () => {
         prev.map((req) =>
           req.id === requestId
             ? {
-                ...req,
-                status: STATUS_TYPES.WITHDRAWN,
-                canWithdraw: false,
-                withdrawnDate: today.toISOString().split("T")[0],
-                withdrawnBy: getUserName(),
-                timeline: [
-                  ...req.timeline,
-                  {
-                    action: "Withdrawn",
-                    by: getUserName(),
-                    byId: userId,
-                    date: today.toISOString().split("T")[0],
-                    time: today.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }),
-                  },
-                ],
-                comments: [
-                  ...req.comments,
-                  {
-                    by: getUserName(),
-                    byId: userId,
-                    text: "Request withdrawn by employee",
-                    date: today.toISOString().split("T")[0],
-                    time: today.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }),
-                  },
-                ],
-              }
+              ...req,
+              status: STATUS_TYPES.WITHDRAWN,
+              canWithdraw: false,
+              withdrawnDate: today.toISOString().split("T")[0],
+              withdrawnBy: getUserName(),
+              timeline: [
+                ...req.timeline,
+                {
+                  action: "Withdrawn",
+                  by: getUserName(),
+                  byId: userId,
+                  date: today.toISOString().split("T")[0],
+                  time: today.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                },
+              ],
+              comments: [
+                ...req.comments,
+                {
+                  by: getUserName(),
+                  byId: userId,
+                  text: "Request withdrawn by employee",
+                  date: today.toISOString().split("T")[0],
+                  time: today.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                },
+              ],
+            }
             : req
         )
       );
@@ -435,13 +419,12 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Handle request resubmission
   const handleResubmitRequest = (requestId) => {
     const original = requests.find((req) => req.id === requestId);
     if (!original) return;
 
     const employee = employees.find((e) => e.id === userId);
-    const approver = approvers[0]; // Default approver
+    const approver = approvers[0];
     const today = new Date();
     const slaDeadline = new Date(today);
     slaDeadline.setDate(today.getDate() + 7);
@@ -492,7 +475,6 @@ const ApprovalsDashboard = () => {
     showNotification("Request resubmitted successfully!");
   };
 
-  // Handle approve/reject action
   const handleApproveReject = useCallback(
     (requestId, action, notes = "") => {
       const today = new Date();
@@ -524,15 +506,15 @@ const ApprovalsDashboard = () => {
               ],
               comments: notes
                 ? [
-                    ...req.comments,
-                    {
-                      by: actionBy,
-                      byId: userId,
-                      text: notes,
-                      date: actionDate,
-                      time: actionTime,
-                    },
-                  ]
+                  ...req.comments,
+                  {
+                    by: actionBy,
+                    byId: userId,
+                    text: notes,
+                    date: actionDate,
+                    time: actionTime,
+                  },
+                ]
                 : req.comments,
               canWithdraw: false,
               canResubmit: action === STATUS_TYPES.REJECTED,
@@ -553,7 +535,6 @@ const ApprovalsDashboard = () => {
     [getUserName, userId, setRequests]
   );
 
-  // Handle bulk actions
   const handleBulkAction = (action) => {
     if (selectedRequests.length === 0) {
       showNotification("Please select requests first", "error");
@@ -614,7 +595,6 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Handle delegation
   const handleDelegate = (requestId, delegateId) => {
     const delegate = approvers.find((a) => a.id === delegateId);
     if (!delegate) return;
@@ -666,7 +646,6 @@ const ApprovalsDashboard = () => {
     showNotification(`Request delegated to ${delegate.name}`);
   };
 
-  // Add comment
   const handleAddComment = (requestId) => {
     if (!newComment.trim()) {
       showNotification("Please enter a comment", "error");
@@ -706,7 +685,6 @@ const ApprovalsDashboard = () => {
     showNotification("Comment added successfully!");
   };
 
-  // Toggle request selection
   const toggleRequestSelection = (requestId) => {
     setSelectedRequests((prev) =>
       prev.includes(requestId)
@@ -715,7 +693,6 @@ const ApprovalsDashboard = () => {
     );
   };
 
-  // Select all filtered requests
   const selectAllFiltered = () => {
     const filteredIds = filteredRequests.map((req) => req.id);
     if (selectedRequests.length === filteredIds.length) {
@@ -725,7 +702,6 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Reset filters
   const resetFilters = () => {
     setFilters({
       status: "all",
@@ -738,7 +714,6 @@ const ApprovalsDashboard = () => {
     setSearchTerm("");
   };
 
-  // Get priority badge class
   const getPriorityClass = (priority) => {
     switch (priority) {
       case PRIORITY_TYPES.HIGH:
@@ -752,7 +727,6 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Get status badge class
   const getStatusClass = (status) => {
     switch (status) {
       case STATUS_TYPES.APPROVED:
@@ -768,7 +742,6 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Check SLA status
   const getSLAStatus = (deadline) => {
     if (!deadline) return { text: "No SLA", class: "secondary", days: 0 };
 
@@ -787,7 +760,6 @@ const ApprovalsDashboard = () => {
     return { text: "On Track", class: "success", days: diffDays };
   };
 
-  // Get request type icon
   const getRequestTypeIcon = (type) => {
     switch (type) {
       case REQUEST_TYPES.LEAVE:
@@ -807,7 +779,6 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Handle file attachment
   const handleFileAttachment = (e) => {
     const files = Array.from(e.target.files);
     const fileNames = files.map((file) => file.name);
@@ -820,7 +791,6 @@ const ApprovalsDashboard = () => {
     showNotification(`${files.length} file(s) attached`);
   };
 
-  // Remove attachment
   const handleRemoveAttachment = (index) => {
     setNewRequest((prev) => ({
       ...prev,
@@ -828,15 +798,13 @@ const ApprovalsDashboard = () => {
     }));
   };
 
-  // Export data
   const exportData = () => {
     const dataStr = JSON.stringify(requests, null, 2);
     const dataUri =
       "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = `approval-requests-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+    const exportFileDefaultName = `approval-requests-${new Date().toISOString().split("T")[0]
+      }.json`;
 
     const linkElement = document.createElement("a");
     linkElement.setAttribute("href", dataUri);
@@ -848,29 +816,24 @@ const ApprovalsDashboard = () => {
 
   const exportToExcel = () => {
     try {
-      // Collect the data you want to export
       const excelData = {
         Requests: requests || [],
         Employees: employees || [],
         Approvers: approvers || [],
       };
 
-      // Create a workbook
       const workbook = XLSX.utils.book_new();
 
-      // Convert each sheet to Excel
       Object.entries(excelData).forEach(([sheetName, rows]) => {
         if (!Array.isArray(rows)) return;
         const worksheet = XLSX.utils.json_to_sheet(rows);
         XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
       });
 
-      // Download filename
       const fileName = `approvals-data-${new Date()
         .toISOString()
         .slice(0, 10)}.xlsx`;
 
-      // Save the file
       XLSX.writeFile(workbook, fileName);
     } catch (error) {
       console.error("Error exporting Excel:", error);
@@ -878,7 +841,6 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Import data
   const importData = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -900,7 +862,6 @@ const ApprovalsDashboard = () => {
     reader.readAsText(file);
   };
 
-  // Clear all data
   const clearAllData = () => {
     if (
       window.confirm(
@@ -912,7 +873,6 @@ const ApprovalsDashboard = () => {
     }
   };
 
-  // Calculate delegations
   const delegationStats = useMemo(() => {
     if (userRole !== "approver") return { delegatedToMe: 0, delegatedByMe: 0 };
 
@@ -931,14 +891,13 @@ const ApprovalsDashboard = () => {
   }, [requests, userId, userRole]);
 
   return (
-    <div className="container-fluid py-4">
-      {/* Notification Toast */}
+    <div className="mx-auto space-y-4">
+      
       {notification && (
         <div className="toast-container position-fixed top-0 end-0 p-3">
           <div
-            className={`toast show ${
-              notification.type === "error" ? "bg-danger" : "bg-success"
-            }`}
+            className={`toast show ${notification.type === "error" ? "bg-danger" : "bg-success"
+              }`}
             role="alert"
           >
             <div className="toast-header">
@@ -956,306 +915,56 @@ const ApprovalsDashboard = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
         <div className="mb-3 mb-md-0">
           <div className="mb-4">
-            <div className="d-flex flex-wrap align-items-center gap-2">
-              <h2 className="fw-bold h4 h2-md mb-0">Approvals Dashboard</h2>
-
-              <p className="text-muted mb-0 d-flex align-items-center gap-2">
-                {userRole === "employee"
-                  ? "Manage your requests and track approvals"
-                  : "Review and approve team requests"}
-
-                <span className="badge bg-primary">{getUserName()}</span>
-              </p>
-            </div>
-
-            {/* Role Switching Buttons - Positioned under the title on left */}
-            <div
-              className="d-flex align-items-center gap-1 bg-white rounded-3 p-1 shadow-sm border mt-2"
-              style={{ maxWidth: "max-content" }}
-            >
-              <button
-                className={`btn px-3 py-1 px-md-4 py-md-2 d-flex align-items-center ${
-                  userRole === "employee"
-                    ? "bg-primary text-white"
-                    : "bg-white text-primary"
-                }`}
-                style={{
-                  borderRadius: "6px",
-                  transition: "all 0.3s ease",
-                  border:
-                    userRole === "employee" ? "none" : "1px solid #dee2e6",
-                  fontSize: "0.875rem",
-                }}
-                onClick={() => setUserRole("employee")}
-              >
-                <i className="bi-person me-2"></i>
-                <span>Employee View</span>
-              </button>
-
-              <button
-                className={`btn px-3 py-1 px-md-4 py-md-2 d-flex align-items-center ${
-                  userRole === "approver"
-                    ? "bg-primary text-white"
-                    : "bg-white text-primary"
-                }`}
-                style={{
-                  borderRadius: "6px",
-                  transition: "all 0.3s ease",
-                  border:
-                    userRole === "approver" ? "none" : "1px solid #dee2e6",
-                  fontSize: "0.875rem",
-                }}
-                onClick={() => setUserRole("approver")}
-              >
-                <i className="bi-shield-check me-2"></i>
-                <span>Manager View</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* All other buttons aligned to the right */}
-        <div className="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-md-auto">
-          {/* User Selection - Responsive */}
-          <div className="dropdown">
-            <button
-              className="btn btn-outline-secondary dropdown-toggle d-flex align-items-center"
-              type="button"
-              data-bs-toggle="dropdown"
-            >
-              <i className="bi-person-circle me-2"></i>
-              <span>
-                {userRole === "employee" ? "Switch Employee" : "Switch Manager"}
-              </span>
-            </button>
-
-            <ul className="dropdown-menu">
-              {userRole === "employee"
-                ? employees.map((emp) => (
-                    <li key={emp.id}>
-                      <button
-                        className={`dropdown-item ${
-                          userId === emp.id ? "active" : ""
-                        }`}
-                        onClick={() => setUserId(emp.id)}
-                      >
-                        {emp.name} ({emp.department})
-                      </button>
-                    </li>
-                  ))
-                : approvers.map((approver) => (
-                    <li key={approver.id}>
-                      <button
-                        className={`dropdown-item ${
-                          userId === approver.id ? "active" : ""
-                        }`}
-                        onClick={() => setUserId(approver.id)}
-                      >
-                        {approver.name} ({approver.role})
-                      </button>
-                    </li>
-                  ))}
-            </ul>
-          </div>
-
-          {/* Data Management Button */}
-          <div className="dropdown">
-            <button
-              className="btn btn-outline-info dropdown-toggle d-flex align-items-center"
-              type="button"
-              data-bs-toggle="dropdown"
-            >
-              <i className="bi-database me-2"></i>
-              <span>Data</span>
-            </button>
-
-            <ul className="dropdown-menu">
-              <li>
-                <button
-                  className="dropdown-item d-flex align-items-center"
-                  onClick={exportData}
-                >
-                  <i className="bi-download me-2"></i>
-                  Export Data
-                </button>
-              </li>
-              <li>
-                <button
-                  className="dropdown-item d-flex align-items-center"
-                  onClick={exportToExcel}
-                >
-                  <i className="bi-file-earmark-excel me-2"></i>
-                  Export to Excel
-                </button>
-              </li>
-              <li>
-                <label
-                  className="dropdown-item d-flex align-items-center"
-                  style={{ cursor: "pointer" }}
-                >
-                  <i className="bi-upload me-2"></i>
-                  Import Data
-                  <input
-                    type="file"
-                    className="d-none"
-                    accept=".json"
-                    onChange={importData}
-                  />
-                </label>
-              </li>
-              <li>
-                <hr className="dropdown-divider" />
-              </li>
-              <li>
-                <button
-                  className="dropdown-item text-danger d-flex align-items-center"
-                  onClick={clearAllData}
-                >
-                  <i className="bi-trash me-2"></i>
-                  Clear All Data
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* New Request Button for Employees */}
-          {userRole === "employee" && (
-            <button
-              className="btn btn-primary d-flex align-items-center"
-              onClick={() => setShowNewRequestModal(true)}
-            >
-              <i className="bi-plus-circle me-2"></i>
-              <span>New Request</span>
-            </button>
-          )}
-        </div>
-      </div>
-      {/* Statistics Cards */}
-      <div className="row mb-4">
-        <div className="col-md-3 mb-3">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="text-muted fw-normal mb-1">Total Requests</h6>
-                  <h3 className="fw-bold mb-0">{stats.total}</h3>
-                  <small className="text-muted">
-                    {userRole === "approver" && stats.avgApprovalTime > 0 && (
-                      <span>Avg: {stats.avgApprovalTime} days</span>
-                    )}
-                  </small>
-                </div>
-                <div className="bg-primary bg-opacity-10 p-3 rounded">
-                  <i className="bi-list-check text-primary fs-4"></i>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-50 text-blue-600 w-12 h-12 rounded-xl flex items-center justify-center">
+                <i className="bi-clipboard-check text-2xl"></i>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800 mb-1">Approvals Dashboard</h2>
+                <p className="text-slate-500 text-sm mb-0">
+                  Review and approve team requests
+                </p>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="col-md-3 mb-3">
-          <div className={`card shadow-sm h-100 ${userRole === "approver" && stats.pending > 0 && stats.highPriority > 0 ? "border-warning border-2" : ""}`}>
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="text-muted fw-normal mb-1">Pending</h6>
-                  <h3 className="fw-bold mb-0">
-                    {stats.pending}
-                    {userRole === "approver" && stats.pending > 0 && (
-                      <span className="badge bg-danger ms-2" style={{ fontSize: "0.6rem" }}>
-                        Action Required
-                      </span>
-                    )}
-                  </h3>
-                  {userRole === "approver" && stats.pending > 0 && (
-                    <div className="mt-2">
-                      <small className="text-muted d-block mb-1">
-                        <span className={`me-2 ${stats.highPriority > 0 ? "text-danger fw-bold" : "text-danger"}`}>
-                          <i className="bi-flag-fill"></i> High:{" "}
-                          {stats.highPriority}
-                          {stats.highPriority > 0 && (
-                            <i className="bi-exclamation-triangle-fill ms-1"></i>
-                          )}
-                        </span>
-                      </small>
-                      <small className="text-muted d-block">
-                        <span className="text-warning me-2">
-                          <i className="bi-circle-fill"></i> Medium:{" "}
-                          {stats.mediumPriority}
-                        </span>
-                        <span className="text-success">
-                          <i className="bi-circle-fill"></i> Low:{" "}
-                          {stats.lowPriority}
-                        </span>
-                      </small>
-                    </div>
-                  )}
-                </div>
-                <div className={`bg-warning bg-opacity-10 p-3 rounded ${userRole === "approver" && stats.highPriority > 0 ? "border border-warning" : ""}`}>
-                  <i className="bi-clock text-warning fs-4"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-3 mb-3">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="text-muted fw-normal mb-1">Approved</h6>
-                  <h3 className="fw-bold mb-0">{stats.approved}</h3>
-                  {stats.approved > 0 && (
-                    <small className="text-muted">
-                      Last:{" "}
-                      {requests.find((r) => r.status === STATUS_TYPES.APPROVED)
-                        ?.approvedDate
-                        ? formatDate(
-                            requests.find(
-                              (r) => r.status === STATUS_TYPES.APPROVED
-                            )?.approvedDate
-                          )
-                        : "N/A"}
-                    </small>
-                  )}
-                </div>
-                <div className="bg-success bg-opacity-10 p-3 rounded">
-                  <i className="bi-check-circle text-success fs-4"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-3 mb-3">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="text-muted fw-normal mb-1">Rejected</h6>
-                  <h3 className="fw-bold mb-0">{stats.rejected}</h3>
-                  {stats.rejected > 0 && (
-                    <small className="text-muted">
-                      {stats.rejected} of {stats.total} (
-                      {Math.round((stats.rejected / stats.total) * 100)}%)
-                    </small>
-                  )}
-                </div>
-                <div className="bg-danger bg-opacity-10 p-3 rounded">
-                  <i className="bi-x-circle text-danger fs-4"></i>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <StatCard
+          title="Total Requests"
+          value={stats.total}
+          icon="heroicons:document-text"
+          color="blue"
+          subtitle={userRole === 'approver' && stats.avgApprovalTime > 0 ? `Avg: ${stats.avgApprovalTime} days` : 'All time requests'}
+        />
+        <StatCard
+          title="Pending"
+          value={stats.pending}
+          icon="heroicons:clock"
+          color="yellow"
+          subtitle={userRole === 'approver' && stats.pending > 0 ? <span className={stats.highPriority > 0 ? "text-red-600 font-bold flex items-center" : "flex items-center"}><span className="mr-1">{stats.highPriority} High Priority</span></span> : 'Awaiting action'}
+        />
+        <StatCard
+          title="Approved"
+          value={stats.approved}
+          icon="heroicons:check-circle"
+          color="green"
+          subtitle={stats.approved > 0 ? 'Processed' : 'No approvals yet'}
+        />
+        <StatCard
+          title="Rejected"
+          value={stats.rejected}
+          icon="heroicons:x-circle"
+          color="red"
+          subtitle={stats.total > 0 ? `${Math.round((stats.rejected / stats.total) * 100)}% rejection rate` : 'No rejections'}
+        />
+      </div>
 
-      {/* Delegation Stats for Approvers */}
       {userRole === "approver" &&
         (delegationStats.delegatedToMe > 0 ||
           delegationStats.delegatedByMe > 0) && (
@@ -1278,9 +987,9 @@ const ApprovalsDashboard = () => {
                             onClick={() => {
                               setFilters(prev => ({ ...prev, status: "pending" }));
                               setActiveTab("pending");
-                              const delegatedReqs = requests.filter(req => 
-                                req.approverId === userId && 
-                                req.originalApproverId && 
+                              const delegatedReqs = requests.filter(req =>
+                                req.approverId === userId &&
+                                req.originalApproverId &&
                                 req.originalApproverId !== userId &&
                                 req.status === STATUS_TYPES.PENDING
                               );
@@ -1326,7 +1035,6 @@ const ApprovalsDashboard = () => {
           </div>
         )}
 
-      {/* High Priority Pending Alerts for Approvers */}
       {userRole === "approver" && stats.highPriority > 0 && (
         <div className="alert alert-warning alert-dismissible fade show mb-3 border-warning">
           <div className="d-flex align-items-center">
@@ -1356,7 +1064,6 @@ const ApprovalsDashboard = () => {
         </div>
       )}
 
-      {/* SLA Breach Warning */}
       {userRole === "approver" && stats.slaBreaches > 0 && (
         <div className="alert alert-danger alert-dismissible fade show mb-4 border-danger">
           <div className="d-flex align-items-center">
@@ -1393,7 +1100,6 @@ const ApprovalsDashboard = () => {
         </div>
       )}
 
-      {/* Tabs Navigation */}
       <div className="d-flex justify-content-end mb-3">
         <div className="dropdown">
           <button
@@ -1481,10 +1187,9 @@ const ApprovalsDashboard = () => {
                   onClick={() => {
                     setFilters(prev => ({ ...prev, status: "pending" }));
                     setActiveTab("pending");
-                    // Filter to show only delegated requests
-                    const delegatedReqs = requests.filter(req => 
-                      req.approverId === userId && 
-                      req.originalApproverId && 
+                    const delegatedReqs = requests.filter(req =>
+                      req.approverId === userId &&
+                      req.originalApproverId &&
                       req.originalApproverId !== userId
                     );
                     if (delegatedReqs.length > 0) {
@@ -1506,7 +1211,6 @@ const ApprovalsDashboard = () => {
         </div>
       </div>
 
-      {/* Filters and Search */}
       <div className="card mb-4">
         <div className="card-body">
           <div className="row g-3">
@@ -1586,7 +1290,7 @@ const ApprovalsDashboard = () => {
               </div>
             )}
 
-            <div className={userRole === "approver" ? "col-md-2" : "col-md-3"}>
+            <div className={"col-md-2"}>
               <label className="form-label small">Date Range</label>
               <div className="input-group input-group-sm">
                 <input
@@ -1612,7 +1316,7 @@ const ApprovalsDashboard = () => {
               </div>
             </div>
 
-            <div className={userRole === "approver" ? "col-md-2" : "col-md-3"}>
+            <div className={"col-md-2"}>
               <label className="form-label small">Search</label>
               <div className="input-group input-group-sm">
                 <input
@@ -1635,7 +1339,6 @@ const ApprovalsDashboard = () => {
         </div>
       </div>
 
-      {/* Bulk Actions for Approvers */}
       {userRole === "approver" && selectedRequests.length > 0 && (
         <div className="card bg-light mb-4">
           <div className="card-body py-2">
@@ -1674,7 +1377,6 @@ const ApprovalsDashboard = () => {
         </div>
       )}
 
-      {/* Requests Table */}
       <div className="card">
         <div className="card-body">
           {filteredRequests.length === 0 ? (
@@ -1698,7 +1400,7 @@ const ApprovalsDashboard = () => {
                             type="checkbox"
                             checked={
                               selectedRequests.length ===
-                                filteredRequests.length &&
+                              filteredRequests.length &&
                               filteredRequests.length > 0
                             }
                             onChange={selectAllFiltered}
@@ -1836,11 +1538,10 @@ const ApprovalsDashboard = () => {
                             )}`}
                           >
                             <i
-                              className={`bi-flag${
-                                request.priority === PRIORITY_TYPES.HIGH
-                                  ? "-fill"
-                                  : ""
-                              } me-1`}
+                              className={`bi-flag${request.priority === PRIORITY_TYPES.HIGH
+                                ? "-fill"
+                                : ""
+                                } me-1`}
                             ></i>
                             {request.priority.charAt(0).toUpperCase() +
                               request.priority.slice(1)}
@@ -1885,36 +1586,6 @@ const ApprovalsDashboard = () => {
                               <i className="bi-eye"></i>
                             </button>
 
-                            {/* Employee Actions */}
-                            {userRole === "employee" &&
-                              request.canWithdraw &&
-                              request.status === STATUS_TYPES.PENDING && (
-                                <button
-                                  className="btn btn-outline-warning"
-                                  onClick={() =>
-                                    handleWithdrawRequest(request.id)
-                                  }
-                                  title="Withdraw Request"
-                                >
-                                  <i className="bi-x-circle"></i>
-                                </button>
-                              )}
-
-                            {userRole === "employee" &&
-                              request.canResubmit &&
-                              request.status === STATUS_TYPES.REJECTED && (
-                                <button
-                                  className="btn btn-outline-success"
-                                  onClick={() =>
-                                    handleResubmitRequest(request.id)
-                                  }
-                                  title="Resubmit Request"
-                                >
-                                  <i className="bi-arrow-clockwise"></i>
-                                </button>
-                              )}
-
-                            {/* Approver Actions */}
                             {userRole === "approver" &&
                               request.status === STATUS_TYPES.PENDING && (
                                 <>
@@ -1999,7 +1670,6 @@ const ApprovalsDashboard = () => {
             </div>
           )}
 
-          {/* Pagination Info */}
           {filteredRequests.length > 0 && (
             <div className="d-flex justify-content-between align-items-center mt-3">
               <small className="text-muted">
@@ -2014,268 +1684,6 @@ const ApprovalsDashboard = () => {
         </div>
       </div>
 
-      {/* New Request Modal */}
-      {showNewRequestModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          tabIndex="-1"
-        >
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Create New Request</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowNewRequestModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSubmitRequest();
-                  }}
-                >
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Request Type *</label>
-                      <select
-                        className="form-select"
-                        value={newRequest.type}
-                        onChange={(e) =>
-                          setNewRequest((prev) => ({
-                            ...prev,
-                            type: e.target.value,
-                          }))
-                        }
-                        required
-                      >
-                        <option value={REQUEST_TYPES.LEAVE}>
-                          Leave Request
-                        </option>
-                        <option value={REQUEST_TYPES.PURCHASE}>
-                          Purchase Request
-                        </option>
-                        <option value={REQUEST_TYPES.TRAINING}>
-                          Training Request
-                        </option>
-                        <option value={REQUEST_TYPES.TRAVEL}>
-                          Travel Request
-                        </option>
-                        <option value={REQUEST_TYPES.HARDWARE}>
-                          Hardware Request
-                        </option>
-                        <option value={REQUEST_TYPES.EXPENSE}>
-                          Expense Request
-                        </option>
-                      </select>
-                    </div>
-
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Priority *</label>
-                      <select
-                        className="form-select"
-                        value={newRequest.priority}
-                        onChange={(e) =>
-                          setNewRequest((prev) => ({
-                            ...prev,
-                            priority: e.target.value,
-                          }))
-                        }
-                        required
-                      >
-                        <option value={PRIORITY_TYPES.LOW}>Low</option>
-                        <option value={PRIORITY_TYPES.MEDIUM}>Medium</option>
-                        <option value={PRIORITY_TYPES.HIGH}>High</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Title *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={newRequest.title}
-                      onChange={(e) =>
-                        setNewRequest((prev) => ({
-                          ...prev,
-                          title: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter request title"
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Description *</label>
-                    <textarea
-                      className="form-control"
-                      rows="4"
-                      value={newRequest.description}
-                      onChange={(e) =>
-                        setNewRequest((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="Describe your request in detail..."
-                      required
-                    />
-                  </div>
-
-                  {(newRequest.type === REQUEST_TYPES.LEAVE ||
-                    newRequest.type === REQUEST_TYPES.TRAVEL) && (
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <label className="form-label">Start Date *</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={newRequest.startDate}
-                          onChange={(e) =>
-                            setNewRequest((prev) => ({
-                              ...prev,
-                              startDate: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">End Date *</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={newRequest.endDate}
-                          onChange={(e) =>
-                            setNewRequest((prev) => ({
-                              ...prev,
-                              endDate: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {(newRequest.type === REQUEST_TYPES.PURCHASE ||
-                    newRequest.type === REQUEST_TYPES.TRAINING ||
-                    newRequest.type === REQUEST_TYPES.TRAVEL ||
-                    newRequest.type === REQUEST_TYPES.HARDWARE ||
-                    newRequest.type === REQUEST_TYPES.EXPENSE) && (
-                    <div className="mb-3">
-                      <label className="form-label">Amount ($)</label>
-                      <div className="input-group">
-                        <span className="input-group-text">$</span>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={newRequest.amount}
-                          onChange={(e) =>
-                            setNewRequest((prev) => ({
-                              ...prev,
-                              amount: e.target.value,
-                            }))
-                          }
-                          placeholder="Enter amount (optional)"
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-                      <small className="text-muted">
-                        Optional - You can add amount later if needed
-                      </small>
-                    </div>
-                  )}
-
-                  <div className="mb-3">
-                    <label className="form-label">Attachments</label>
-                    <div className="border rounded p-3">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="text-muted">
-                          Add supporting documents
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <i className="bi-paperclip me-1"></i>
-                          Add Files
-                        </button>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          className="d-none"
-                          multiple
-                          onChange={handleFileAttachment}
-                        />
-                      </div>
-
-                      {newRequest.attachments.length > 0 ? (
-                        <div className="mt-2">
-                          <small className="text-muted d-block mb-2">
-                            Attached files:
-                          </small>
-                          <div className="list-group list-group-flush">
-                            {newRequest.attachments.map((file, index) => (
-                              <div
-                                key={index}
-                                className="list-group-item d-flex justify-content-between align-items-center py-2"
-                              >
-                                <div>
-                                  <i className="bi-paperclip me-2"></i>
-                                  <span>{file}</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => handleRemoveAttachment(index)}
-                                >
-                                  <i className="bi-x"></i>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-3 text-muted">
-                          <i className="bi-paperclip fs-4 d-block mb-2"></i>
-                          <small>No files attached</small>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </form>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowNewRequestModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSubmitRequest}
-                >
-                  <i className="bi-send me-2"></i>
-                  Submit Request
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Request Detail Modal */}
       {showRequestDetail && (
         <div
           className="modal fade show d-block"
@@ -2322,7 +1730,7 @@ const ApprovalsDashboard = () => {
               </div>
               <div className="modal-body">
                 <div className="row">
-                  {/* Left Column - Request Details */}
+                  
                   <div className="col-md-8">
                     <div className="card mb-4">
                       <div className="card-body">
@@ -2354,7 +1762,7 @@ const ApprovalsDashboard = () => {
                               <span>{showRequestDetail.approverName}</span>
                               {showRequestDetail.originalApproverId &&
                                 showRequestDetail.originalApproverId !==
-                                  showRequestDetail.approverId && (
+                                showRequestDetail.approverId && (
                                   <span className="badge bg-warning ms-2">
                                     <i className="bi-arrow-right me-1"></i>
                                     Delegated
@@ -2441,7 +1849,6 @@ const ApprovalsDashboard = () => {
                           </div>
                         </div>
 
-                        {/* Status Details */}
                         {showRequestDetail.status === STATUS_TYPES.APPROVED &&
                           showRequestDetail.approvedDate && (
                             <div className="alert alert-success mt-3">
@@ -2503,7 +1910,6 @@ const ApprovalsDashboard = () => {
                             </div>
                           )}
 
-                        {/* Attachments */}
                         {showRequestDetail.attachments &&
                           showRequestDetail.attachments.length > 0 && (
                             <div className="mt-4">
@@ -2532,7 +1938,6 @@ const ApprovalsDashboard = () => {
                             </div>
                           )}
 
-                        {/* Comments Section */}
                         <div className="mt-4">
                           <div className="d-flex justify-content-between align-items-center mb-3">
                             <h6 className="fw-bold mb-0">
@@ -2550,7 +1955,7 @@ const ApprovalsDashboard = () => {
                           </div>
 
                           {showRequestDetail.comments &&
-                          showRequestDetail.comments.length > 0 ? (
+                            showRequestDetail.comments.length > 0 ? (
                             <div className="comments-section">
                               {showRequestDetail.comments.map(
                                 (comment, index) => (
@@ -2559,22 +1964,19 @@ const ApprovalsDashboard = () => {
                                       <div className="d-flex justify-content-between mb-2">
                                         <div className="d-flex align-items-center">
                                           <div
-                                            className={`rounded-circle bg-${
-                                              comment.byId.startsWith("EMP")
-                                                ? "primary"
-                                                : "success"
-                                            } bg-opacity-10 p-2 me-2`}
+                                            className={`rounded-circle bg-${comment.byId.startsWith("EMP")
+                                              ? "primary"
+                                              : "success"
+                                              } bg-opacity-10 p-2 me-2`}
                                           >
                                             <i
-                                              className={`bi ${
-                                                comment.byId.startsWith("EMP")
-                                                  ? "bi-person"
-                                                  : "bi-shield-check"
-                                              } text-${
-                                                comment.byId.startsWith("EMP")
+                                              className={`bi ${comment.byId.startsWith("EMP")
+                                                ? "bi-person"
+                                                : "bi-shield-check"
+                                                } text-${comment.byId.startsWith("EMP")
                                                   ? "primary"
                                                   : "success"
-                                              }`}
+                                                }`}
                                             ></i>
                                           </div>
                                           <div>
@@ -2608,7 +2010,6 @@ const ApprovalsDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Right Column - Timeline */}
                   <div className="col-md-4">
                     <div className="position-sticky" style={{ top: "20px" }}>
                       <div className="card">
@@ -2633,21 +2034,20 @@ const ApprovalsDashboard = () => {
                                       style={{ width: "40px", height: "40px" }}
                                     >
                                       <i
-                                        className={`bi ${
-                                          event.action === "Submitted"
-                                            ? "bi-send"
-                                            : event.action === "Approved"
+                                        className={`bi ${event.action === "Submitted"
+                                          ? "bi-send"
+                                          : event.action === "Approved"
                                             ? "bi-check"
                                             : event.action === "Rejected"
-                                            ? "bi-x"
-                                            : event.action === "Withdrawn"
-                                            ? "bi-arrow-return-left"
-                                            : event.action === "Delegated"
-                                            ? "bi-arrow-right"
-                                            : event.action === "Resubmitted"
-                                            ? "bi-arrow-clockwise"
-                                            : "bi-clock"
-                                        } text-white`}
+                                              ? "bi-x"
+                                              : event.action === "Withdrawn"
+                                                ? "bi-arrow-return-left"
+                                                : event.action === "Delegated"
+                                                  ? "bi-arrow-right"
+                                                  : event.action === "Resubmitted"
+                                                    ? "bi-arrow-clockwise"
+                                                    : "bi-clock"
+                                          } text-white`}
                                       ></i>
                                     </div>
                                   </div>
@@ -2668,14 +2068,13 @@ const ApprovalsDashboard = () => {
                             ))}
                           </div>
 
-                          {/* Action Buttons */}
                           <div className="mt-4 pt-3 border-top">
                             <h6 className="fw-bold mb-3">Actions</h6>
                             <div className="d-grid gap-2">
                               {userRole === "employee" &&
                                 showRequestDetail.canWithdraw &&
                                 showRequestDetail.status ===
-                                  STATUS_TYPES.PENDING && (
+                                STATUS_TYPES.PENDING && (
                                   <button
                                     className="btn btn-warning"
                                     onClick={() => {
@@ -2693,7 +2092,7 @@ const ApprovalsDashboard = () => {
                               {userRole === "employee" &&
                                 showRequestDetail.canResubmit &&
                                 showRequestDetail.status ===
-                                  STATUS_TYPES.REJECTED && (
+                                STATUS_TYPES.REJECTED && (
                                   <button
                                     className="btn btn-success"
                                     onClick={() => {
@@ -2710,7 +2109,7 @@ const ApprovalsDashboard = () => {
 
                               {userRole === "approver" &&
                                 showRequestDetail.status ===
-                                  STATUS_TYPES.PENDING && (
+                                STATUS_TYPES.PENDING && (
                                   <>
                                     <div className="d-grid gap-2">
                                       <button
@@ -2758,7 +2157,6 @@ const ApprovalsDashboard = () => {
                                         Add Comment
                                       </button>
 
-                                      {/* Delegate Section */}
                                       <div className="mt-2">
                                         <small className="text-muted d-block mb-2">
                                           Delegate to:
@@ -2820,7 +2218,6 @@ const ApprovalsDashboard = () => {
         </div>
       )}
 
-      {/* Comment Modal */}
       {showCommentModal && (
         <div
           className="modal fade show d-block"

@@ -328,12 +328,12 @@ const SurveysPulseChecks = () => {
   const minEngagement = Math.min(...analyticsData.trendData.map(m => m.engagement));
 
   const barColors = [
-    "#3b82f6", 
-    "#10b981", 
-    "#f59e0b", 
-    "#8b5cf6", 
-    "#ef4444", 
-    "#14b8a6"  
+    "#3b82f6",
+    "#10b981",
+    "#f59e0b",
+    "#8b5cf6",
+    "#ef4444",
+    "#14b8a6"
   ];
 
   const handleAddQuestion = (type) => {
@@ -1475,7 +1475,6 @@ const SurveysPulseChecks = () => {
                       />
                     </div>
 
-                    {/* Question type specific inputs */}
                     {q.type === "rating" && (
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-[13px]">Scale:</span>
@@ -1664,7 +1663,6 @@ const SurveysPulseChecks = () => {
         </div>
       )}
 
-      {/* BSC Objectives Section */}
       {bscObjectives.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
           <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Target size={20} />Strategic Objectives Alignment</h4>
@@ -1703,7 +1701,6 @@ const SurveysPulseChecks = () => {
         </div>
       )}
 
-      {/* Active Surveys Section */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
         <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><BarChart3 size={20} />Active Surveys</h4>
         <div className="overflow-x-auto">
@@ -1785,7 +1782,6 @@ const SurveysPulseChecks = () => {
         </div>
       </div>
 
-      {/* Drafts Section */}
       {drafts.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
           <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Save size={20} />Saved Drafts</h4>
@@ -2077,7 +2073,7 @@ const SurveysPulseChecks = () => {
 
         {analysisView === "bsc" ? (
           <>
-            {/* BSC Perspective Selection */}
+
             <div className="mb-6">
               <div className="flex flex-wrap gap-2">
                 <button
@@ -2098,7 +2094,6 @@ const SurveysPulseChecks = () => {
               </div>
             </div>
 
-            {/* BSC Metrics Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
               {bscPerspectives.map(perspective => {
                 const metric = bscMetrics[perspective.id];
@@ -2124,7 +2119,6 @@ const SurveysPulseChecks = () => {
               })}
             </div>
 
-            {/* BSC Correlation Matrix */}
             <div className="my-6">
               <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">Perspective Correlation Matrix</h5>
               <div className="overflow-x-auto">
@@ -2163,7 +2157,6 @@ const SurveysPulseChecks = () => {
               </div>
             </div>
 
-            {/* BSC Objectives Progress */}
             {bscObjectives.length > 0 && (
               <div className="mt-6">
                 <h5 className="text-base font-semibold text-slate-800 m-0 mb-4">Strategic Objectives Progress</h5>
@@ -2215,7 +2208,7 @@ const SurveysPulseChecks = () => {
           </>
         ) : (
           <>
-            {/* Standard Analytics View */}
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div className="text-3xl font-bold text-blue-500 mb-2">
@@ -2440,7 +2433,6 @@ const SurveysPulseChecks = () => {
           />
         </div>
 
-        {/* BSC Templates Section */}
         <div className="mb-8">
           <h5 className="flex items-center gap-2 text-base font-semibold text-slate-800 mb-4">
             <Target size={18} /> Balanced Scorecard Templates
@@ -2486,7 +2478,6 @@ const SurveysPulseChecks = () => {
           </div>
         </div>
 
-        {/* Standard Templates Section */}
         <div>
           <h5 className="flex items-center gap-2 text-base font-semibold text-slate-800 mb-4">
             <Users size={18} /> Standard Templates
@@ -2539,7 +2530,6 @@ const SurveysPulseChecks = () => {
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
         <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4"><Database size={20} />Question Bank Management</h4>
 
-        {/* Filters and Controls */}
         <div className="flex justify-between items-center mb-6">
           <input
             type="text"
@@ -2566,7 +2556,6 @@ const SurveysPulseChecks = () => {
           </div>
         </div>
 
-        {/* Filter Controls */}
         <div className="flex flex-wrap gap-3 mb-5">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Category:</span>
@@ -2625,7 +2614,6 @@ const SurveysPulseChecks = () => {
           </div>
         </div>
 
-        {/* Question Count */}
         <div className="mb-4 flex justify-between items-center">
           <span className="text-sm text-slate-500">
             Showing {filteredQuestions.length} questions
@@ -2752,7 +2740,7 @@ const SurveysPulseChecks = () => {
     return (
       <div className={`fixed inset-0 flex items-center justify-center z-[4000] ${isPreviewFullscreen ? "bg-white p-0" : "bg-black/50 p-5"}`}>
         <div className={`bg-white overflow-auto relative ${isPreviewFullscreen ? "p-0 rounded-none max-w-full w-full max-h-screen" : "p-6 rounded-xl max-w-[800px] w-[90%] max-h-[90vh]"}`}>
-          {/* Preview Header */}
+
           <div className={`flex justify-between items-center mb-5 pb-4 border-b border-slate-200 bg-white z-10 ${isPreviewFullscreen ? "sticky top-0" : "static"}`}>
             <div>
               <h4 className="m-0 text-xl font-semibold">Survey Preview</h4>
@@ -2784,7 +2772,6 @@ const SurveysPulseChecks = () => {
             </div>
           </div>
 
-          {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex justify-between mb-2">
               <span className="text-sm font-medium">Progress</span>
@@ -2797,15 +2784,14 @@ const SurveysPulseChecks = () => {
             </div>
           </div>
 
-          {/* Survey Preview Content */}
           <div className="bg-slate-50 p-6 rounded-lg">
-            {/* Survey Header */}
+
             <div className="text-center mb-8">
               <h3 className="mb-3 text-2xl font-semibold">
                 {surveyTitle || "Survey Title"}
               </h3>
               {selectedPerspective !== "all" && (
-                <div className="px-4 py-2 rounded-full inline-block mb-4 text-sm font-medium"
+                <div
                   className={`bg-[${bscPerspectives.find(p => p.id === selectedPerspective)?.color}20] text-[${bscPerspectives.find(p => p.id === selectedPerspective)?.color}]`}>
                   {bscPerspectives.find(p => p.id === selectedPerspective)?.name} Perspective
                 </div>
@@ -2814,7 +2800,6 @@ const SurveysPulseChecks = () => {
                 {surveyDescription || "Survey description goes here. This is where you explain the purpose of the survey to participants."}
               </p>
 
-              {/* Survey Info */}
               <div className="flex justify-center gap-6 mt-5 text-sm text-slate-500">
                 <div className="flex items-center gap-1.5">
                   <Clock size={16} />
@@ -2831,7 +2816,6 @@ const SurveysPulseChecks = () => {
               </div>
             </div>
 
-            {/* Questions */}
             {questions.length > 0 ? (
               <div>
                 {questions.map((q, index) => (
@@ -2854,7 +2838,6 @@ const SurveysPulseChecks = () => {
                           </div>
                         </div>
 
-                        {/* Response Indicators */}
                         {previewResponses[q.id] && (
                           <div className="px-3 py-2 bg-emerald-100 rounded-md mb-3 inline-flex items-center gap-1.5">
                             <CheckCircle size={14} color="#059669" />
@@ -2866,7 +2849,6 @@ const SurveysPulseChecks = () => {
                           </div>
                         )}
 
-                        {/* Question type specific inputs */}
                         {q.type === "rating" && (
                           <div className="mt-4">
                             <div className="text-sm mb-3 text-slate-700">
@@ -2911,7 +2893,6 @@ const SurveysPulseChecks = () => {
                               <span>Extremely likely</span>
                             </div>
 
-                            {/* NPS Categories */}
                             {previewResponses[q.id] !== undefined && (
                               <div className="mt-4">
                                 <div className={`p-3 rounded-md text-center font-medium ${previewResponses[q.id] <= 6 ? "bg-amber-100 text-amber-800" : previewResponses[q.id] <= 8 ? "bg-yellow-100 text-yellow-800" : "bg-emerald-100 text-emerald-800"}`}>
@@ -2972,7 +2953,6 @@ const SurveysPulseChecks = () => {
                       </div>
                     </div>
 
-                    {/* Question Metadata */}
                     <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-200">
                       <div className="flex gap-3 text-xs text-slate-500">
                         <span className="text-sm">
@@ -2999,7 +2979,6 @@ const SurveysPulseChecks = () => {
               </div>
             )}
 
-            {/* Survey Footer */}
             {questions.length > 0 && (
               <div className="mt-8 pt-6 border-t border-slate-200 text-center">
                 <div className="mb-5">
@@ -3133,7 +3112,7 @@ const SurveysPulseChecks = () => {
             {selectedSurvey.perspective && (
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">BSC Perspective</label>
-                <div className="px-3 py-1.5 rounded-full inline-block font-medium"
+                <div
                   className={`bg-[${bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.color}20] text-[${bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.color}]`}>
                   {bscPerspectives.find(p => p.id === selectedSurvey.perspective)?.name}
                 </div>
@@ -3294,7 +3273,6 @@ const SurveysPulseChecks = () => {
       {activeTab === "templates" && renderTemplates()}
       {activeTab === "questionbank" && renderQuestionBankSection()}
 
-      {/* Action Buttons */}
       {(activeTab === "create" || activeTab === "distribute") && !isViewMode && (
         <div className="flex flex-wrap justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
           <button
@@ -3324,7 +3302,6 @@ const SurveysPulseChecks = () => {
         </div>
       )}
 
-      {/* All Modals */}
       <SaveDraftModal
         isOpen={showDraftModal}
         onClose={() => setShowDraftModal(false)}
@@ -3373,23 +3350,18 @@ const SurveysPulseChecks = () => {
         handleShareSurvey={handleShareSurvey}
       />
 
-      {/* BSC Modal */}
       <AddStrategicObjectiveModal
         isOpen={showBscModal}
         onClose={() => setShowBscModal(false)}
         bscPerspectives={bscPerspectives} selectedPerspective={selectedPerspective} strategicAlignment={strategicAlignment} setSelectedPerspective={setSelectedPerspective} setStrategicAlignment={setStrategicAlignment} handleAddBscObjective={handleAddBscObjective}
       />
 
-      {/* Export Modal */}
       {renderExportModal()}
 
-      {/* Edit Question Modal */}
       {renderEditQuestionModal()}
 
-      {/* Preview Modal */}
       {renderPreviewModal()}
 
-      {/* View Modal */}
       {renderViewModal()}
 
       <Modal
