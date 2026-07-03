@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 const Onboardingpresentaddress = () => {
   const totalSteps = 9;
@@ -14,6 +15,7 @@ const Onboardingpresentaddress = () => {
     state: "",
     country: "India",
   });
+  const [submitting, setSubmitting] = useState(false);
 const navigate = useNavigate();
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,8 +34,8 @@ const navigate = useNavigate();
     }
   };
 
-  const handleContinue = () => {
-    const { address1, city, pincode, state } = formData;
+  const handleContinue = async () => {
+    const { address1, address2, city, pincode, state, country } = formData;
 
     if (!address1.trim()) {
       toast.error("⚠️ Address Line 1 is required!");
@@ -52,12 +54,38 @@ const navigate = useNavigate();
       return;
     }
 
-    toast.success("✅ Address details saved successfully!");
+    setSubmitting(true);
+    try {
+      const payload = {
+        address_line_1: address1,
+        address_line_2: address2 || null,
+        city,
+        pincode,
+        state,
+        country: country || "India",
+      };
 
-    if (currentStep < totalSteps) {
-      setCurrentStep((prev) => prev + 1);
-    } else {
-      toast.success("🎉 Onboarding Completed!");
+      const response = await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PRESENT_ADDRESS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to save present address");
+      }
+
+      toast.success("✅ Address details saved successfully!");
+
+      if (currentStep < totalSteps) {
+        setCurrentStep((prev) => prev + 1);
+      }
+      navigate("/permanentaddress");
+    } catch (err) {
+      toast.error(`⚠️ ${err.message}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -226,19 +254,20 @@ const navigate = useNavigate();
 
                     {/* Continue Button */}
                     <button
-                      onClick={() => navigate("/permanentaddress")}
+                      onClick={handleContinue}
+                      disabled={submitting}
                         style={{
                             padding: "10px 25px",
-                            background: "#0066ff",
+                            background: submitting ? "#93c5fd" : "#0066ff",
                             border: "none",
                             color: "white",
                             borderRadius: "8px",
-                            cursor: "pointer",
+                            cursor: submitting ? "not-allowed" : "pointer",
                             fontSize: "15px",
                             fontWeight: 600
                         }}
                     >
-                        Continue ➜
+                        {submitting ? "Saving..." : "Continue ➜"}
                     </button>
 
                 </div>

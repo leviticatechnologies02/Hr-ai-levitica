@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 const Onboardingbankdetails = () => {
   
@@ -14,6 +15,7 @@ const Onboardingbankdetails = () => {
     accountNumber: "",
     accountHolder: "",
   });
+  const [submitting, setSubmitting] = useState(false);
  const navigate = useNavigate();
 
   // handle input changes
@@ -26,15 +28,45 @@ const Onboardingbankdetails = () => {
   };
 
   // handle Continue button
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const { bankName, ifscCode, accountNumber, accountHolder } = formData;
 
     if (!bankName || !ifscCode || !accountNumber || !accountHolder) {
       toast.error("⚠️ Please fill all required fields!");
       return;
     }
+    if (ifscCode.length !== 11) {
+      toast.error("⚠️ IFSC code must be 11 characters!");
+      return;
+    }
 
-    toast.success("✅ Bank details saved successfully!");
+    setSubmitting(true);
+    try {
+      const payload = {
+        bank_name: bankName,
+        ifsc_code: ifscCode.toUpperCase(),
+        account_number: accountNumber,
+        account_holder_name: accountHolder,
+      };
+
+      const response = await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.BANK_DETAILS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to save bank details");
+      }
+
+      toast.success("✅ Bank details saved successfully!");
+      navigate("/uploaddocument");
+    } catch (err) {
+      toast.error(`⚠️ ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // handle Back button
@@ -184,19 +216,20 @@ const Onboardingbankdetails = () => {
 
                     {/* Continue Button */}
                     <button
-                      onClick={() => navigate("/uploaddocument")}
+                      onClick={handleContinue}
+                      disabled={submitting}
                         style={{
                             padding: "10px 25px",
-                            background: "#0066ff",
+                            background: submitting ? "#93c5fd" : "#0066ff",
                             border: "none",
                             color: "white",
                             borderRadius: "8px",
-                            cursor: "pointer",
+                            cursor: submitting ? "not-allowed" : "pointer",
                             fontSize: "15px",
                             fontWeight: 600
                         }}
                     >
-                        Continue ➜
+                        {submitting ? "Saving..." : "Continue ➜"}
                     </button>
 
                 </div>

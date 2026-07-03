@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 function OnboardingStatutorydetails() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ function OnboardingStatutorydetails() {
   });
 const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   // Update progress dynamically
   useEffect(() => {
@@ -54,11 +56,36 @@ const navigate = useNavigate();
     return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        aadhaar_number: formData.aadhar,
+        pan_number: formData.pan.toUpperCase(),
+        uan_number: formData.uan || null,
+        esi_number: formData.esi || null,
+      };
+
+      const response = await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.STATUTORY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to save statutory details");
+      }
+
       toast.success("Form submitted successfully ✅");
-      console.log("Form Data Submitted:", formData);
+      navigate("/familydetails");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -164,6 +191,7 @@ const navigate = useNavigate();
 
                     {/* Back Button */}
                     <button
+                        type="button"
                         onClick={() => navigate("/onboardingPersonaldetails")}
                         style={{
                             padding: "10px 25px",
@@ -179,21 +207,22 @@ const navigate = useNavigate();
                         ← Back
                     </button>
 
-                    {/* Continue Button */}
+                    {/* Continue Button (submits the form via onSubmit) */}
                     <button
-                      onClick={() => navigate("/familydetails")}
+                      type="submit"
+                      disabled={submitting}
                         style={{
                             padding: "10px 25px",
-                            background: "#0066ff",
+                            background: submitting ? "#93c5fd" : "#0066ff",
                             border: "none",
                             color: "white",
                             borderRadius: "8px",
-                            cursor: "pointer",
+                            cursor: submitting ? "not-allowed" : "pointer",
                             fontSize: "15px",
                             fontWeight: 600
                         }}
                     >
-                        Continue ➜
+                        {submitting ? "Saving..." : "Continue ➜"}
                     </button>
 
                 </div>

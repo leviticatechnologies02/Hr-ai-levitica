@@ -3,18 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 const Permanentaddress = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    address1: "2-21/A BC WADA",
-    address2: "Sardhapor",
-    city: "Sircilla",
-    pincode: "505301",
-    state: "Telangana",
+    address1: "",
+    address2: "",
+    city: "",
+    pincode: "",
+    state: "",
     country: "India",
   });
+  const [submitting, setSubmitting] = useState(false);
 
   const maxAddressChars = 100;
   const maxCityChars = 50;
@@ -28,25 +30,17 @@ const Permanentaddress = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const copyPresentAddress = () => {
-    const presentAddress = {
-      address1: "H.No 1-23, MG Road",
-      address2: "Near Bus Stand",
-      city: "Hyderabad",
-      pincode: "500001",
-      state: "Telangana",
-      country: "India",
-    };
-    setFormData(presentAddress);
-    toast.success("Present address copied to permanent address ✅");
-  };
+  // NOTE: "copy present address" needs the present-address record to be
+  // fetched from the backend (GET /present-address/{id}); the wizard does
+  // not currently carry an address_id between steps, so this is left as a
+  // manual re-entry step for now rather than faking a copy with placeholder data.
 
   const handleBack = () => {
     toast.info("Going back to previous step...");
     navigate(-1);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!formData.address1 || !formData.city || !formData.pincode || !formData.state) {
       toast.error("Please fill all required fields ❌");
       return;
@@ -55,9 +49,36 @@ const Permanentaddress = () => {
       toast.error("Pincode must be 6 digits ❌");
       return;
     }
-    console.log("Permanent Address Submitted:", formData);
-    toast.success("Permanent address saved successfully 🎉");
-    navigate("/step10");
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        address_line_1: formData.address1,
+        address_line_2: formData.address2 || null,
+        city: formData.city,
+        pincode: formData.pincode,
+        state: formData.state,
+        country: formData.country || "India",
+      };
+
+      const response = await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PERMANENT_ADDRESS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to save permanent address");
+      }
+
+      toast.success("Permanent address saved successfully 🎉");
+      navigate("/onboardingbankdetails");
+    } catch (err) {
+      toast.error(`❌ ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -201,19 +222,20 @@ const Permanentaddress = () => {
 
                     {/* Continue Button */}
                     <button
-                      onClick={() => navigate("/onboardingbankdetails")}
+                      onClick={handleContinue}
+                      disabled={submitting}
                         style={{
                             padding: "10px 25px",
-                            background: "#0066ff",
+                            background: submitting ? "#93c5fd" : "#0066ff",
                             border: "none",
                             color: "white",
                             borderRadius: "8px",
-                            cursor: "pointer",
+                            cursor: submitting ? "not-allowed" : "pointer",
                             fontSize: "15px",
                             fontWeight: 600
                         }}
                     >
-                        Continue ➜
+                        {submitting ? "Saving..." : "Continue ➜"}
                     </button>
 
                 </div>

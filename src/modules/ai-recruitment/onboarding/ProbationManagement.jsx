@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 
 import StatCard from '../../../shared/components/StatCard';
+import { probationAPI } from '../../../shared/utils/api';
 
 import AddEmployeeProbationModal from '../../hrms/modal/AddEmployeeProbationModal';
 import ReviewProbationModal from '../../hrms/modal/ReviewProbationModal';
@@ -211,6 +212,85 @@ const ProbationManagement = () => {
     return date.toISOString().split('T')[0];
   };
 
+  // ------------------------------------------------------------------
+  // Backend (ProbationEmployeeSchema) -> local UI shape.
+  // Backend uses Title-Case status/risk strings and three boolean
+  // milestone flags with one shared nextReviewDate; the UI was built
+  // around lowercase_underscore status values and a separate
+  // {completed, date, rating} object per 30/60/90-day review. This maps
+  // one to the other so the rest of the component (which reads
+  // emp.status, emp.progress, emp.review30.completed, etc.) keeps working
+  // unchanged.
+  // ------------------------------------------------------------------
+  const mapProbationEmployee = (e) => {
+    const statusMap = {
+      'In Progress': 'in_progress',
+      'Under Review': 'under_review',
+      'Extended': 'extended',
+      'At Risk': 'at_risk',
+      'Completed': 'completed',
+      'Terminated': 'terminated',
+    };
+    const milestoneRating = (done) => (done ? (e.currentRating || 'Not Rated') : null);
+    return {
+      ...e,
+      id: e.id,
+      confirmationId: e.confirmationId ?? e.id,
+      employeeId: e.employeeId,
+      name: e.name,
+      designation: e.designation,
+      department: e.department,
+      workLocation: e.location,
+      status: statusMap[e.probationStatus] || (e.probationStatus || '').toLowerCase().replace(/\s+/g, '_'),
+      progress: e.progressPercent ?? 0,
+      riskLevel: (e.riskLevel || '').toLowerCase(),
+      review30: {
+        completed: !!e.milestone30Done,
+        date: e.nextReviewDate || null,
+        rating: milestoneRating(e.milestone30Done),
+      },
+      review60: {
+        completed: !!e.milestone60Done,
+        date: e.nextReviewDate || null,
+        rating: milestoneRating(e.milestone60Done),
+      },
+      review90: {
+        completed: !!e.milestone90Done,
+        date: e.nextReviewDate || null,
+        rating: milestoneRating(e.milestone90Done),
+      },
+      currentRating: e.currentRating || 'Not Rated',
+      nextReviewDate: e.nextReviewDate,
+      probationEndDate: e.probationEndDate,
+      probationStartDate: e.probationStartDate,
+      joiningDate: e.joiningDate,
+      daysRemaining: e.daysRemaining ?? calculateDaysRemaining(e.probationEndDate),
+      extensionCount: e.extensionCount ?? 0,
+    };
+  };
+
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+
+  const loadProbationEmployees = async () => {
+    setLoadingEmployees(true);
+    setLoadError(null);
+    try {
+      const data = await probationAPI.listEmployees();
+      const list = Array.isArray(data) ? data : (data?.items || []);
+      setProbationEmployees(list.map(mapProbationEmployee));
+    } catch (err) {
+      console.error('Error loading probation employees:', err);
+      setLoadError(err.message || 'Failed to load probation employees');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProbationEmployees();
+  }, []);
+
   const handleAddEmployee = (e) => {
     e.preventDefault();
 
@@ -304,6 +384,12 @@ const ProbationManagement = () => {
     const selectedEmployeesData = probationEmployees.filter(
       emp => selectedEmployees.includes(emp.id)
     );
+
+    // Backend action names line up 1:1 with bulkAction.action here.
+    const confirmationIds = selectedEmployeesData.map(emp => emp.confirmationId ?? emp.id);
+    probationAPI.bulkAction(confirmationIds, bulkAction.action)
+      .then(() => loadProbationEmployees())
+      .catch(err => console.error('Error running bulk action:', err));
 
     switch (bulkAction.action) {
       case 'schedule_review':
@@ -542,6 +628,12 @@ const ProbationManagement = () => {
 
     setProbationEmployees(updatedEmployees);
 
+    probationAPI.completeMilestone(selectedEmployee.confirmationId ?? selectedEmployee.id, {
+      milestone: reviewForm.reviewType,
+      rating: reviewForm.rating,
+      remarks: reviewForm.managerComments || reviewForm.hrComments || undefined,
+    }).catch(err => console.error('Error recording probation milestone:', err));
+
     const newReview = {
       id: reviewHistory.length + 1,
       employeeId: selectedEmployee.employeeId,
@@ -651,6 +743,11 @@ const ProbationManagement = () => {
     });
     setProbationEmployees(updatedEmployees);
     setShowExtendModal(false);
+    probationAPI.updateStatus(selectedEmployee.confirmationId ?? selectedEmployee.id, {
+      status: 'Extended',
+      extended_till: extensionForm.newEndDate,
+      remarks: extensionForm.reason,
+    }).catch(err => console.error('Error extending probation:', err));
     alert(`Probation extended for ${selectedEmployee.name} until ${formatDate(extensionForm.newEndDate)}`);
   };
 
@@ -670,6 +767,10 @@ const ProbationManagement = () => {
     });
     setProbationEmployees(updatedEmployees);
     setShowConfirmModal(false);
+    probationAPI.updateStatus(selectedEmployee.confirmationId ?? selectedEmployee.id, {
+      status: 'Completed',
+      confirmation_date: new Date().toISOString().split('T')[0],
+    }).catch(err => console.error('Error confirming employee:', err));
     alert(`Employee confirmed successfully! Letter ID: ${letterId}`);
   };
 
@@ -711,6 +812,10 @@ const ProbationManagement = () => {
     });
     setProbationEmployees(updatedEmployees);
     setShowTerminateModal(false);
+    probationAPI.updateStatus(selectedEmployee.confirmationId ?? selectedEmployee.id, {
+      status: 'Terminated',
+      remarks: [terminationForm.reason, terminationForm.comments].filter(Boolean).join(' — '),
+    }).catch(err => console.error('Error terminating probation:', err));
     alert(`Probation terminated for ${selectedEmployee.name}`);
   };
 

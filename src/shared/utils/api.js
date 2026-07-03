@@ -777,6 +777,54 @@ export const bgvAPI = {
   sendEmail: (bgvId) =>
     apiCall(`/background-verification/${bgvId}/send-email`, {
       method: 'POST'
+    }),
+
+  // ------------------------------------------------------------------
+  // Employees eligible for BGV.
+  // NOTE: There is no `/background-verification/employees` route on the
+  // backend — BGV is tracked per-request (getRequests), not per-employee.
+  // The employee pool itself lives at GET /api/employees/ and returns
+  // { id, employeeId, name, email, phone, department, designation,
+  //   location, employmentType, status, joinDate, salary } — a flat
+  // `name`, not firstName/middleName/lastName. Callers should read
+  // `name` / `email` / `joinDate` directly rather than assuming a split
+  // name or an `officialEmail`/`joiningDate` field.
+  // ------------------------------------------------------------------
+  getEmployees: () => apiCall('/api/employees/'),
+
+  // Create-or-update a BGV request. The backend has no single combined
+  // "save" route — POST / creates (and accepts nested education/guardian/
+  // current_address/permanent_address on create), PATCH /{id} updates a
+  // flat subset of fields (including `status`). This picks the right
+  // one based on whether the request already has a numeric backend id.
+  // Extra fields the backend schema doesn't recognize (e.g. `documents`,
+  // `experienceDetails`, `uploadedFiles`) are silently ignored by
+  // Pydantic rather than rejected, but they are NOT persisted this way —
+  // document uploads must go through uploadDocument(), and per-item
+  // education/guardian/address edits after creation must go through
+  // addEducation()/saveGuardian()/saveAddress().
+  saveRequest: (request) => {
+    const { id, ...rest } = request || {};
+    if (id) {
+      return apiCall(`/background-verification/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rest)
+      });
+    }
+    return apiCall('/background-verification/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rest)
+    });
+  },
+
+  // Convenience wrapper: update just the status field of a BGV request.
+  updateStatus: (bgvId, status) =>
+    apiCall(`/background-verification/${bgvId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
     })
 };
 
@@ -1362,6 +1410,76 @@ export const superAdminAPI = {
 };
 
 // ==========================================
+// PROBATION MANAGEMENT APIs
+// ==========================================
+export const probationAPI = {
+  // KPI summary cards
+  getKPI: () => apiCall('/probation-management/kpi'),
+
+  // List employees on probation. Backend supports server-side
+  // search/status/department/risk_level/sort_by/skip/limit filtering —
+  // pass through whatever the UI currently filters client-side if you
+  // want to move filtering server-side later.
+  listEmployees: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.search) q.append('search', params.search);
+    if (params.status) q.append('status', params.status);
+    if (params.department) q.append('department', params.department);
+    if (params.riskLevel) q.append('risk_level', params.riskLevel);
+    if (params.sortBy) q.append('sort_by', params.sortBy);
+    if (params.skip != null) q.append('skip', params.skip);
+    if (params.limit != null) q.append('limit', params.limit);
+    const qs = q.toString();
+    return apiCall(`/probation-management/employees${qs ? `?${qs}` : ''}`);
+  },
+
+  getEmployee: (confirmationId) =>
+    apiCall(`/probation-management/employees/${confirmationId}`),
+
+  // Puts an EXISTING employee onto probation tracking.
+  // NOTE: payload.employee_id must be the numeric employee record id
+  // (FK to the employees table) — not the human-readable employee code
+  // like "LEV076". There is no backend route to create a brand-new
+  // employee from this screen; the employee must already exist in
+  // Employee Management. { employee_id, probation_start_date,
+  // probation_end_date, reviewed_by?, remarks? }
+  addEmployee: (payload) =>
+    apiCall('/probation-management/employees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+
+  // { status?, performance_rating?, extended_till?, confirmation_date?, remarks? }
+  updateStatus: (confirmationId, payload) =>
+    apiCall(`/probation-management/employees/${confirmationId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+
+  // { confirmation_ids: [...], action: 'schedule_review'|'send_reminder'|'extend_probation'|'confirm_employees'|'export_data' }
+  bulkAction: (confirmationIds, action) =>
+    apiCall('/probation-management/bulk-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmation_ids: confirmationIds, action })
+    }),
+
+  // { milestone: '30_day'|'60_day'|'90_day'|'final', rating?, remarks? }
+  completeMilestone: (confirmationId, payload) =>
+    apiCall(`/probation-management/employees/${confirmationId}/milestone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+
+  getDepartments: () => apiCall('/probation-management/departments'),
+
+  getReport: () => apiCall('/probation-management/reports'),
+};
+
+// ==========================================
 // Export default for convenience
 // ==========================================
 const apiServices = {
@@ -1389,6 +1507,7 @@ const apiServices = {
   formsAPI,
   superAdminAPI,
   bgvAPI,
+  probationAPI,
 };
 
 export default apiServices;

@@ -1,13 +1,63 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 export default function OnboardingFamilydetails() {
   const navigate = useNavigate();
 
-  const [maritalStatus, setMaritalStatus] = useState("Single");
+  const [formData, setFormData] = useState({
+    maritalStatus: "Single",
+    fatherName: "",
+    fatherPhone: "",
+    fatherDob: "",
+    motherName: "",
+    motherPhone: "",
+    motherDob: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleContinue = async () => {
+    setSubmitting(true);
+    try {
+      const payload = {
+        marital_status: formData.maritalStatus,
+        father_name: formData.fatherName || null,
+        father_phone: formData.fatherPhone || null,
+        father_dob: formData.fatherDob || null,
+        mother_name: formData.motherName || null,
+        mother_phone: formData.motherPhone || null,
+        mother_dob: formData.motherDob || null,
+      };
+
+      const response = await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.FAMILY_DETAILS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to save family details");
+      }
+
+      toast.success("✅ Family details saved successfully!");
+      navigate("/onboardingPresentaddress");
+    } catch (err) {
+      toast.error(`⚠️ ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="page-content" style={{ padding: "40px 20px", display: "flex", justifyContent: "center", background: "#f5f7fa", minHeight: "100vh" }}>
+      <ToastContainer position="top-right" autoClose={2000} />
       <div
         style={{
           width: "100%",
@@ -96,8 +146,8 @@ export default function OnboardingFamilydetails() {
               <input
                 type="radio"
                 value="Single"
-                checked={maritalStatus === "Single"}
-                onChange={() => setMaritalStatus("Single")}
+                checked={formData.maritalStatus === "Single"}
+                onChange={() => handleChange("maritalStatus", "Single")}
               />{" "}
               Single
             </label>
@@ -106,8 +156,8 @@ export default function OnboardingFamilydetails() {
               <input
                 type="radio"
                 value="Married"
-                checked={maritalStatus === "Married"}
-                onChange={() => setMaritalStatus("Married")}
+                checked={formData.maritalStatus === "Married"}
+                onChange={() => handleChange("maritalStatus", "Married")}
               />{" "}
               Married
             </label>
@@ -118,6 +168,8 @@ export default function OnboardingFamilydetails() {
           <input
             type="text"
             placeholder="Enter Father Name"
+            value={formData.fatherName}
+            onChange={(e) => handleChange("fatherName", e.target.value.slice(0, 50))}
             style={{
               width: "100%",
               padding: "10px",
@@ -127,7 +179,7 @@ export default function OnboardingFamilydetails() {
               marginTop: "5px",
             }}
           />
-          <small style={{ color: "#6b7280" }}>50 chars left</small>
+          <small style={{ color: "#6b7280" }}>{50 - formData.fatherName.length} chars left</small>
 
 
           <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
@@ -136,6 +188,8 @@ export default function OnboardingFamilydetails() {
               <input
                 type="text"
                 placeholder="Enter father Phone"
+                value={formData.fatherPhone}
+                onChange={(e) => handleChange("fatherPhone", e.target.value)}
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -151,6 +205,8 @@ export default function OnboardingFamilydetails() {
               <label style={{ fontWeight: 600 }}>Father Date of Birth</label>
               <input
                 type="date"
+                value={formData.fatherDob}
+                onChange={(e) => handleChange("fatherDob", e.target.value)}
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -169,6 +225,8 @@ export default function OnboardingFamilydetails() {
             <input
               type="text"
               placeholder="Enter Mother Name"
+              value={formData.motherName}
+              onChange={(e) => handleChange("motherName", e.target.value.slice(0, 50))}
               style={{
                 width: "100%",
                 padding: "10px",
@@ -178,7 +236,7 @@ export default function OnboardingFamilydetails() {
                 marginTop: "5px",
               }}
             />
-            <small style={{ color: "#6b7280" }}>50 chars left</small>
+            <small style={{ color: "#6b7280" }}>{50 - formData.motherName.length} chars left</small>
           </div>
 
 
@@ -188,6 +246,8 @@ export default function OnboardingFamilydetails() {
               <input
                 type="text"
                 placeholder="Enter mother Phone"
+                value={formData.motherPhone}
+                onChange={(e) => handleChange("motherPhone", e.target.value)}
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -203,6 +263,8 @@ export default function OnboardingFamilydetails() {
               <label style={{ fontWeight: 600 }}>Mother Date of Birth</label>
               <input
                 type="date"
+                value={formData.motherDob}
+                onChange={(e) => handleChange("motherDob", e.target.value)}
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -240,17 +302,18 @@ export default function OnboardingFamilydetails() {
 
 
           <button
-            onClick={() => navigate("/onboardingPresentaddress")}
+            onClick={handleContinue}
+            disabled={submitting}
             style={{
               padding: "10px 25px",
-              background: "#0066ff",
+              background: submitting ? "#93c5fd" : "#0066ff",
               border: "none",
               color: "white",
               borderRadius: "8px",
-              cursor: "pointer",
+              cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
-            Continue ➜
+            {submitting ? "Saving..." : "Continue ➜"}
           </button>
         </div>
       </div>

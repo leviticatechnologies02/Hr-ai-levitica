@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 function OnboardingPersonaldetails() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ function OnboardingPersonaldetails() {
 const navigate = useNavigate();
 
   const [progress, setProgress] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   // Update progress dynamically based on filled fields
   useEffect(() => {
@@ -68,11 +70,42 @@ const navigate = useNavigate();
     return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
+    if (!validateForm()) return;
+
+    const userId = localStorage.getItem("userId") ? parseInt(localStorage.getItem("userId"), 10) : null;
+    if (!userId) {
+      toast.error("No logged-in user found — please log in again before continuing.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        user_id: userId,
+        blood_group: formData.bloodGroup,
+        passport_number: formData.passport || null,
+        driving_license_number: formData.drivingLicense || null,
+      };
+
+      const response = await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PERSONAL_INFO}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to save personal details");
+      }
+
       toast.success("Personal details submitted successfully ✅");
-      console.log("Form Data Submitted:", formData);
+      navigate("/onboardingstatutorydetails");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -176,6 +209,7 @@ const navigate = useNavigate();
 
                     {/* Back Button */}
                     <button
+                        type="button"
                         onClick={() => navigate("/onboardingcontactdetails")}
                         style={{
                             padding: "10px 25px",
@@ -191,21 +225,22 @@ const navigate = useNavigate();
                         ← Back
                     </button>
 
-                    {/* Continue Button */}
+                    {/* Continue Button (submits the form via onSubmit) */}
                     <button
-                      onClick={() => navigate("/onboardingstatutorydetails")}
+                      type="submit"
+                      disabled={submitting}
                         style={{
                             padding: "10px 25px",
-                            background: "#0066ff",
+                            background: submitting ? "#93c5fd" : "#0066ff",
                             border: "none",
                             color: "white",
                             borderRadius: "8px",
-                            cursor: "pointer",
+                            cursor: submitting ? "not-allowed" : "pointer",
                             fontSize: "15px",
                             fontWeight: 600
                         }}
                     >
-                        Continue ➜
+                        {submitting ? "Saving..." : "Continue ➜"}
                     </button>
 
                 </div>

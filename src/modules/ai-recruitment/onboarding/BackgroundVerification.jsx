@@ -171,19 +171,26 @@ const BackgroundVerification = () => {
 
   const loadEmployees = async () => {
     try {
+      // GET /api/employees/ returns EmployeeListItem shape:
+      // { id, employeeId, name, email, phone, department, designation,
+      //   location, employmentType, status, joinDate, salary }
+      // — a single `name` field, not firstName/middleName/lastName, and
+      // no bgvStatus/candidateId (BGV status/candidate linkage isn't on
+      // the employee record; the component tracks status locally in
+      // state as the workflow progresses, via setEmployees() calls below).
       const data = await bgvAPI.getEmployees();
       if (data && Array.isArray(data)) {
         const employeeList = data.map((profile) => ({
-          id: profile.employeeId || profile.id,
+          id: profile.id,
           employeeId: profile.employeeId,
-          name: `${profile.firstName} ${profile.middleName ? profile.middleName + " " : ""}${profile.lastName}`.trim(),
-          email: profile.officialEmail || profile.email,
+          name: profile.name || "",
+          email: profile.email,
           phone: profile.phone,
           department: profile.department,
           designation: profile.designation,
-          joiningDate: profile.joiningDate,
-          status: profile.bgvStatus || "Not Started",
-          candidateId: profile.candidateId,
+          joiningDate: profile.joinDate,
+          status: "Not Started",
+          candidateId: null,
         }));
         setEmployees(employeeList);
       } else {

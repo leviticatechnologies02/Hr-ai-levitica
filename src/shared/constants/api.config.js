@@ -79,6 +79,116 @@ export const API_ENDPOINTS = {
     RESULTS: (id) => `/api/interviews/${id}/results`,
   },
   
+  // Onboarding Wizard (candidate self-onboarding step forms — no /api prefix)
+  ONBOARDING_FORMS: {
+    PERSONAL_INFO: '/personal-info/',
+    STATUTORY: '/statutory/',
+    FAMILY_DETAILS: '/family-details/',
+    PRESENT_ADDRESS: '/present-address/',
+    PERMANENT_ADDRESS: '/address/',
+    BANK_DETAILS: '/bank-details/',
+    DOCUMENTS_UPLOAD: '/api/documents/upload',
+    SUBMIT: '/onboarding/',
+  },
+
+  // Buddy / Mentor Program
+  BUDDY_MENTOR: {
+    DASHBOARD: '/buddy-mentor/dashboard',
+    PROGRAMS: '/buddy-mentor/programs',
+    PROGRAM: (id) => `/buddy-mentor/programs/${id}`,
+    PROGRAM_PAIRINGS: (id) => `/buddy-mentor/programs/${id}/pairings`,
+    PROGRAM_ANALYTICS: (id) => `/buddy-mentor/programs/${id}/analytics`,
+    PAIRINGS: '/buddy-mentor/pairings',
+    PAIRING: (id) => `/buddy-mentor/pairings/${id}`,
+    AUTO_MATCH: '/buddy-mentor/pairings/auto-match',
+    RULES: (programId) => `/buddy-mentor/programs/${programId}/rules`,
+    RULE: (id) => `/buddy-mentor/rules/${id}`,
+    FEEDBACK: '/buddy-mentor/feedback',
+    PAIRING_FEEDBACK: (pairingId) => `/buddy-mentor/pairings/${pairingId}/feedback`,
+    COMMUNICATIONS: '/buddy-mentor/communications',
+    PAIRING_COMMUNICATIONS: (pairingId) => `/buddy-mentor/pairings/${pairingId}/communications`,
+  },
+
+  // Induction & Orientation
+  INDUCTION: {
+    STATS: '/api/induction/stats',
+    PROGRAMS: '/api/induction/programs',
+    PROGRAM: (id) => `/api/induction/programs/${id}`,
+    PARTICIPANTS: '/api/induction/participants',
+    PARTICIPANT: (id) => `/api/induction/participants/${id}`,
+    PARTICIPANTS_BULK: '/api/induction/participants/bulk',
+    ATTENDANCE: (id) => `/api/induction/participants/${id}/attendance`,
+    BULK_ATTENDANCE: '/api/induction/participants/bulk-attendance',
+    SESSIONS: '/api/induction/sessions',
+    SESSION: (id) => `/api/induction/sessions/${id}`,
+    POLICIES: '/api/induction/policies',
+    POLICY: (id) => `/api/induction/policies/${id}`,
+    ACKNOWLEDGE: (policyId, employeeId) => `/api/induction/policies/${policyId}/acknowledge/${employeeId}`,
+  },
+
+  // Probation Management
+  PROBATION: {
+    KPI: '/probation-management/kpi',
+    EMPLOYEES: '/probation-management/employees',
+    EMPLOYEE: (id) => `/probation-management/employees/${id}`,
+    STATUS: (id) => `/probation-management/employees/${id}/status`,
+    BULK_ACTION: '/probation-management/bulk-action',
+    MILESTONE: (id) => `/probation-management/employees/${id}/milestone`,
+    DEPARTMENTS: '/probation-management/departments',
+    REPORTS: '/probation-management/reports',
+  },
+
+  // Background Verification
+  BACKGROUND_VERIFICATION: {
+    KPI: '/background-verification/kpi',
+    LIST: '/background-verification',
+    GET: (id) => `/background-verification/${id}`,
+    CREATE: '/background-verification',
+    UPDATE: (id) => `/background-verification/${id}`,
+    DELETE: (id) => `/background-verification/${id}`,
+    UPLOAD_DOC: (bgvId, docId) => `/background-verification/${bgvId}/documents/${docId}/upload`,
+    EDUCATION: (bgvId) => `/background-verification/${bgvId}/education`,
+    DELETE_EDUCATION: (bgvId, eduId) => `/background-verification/${bgvId}/education/${eduId}`,
+    GUARDIAN: (bgvId) => `/background-verification/${bgvId}/guardian`,
+    ADDRESS: (bgvId) => `/background-verification/${bgvId}/address`,
+    SEND_EMAIL: (bgvId) => `/background-verification/${bgvId}/send-email`,
+  },
+
+  // Offer Letters (distinct from OFFERS templates/tracking above)
+  OFFER_LETTERS: {
+    KPI: '/offer-letters/kpi',
+    TAB_COUNTS: '/offer-letters/tab-counts',
+    ANALYTICS: '/offer-letters/analytics',
+    EXPORT: '/offer-letters/export',
+    BULK_ACTION: '/offer-letters/bulk-action',
+    LIST: '/offer-letters',
+    GET: (id) => `/offer-letters/${id}`,
+    CREATE: '/offer-letters',
+    UPDATE: (id) => `/offer-letters/${id}`,
+    ACTION: (id) => `/offer-letters/${id}/action`,
+    SEND_EMAIL: (id) => `/offer-letters/${id}/send-email`,
+    DUPLICATE: (id) => `/offer-letters/${id}/duplicate`,
+    DELETE: (id) => `/offer-letters/${id}`,
+  },
+
+  // Onboarding candidate invites (admin side, self-onboarding link generator)
+  ONBOARDING_CANDIDATE_INVITES: {
+    LIST: '/api/onboarding-forms/candidates/',
+    GET: (id) => `/api/onboarding-forms/candidates/${id}`,
+    CREATE: '/api/onboarding-forms/candidates/',
+    UPDATE: (id) => `/api/onboarding-forms/candidates/${id}`,
+    APPROVE: (id) => `/api/onboarding-forms/candidates/${id}/approve`,
+    REJECT: (id) => `/api/onboarding-forms/candidates/${id}/reject`,
+    DELETE: (id) => `/api/onboarding-forms/candidates/${id}`,
+  },
+
+  // Employees (used by onboarding for reporting-manager dropdown etc.)
+  EMPLOYEES: {
+    LIST: '/employees',
+    MANAGERS: '/employees/managers',
+    CREATE: '/employees',
+  },
+
   // HR Automation
   HR: {
     ATTENDANCE: '/api/attendance',
