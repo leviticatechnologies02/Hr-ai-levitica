@@ -18,6 +18,8 @@ import CreateProgramModal from '../../hrms/modal/CreateProgramModal';
 import CreateSessionModal from '../../hrms/modal/CreateSessionModal';
 import EditSessionModal from '../../hrms/modal/EditSessionModal';
 import SessionDetailsModal from '../../hrms/modal/SessionDetailsModal';
+import { apiCall } from '../../../shared/utils/api';
+import { API_ENDPOINTS } from '../../../shared/constants/api.config';
 
 const InductionOrientation = () => {
 
@@ -160,84 +162,160 @@ const InductionOrientation = () => {
   });
 
 
-  useEffect(() => {
-    const allSessions = [];
-    inductionPrograms.forEach(program => {
-      if (program.schedule && program.schedule.length > 0) {
-        program.schedule.forEach(session => {
-          allSessions.push({
-            ...session,
-            programName: program.name,
-            programId: program.id
-          });
-        });
-      }
-    });
-    setSessions(allSessions);
-  }, [inductionPrograms]);
+  // Status casing mismatch: this UI's programs/sessions use lowercase
+  // status strings ('upcoming'/'ongoing'/'completed'), but the backend
+  // schema (ProgramCreate/SessionCreate) expects Capitalized strings
+  // ('Upcoming'/'Ongoing'/'Completed'). Converting at the API boundary
+  // rather than changing this file's UI logic throughout.
+  const toBackendStatus = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const toUiStatus = (s) => s ? s.toLowerCase() : s;
 
+  const [inductionStats, setInductionStats] = useState(null);
+  const [loadingInduction, setLoadingInduction] = useState(true);
+  const [inductionLoadError, setInductionLoadError] = useState(null);
 
+  const mapProgramFromBackend = (p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    type: p.type,
+    status: toUiStatus(p.status),
+    startDate: p.start_date,
+    endDate: p.end_date,
+    maxParticipants: p.max_participants,
+    totalParticipants: p.enrolled_count,
+    overallRating: p.avg_rating,
+    // NOTE: schedule/participants/trainers/materials/feedback/certificates
+    // below have no backing table on the server beyond what's fetched
+    // separately (sessions, participants). Trainer assignment, materials,
+    // and certificates specifically have no backend model at all — see
+    // the flags left on handleAssignTrainer / handleDistributeMaterial /
+    // handleGenerateCertificate further down.
+    schedule: [],
+    participants: [],
+    trainers: [],
+    materials: [],
+    feedback: [],
+    certificates: [],
+    totalSessions: 0,
+    completedSessions: 0,
+    createdAt: p.created_at,
+  });
 
-  const handleCreateProgram = () => {
+  const mapSessionFromBackend = (s) => ({
+    id: s.id,
+    programId: s.program_id,
+    programName: s.program_name,
+    sessionTitle: s.title,
+    agenda: s.description,
+    sessionDate: s.session_date,
+    startTime: s.start_time,
+    endTime: s.end_time,
+    duration: s.duration_hrs ? `${s.duration_hrs} hrs` : '',
+    mode: s.mode,
+    isVirtual: s.mode === 'virtual',
+    status: toUiStatus(s.status),
+  });
 
-    let duration = programForm.duration;
-    if (!duration && programForm.startDate && programForm.endDate) {
-      const start = new Date(programForm.startDate);
-      const end = new Date(programForm.endDate);
-      const diffTime = Math.abs(end - start);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      duration = `${diffDays} days`;
+  const mapPolicyFromBackend = (p) => ({
+    id: p.id,
+    title: p.title,
+    category: p.category,
+    version: p.version,
+    effectiveDate: p.effective_date,
+    status: p.status,
+    totalEmployees: p.total_employees,
+    completedEmployees: p.completed_employees,
+    completionPct: p.completion_pct,
+    totalModules: p.total_modules,
+  });
+
+  const loadInductionData = async () => {
+    setLoadingInduction(true);
+    setInductionLoadError(null);
+    try {
+      const [statsData, programsData, sessionsData, policiesData, employeesData] = await Promise.all([
+        apiCall(API_ENDPOINTS.INDUCTION.STATS),
+        apiCall(API_ENDPOINTS.INDUCTION.PROGRAMS),
+        apiCall(API_ENDPOINTS.INDUCTION.SESSIONS),
+        apiCall(API_ENDPOINTS.INDUCTION.POLICIES),
+        // General employee directory (same one JoiningDayManagement.jsx
+        // creates records in via POST /employees) — used as the pick-list
+        // when enrolling someone into an induction program, since the
+        // backend's /api/induction/participants only returns employees
+        // already enrolled, not the full directory.
+        apiCall(API_ENDPOINTS.EMPLOYEES.LIST),
+      ]);
+      setInductionStats(statsData);
+      setInductionPrograms((programsData.programs || []).map(mapProgramFromBackend));
+      setSessions((sessionsData.sessions || []).map(mapSessionFromBackend));
+      setPolicies((policiesData.policies || []).map(mapPolicyFromBackend));
+      setEmployees((employeesData || []).map((e) => ({
+        id: e.id,
+        name: `${e.first_name} ${e.last_name || ''}`.trim(),
+        email: e.official_email || e.personal_email || '',
+        phone: e.mobile_number,
+        department: e.department || 'Unassigned',
+        designation: e.designation || '',
+        employeeId: e.employee_code,
+      })));
+    } catch (err) {
+      setInductionLoadError(err.message);
+    } finally {
+      setLoadingInduction(false);
     }
-
-    const newProgram = {
-      id: inductionPrograms.length + 1,
-      name: programForm.name,
-      description: programForm.description,
-      type: programForm.type,
-      status: 'upcoming',
-      startDate: programForm.startDate,
-      endDate: programForm.endDate,
-      duration: duration || '5 days',
-      location: programForm.location,
-      meetingLink: programForm.meetingLink || '',
-      maxParticipants: programForm.maxParticipants || 30,
-      department: programForm.department || 'all',
-      programLead: programForm.programLead || '',
-      autoAssign: programForm.autoAssign || false,
-      sendNotifications: programForm.sendNotifications || false,
-      generateCertificate: programForm.generateCertificate !== false,
-      totalSessions: 0,
-      completedSessions: 0,
-      totalParticipants: 0,
-      confirmedParticipants: 0,
-      attendanceRate: 0,
-      overallRating: 0,
-      schedule: [],
-      participants: [],
-      trainers: [],
-      materials: [],
-      feedback: [],
-      certificates: [],
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-
-    setInductionPrograms([...inductionPrograms, newProgram]);
-    setShowCreateProgram(false);
-
-    // Reset form
-    setProgramForm({
-      name: '',
-      description: '',
-      type: 'batch',
-      startDate: '',
-      endDate: '',
-      location: '',
-      maxParticipants: 30
-    });
-
-    alert(`Program "${newProgram.name}" created successfully!`);
   };
 
+  useEffect(() => {
+    loadInductionData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+
+  const [creatingProgram, setCreatingProgram] = useState(false);
+
+  const handleCreateProgram = async () => {
+    setCreatingProgram(true);
+    try {
+      // NOTE: programForm.location and programForm.meetingLink have no
+      // matching column on ProgramCreate — not sent, not persisted.
+      const payload = {
+        name: programForm.name,
+        description: programForm.description || null,
+        type: programForm.type,
+        status: 'Upcoming',
+        start_date: programForm.startDate,
+        end_date: programForm.endDate,
+        max_participants: programForm.maxParticipants || null,
+      };
+      await apiCall(API_ENDPOINTS.INDUCTION.PROGRAMS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      await loadInductionData();
+      setShowCreateProgram(false);
+      setProgramForm({
+        name: '',
+        description: '',
+        type: 'batch',
+        startDate: '',
+        endDate: '',
+        location: '',
+        maxParticipants: 30
+      });
+      alert(`Program "${programForm.name}" created successfully!`);
+    } catch (err) {
+      alert(`Failed to create program: ${err.message}`);
+    } finally {
+      setCreatingProgram(false);
+    }
+  };
+
+  // NOTE: no trainer/instructor model or endpoint exists anywhere in the
+  // backend (checked schema/onboarding/induction.py and the router) —
+  // trainer assignment stays local-only/UI-only until the backend adds it.
   const handleAssignTrainer = () => {
     const { programId, sessionId, trainerName } = trainerAssignmentData;
 
@@ -255,6 +333,14 @@ const InductionOrientation = () => {
     });
   };
 
+  // NOTE: the backend's real endpoint (POST /policies/{id}/acknowledge/{employee_id})
+  // needs a specific employee_id per acknowledgment, but this button only
+  // receives a policyId — it's not clear whose acknowledgment this is meant
+  // to represent (there's also no employee_id available from auth; the
+  // login/User model isn't linked to the Employee model anywhere in this
+  // backend). Left as local-only pending a product decision on whether this
+  // should become "select an employee, then acknowledge on their behalf" or
+  // similar, rather than guessing an employee_id.
   const handleCompletePolicy = (policyId) => {
     setPolicyCompletionData(prev => ({
       ...prev,
@@ -282,104 +368,95 @@ const InductionOrientation = () => {
     alert('Policy completed successfully!');
   };
 
-  const handleCreateSession = () => {
+  const handleCreateSession = async () => {
     if (!sessionAgendaForm.programId || !sessionAgendaForm.sessionTitle) {
       alert('Please fill all required fields');
       return;
     }
 
-    const newSession = {
-      id: Date.now(),
-      ...sessionAgendaForm,
-      materials: [],
-      trainer: sessionAgendaForm.trainer || '',
-      status: 'scheduled',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0]
+    // NOTE: sessionAgendaForm.meetingLink, venue, and trainer have no
+    // matching column on SessionCreate — not sent, not persisted.
+    const payload = {
+      program_id: sessionAgendaForm.programId,
+      title: sessionAgendaForm.sessionTitle,
+      description: sessionAgendaForm.agenda || null,
+      session_date: sessionAgendaForm.sessionDate,
+      start_time: sessionAgendaForm.startTime,
+      end_time: sessionAgendaForm.endTime,
+      mode: sessionAgendaForm.isVirtual ? 'virtual' : 'on-site',
+      status: 'Upcoming',
     };
 
-    setSessions(prev => [...prev, {
-      ...newSession,
-      programName: inductionPrograms.find(p => p.id === sessionAgendaForm.programId)?.name || 'Unknown'
-    }]);
-
-
-    setInductionPrograms(prev => prev.map(program =>
-      program.id === sessionAgendaForm.programId
-        ? {
-          ...program,
-          schedule: [...(program.schedule || []), newSession],
-          totalSessions: (program.totalSessions || 0) + 1
-        }
-        : program
-    ));
-
-    setShowSessionAgendaModal(false);
-    setSessionAgendaForm({
-      programId: null,
-      sessionTitle: '',
-      sessionDate: '',
-      startTime: '',
-      endTime: '',
-      agenda: '',
-      meetingLink: '',
-      venue: '',
-      trainer: '',
-      isVirtual: false
-    });
-    alert('Session created successfully!');
+    try {
+      await apiCall(API_ENDPOINTS.INDUCTION.SESSIONS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      await loadInductionData();
+      setShowSessionAgendaModal(false);
+      setSessionAgendaForm({
+        programId: null,
+        sessionTitle: '',
+        sessionDate: '',
+        startTime: '',
+        endTime: '',
+        agenda: '',
+        meetingLink: '',
+        venue: '',
+        trainer: '',
+        isVirtual: false
+      });
+      alert('Session created successfully!');
+    } catch (err) {
+      alert(`Failed to create session: ${err.message}`);
+    }
   };
 
 
-  const handleEditSession = () => {
+  const handleEditSession = async () => {
     if (!editingSession || !editingSession.sessionTitle) {
       alert('Please fill all required fields');
       return;
     }
 
-    setSessions(prev => prev.map(session =>
-      session.id === editingSession.id ? { ...editingSession } : session
-    ));
+    const payload = {
+      title: editingSession.sessionTitle,
+      description: editingSession.agenda || null,
+      session_date: editingSession.sessionDate,
+      start_time: editingSession.startTime,
+      end_time: editingSession.endTime,
+      mode: editingSession.isVirtual ? 'virtual' : 'on-site',
+    };
 
-
-    setInductionPrograms(prev => prev.map(program =>
-      program.id === editingSession.programId
-        ? {
-          ...program,
-          schedule: program.schedule.map(s =>
-            s.id === editingSession.id ? { ...editingSession } : s
-          )
-        }
-        : program
-    ));
-
-    setShowEditSessionModal(false);
-    setEditingSession(null);
-    alert('Session updated successfully!');
+    try {
+      await apiCall(API_ENDPOINTS.INDUCTION.SESSION(editingSession.id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      await loadInductionData();
+      setShowEditSessionModal(false);
+      setEditingSession(null);
+      alert('Session updated successfully!');
+    } catch (err) {
+      alert(`Failed to update session: ${err.message}`);
+    }
   };
 
 
-  const handleDeleteSession = (sessionId) => {
-    if (window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+  const handleDeleteSession = async (sessionId) => {
+    if (!window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+      return;
+    }
 
-      const sessionToDelete = sessions.find(s => s.id === sessionId);
-
-      setSessions(prev => prev.filter(session => session.id !== sessionId));
-
-      if (sessionToDelete) {
-        setInductionPrograms(prev => prev.map(program =>
-          program.id === sessionToDelete.programId
-            ? {
-              ...program,
-              schedule: program.schedule.filter(s => s.id !== sessionId),
-              totalSessions: Math.max(0, program.totalSessions - 1)
-            }
-            : program
-        ));
-      }
-
+    try {
+      await apiCall(API_ENDPOINTS.INDUCTION.SESSION(sessionId), { method: 'DELETE' });
+      await loadInductionData();
       setSelectedSessionForDelete(null);
       alert('Session deleted successfully!');
+    } catch (err) {
+      alert(`Failed to delete session: ${err.message}`);
     }
   };
 
@@ -407,6 +484,8 @@ const InductionOrientation = () => {
     return `${diff} hr${diff !== 1 ? 's' : ''}`;
   };
 
+  // NOTE: no materials/attachments model or endpoint exists in the backend
+  // for induction — stays local-only until the backend adds it.
   const handleDistributeMaterial = () => {
     if (!materialForm.programId || !materialForm.materialName) {
       alert('Please fill all required fields');
@@ -439,6 +518,8 @@ const InductionOrientation = () => {
     alert('Material distributed successfully!');
   };
 
+  // NOTE: no venue/room-booking model or endpoint exists in the backend —
+  // stays local-only until the backend adds it.
   const handleBookVenue = () => {
     if (!venueForm.programId || !venueForm.venueName || !venueForm.bookingDate) {
       alert('Please fill all required fields');
@@ -469,6 +550,10 @@ const InductionOrientation = () => {
     alert('Venue booked successfully!');
   };
 
+  // NOTE: ProgramResponse.avg_rating exists on the backend, but there's no
+  // endpoint to submit individual feedback/ratings — only a precomputed
+  // average is returned. Submission stays local-only until the backend
+  // adds a feedback endpoint.
   const handleSubmitFeedback = (programId) => {
     const feedback = feedbackData[programId];
     if (!feedback || !feedback.rating || feedback.rating === 0) {
@@ -509,6 +594,8 @@ const InductionOrientation = () => {
     return parseFloat(averageRating.toFixed(1));
   };
 
+  // NOTE: no certificate model/endpoint exists in the backend — stays
+  // local-only until the backend adds it.
   const handleGenerateCertificate = (programId, participantId) => {
     const certificate = {
       id: Date.now(),
@@ -530,6 +617,10 @@ const InductionOrientation = () => {
     alert('Certificate generated successfully!');
   };
 
+  // NOTE: same employee_id gap as handleCompletePolicy above — the real
+  // acknowledge endpoint takes modules_completed, but needs a specific
+  // employee_id this call site doesn't have. Local-only pending that
+  // product decision.
   const handleCompletePolicyModule = (policyId, moduleId) => {
     setPolicies(prev => prev.map(policy => {
       if (policy.id === policyId) {
@@ -555,56 +646,32 @@ const InductionOrientation = () => {
   };
 
 
-  const handleUpdateProgramStatus = (programId) => {
-    setInductionPrograms(prev => prev.map(program => {
-      if (program.id === programId) {
-        let newStatus;
-        switch (program.status) {
-          case 'upcoming':
-            newStatus = 'ongoing';
-            break;
-          case 'ongoing':
-            newStatus = 'completed';
-            break;
-          case 'completed':
-            newStatus = 'upcoming';
-            break;
-          default:
-            newStatus = 'upcoming';
-        }
-
-        const updatedProgram = {
-          ...program,
-          status: newStatus
-        };
-
-        if (newStatus === 'completed') {
-          updatedProgram.endDate = new Date().toISOString().split('T')[0];
-          updatedProgram.completedSessions = updatedProgram.totalSessions;
-        }
-
-        if (newStatus === 'ongoing' && new Date(program.startDate) > new Date()) {
-          updatedProgram.startDate = new Date().toISOString().split('T')[0];
-        }
-
-        return updatedProgram;
-      }
-      return program;
-    }));
-
-
+  const handleUpdateProgramStatus = async (programId) => {
     const program = inductionPrograms.find(p => p.id === programId);
-    if (program) {
-      let nextStatus;
-      switch (program.status) {
-        case 'upcoming': nextStatus = 'Ongoing'; break;
-        case 'ongoing': nextStatus = 'Completed'; break;
-        case 'completed': nextStatus = 'Upcoming'; break;
-        default: nextStatus = 'upcoming';
-      }
-      alert(`Program "${program.name}" status updated to ${nextStatus}`);
+    if (!program) return;
+
+    let newStatus;
+    switch (program.status) {
+      case 'upcoming': newStatus = 'Ongoing'; break;
+      case 'ongoing': newStatus = 'Completed'; break;
+      case 'completed': newStatus = 'Upcoming'; break;
+      default: newStatus = 'Upcoming';
+    }
+
+    try {
+      await apiCall(API_ENDPOINTS.INDUCTION.PROGRAM(programId), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await loadInductionData();
+      alert(`Program "${program.name}" status updated to ${newStatus}`);
+    } catch (err) {
+      alert(`Failed to update program status: ${err.message}`);
     }
   };
+  // NOTE: no quiz/question model or endpoint exists in the backend —
+  // stays local-only until the backend adds it.
   const handleSubmitQuiz = (policyId) => {
     const policy = policies.find(p => p.id === policyId);
     if (!policy || !policy.quiz) return;
@@ -672,6 +739,28 @@ const InductionOrientation = () => {
   });
 
 
+  // NOTE: handleAddEmployee / handleEditEmployee / handleDeleteEmployee
+  // below are intentionally left local-only, for real architectural
+  // reasons rather than lack of effort:
+  //  1. "Add Employee" here creates a brand-new employee with a free-text
+  //     employeeId. Real employee creation already exists and is properly
+  //     wired at POST /employees (see JoiningDayManagement.jsx) — doing it
+  //     again here with fabricated IDs would create duplicate, orphaned
+  //     records with no real employee_code, disconnected from the actual
+  //     Employee table.
+  //  2. There is no DELETE /employees/{id} endpoint anywhere in the
+  //     backend at all — employee deletion genuinely cannot be wired here
+  //     regardless of how this handler is written.
+  //  3. The correct real action for this screen — "enroll an existing
+  //     employee into an induction program" — maps to
+  //     POST /api/induction/participants (employee_id + program_id), now
+  //     that `employees` above is loaded from the real GET /employees
+  //     directory. But wiring that needs the InductionAddEmployeeModal /
+  //     InductionEditEmployeeModal components (separate files, imported
+  //     but not part of this file) to change from a free-text creation
+  //     form into an existing-employee picker — a UI change outside this
+  //     file's scope. Flagging as a recommended follow-up rather than
+  //     guessing at those modals' internals.
   const handleAddEmployee = () => {
     if (!employeeForm.name || !employeeForm.email || !employeeForm.employeeId) {
       alert('Please fill in all required fields');

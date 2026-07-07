@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from "@iconify/react/dist/iconify.js";
+import { apiCall } from "../../../shared/utils/api";
+import { API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 const getDefaultChecklist = (departmentId) => {
   const checklists = {
@@ -63,6 +65,15 @@ const JoiningDayManagement = () => {
     type: 'success'
   });
 
+  const [reportingManagers, setReportingManagers] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    apiCall(API_ENDPOINTS.EMPLOYEES.MANAGERS)
+      .then((data) => setReportingManagers(data || []))
+      .catch((err) => console.error("Failed to load reporting managers:", err.message));
+  }, []);
+
   const generateEmployeeId = (department, firstName, lastName) => {
     const deptCode = department ? department.substring(0, 3).toUpperCase() : 'EMP';
     const initials = `${firstName ? firstName[0] : 'F'}${lastName ? lastName[0] : 'L'}`.toUpperCase();
@@ -100,109 +111,62 @@ const JoiningDayManagement = () => {
     });
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!profileForm.firstName || !profileForm.joiningDate || !profileForm.gender) {
       showToast('Please fill all mandatory fields (*)', 'error');
       return;
     }
 
-    let employeeId = profileForm.employeeId;
-    if (profileForm.generateIdAuto && !employeeId && profileForm.firstName && profileForm.lastName && profileForm.department) {
-      employeeId = generateEmployeeId(profileForm.department, profileForm.firstName, profileForm.lastName);
-    } else if (profileForm.generateIdAuto && !employeeId) {
-      employeeId = `EMP${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    // Employee code and confirmation date are auto-generated server-side
+    // when left blank (see EmployeeCreate.default_confirmation_date and
+    // create_employee service) — no need to duplicate that logic here.
+    const payload = {
+      first_name: profileForm.firstName,
+      middle_name: profileForm.middleName || null,
+      last_name: profileForm.lastName || null,
+      joining_date: profileForm.joiningDate,
+      confirmation_date: profileForm.confirmationDate || null,
+      date_of_birth: profileForm.dateOfBirth || null,
+      gender: profileForm.gender.toLowerCase(),
+      employee_code: profileForm.generateIdAuto ? null : (profileForm.employeeId || null),
+      biometric_code: profileForm.biometricCode || null,
+      mobile_number: profileForm.phone,
+      personal_email: profileForm.email || null,
+      official_email: profileForm.officialEmail || null,
+      designation: profileForm.designation || null,
+      department: profileForm.department || null,
+      business_unit: profileForm.businessUnit || null,
+      location: profileForm.location || null,
+      grade: profileForm.grade || null,
+      cost_center: profileForm.costCenter || null,
+      reporting_manager_id: profileForm.reportingManager ? Number(profileForm.reportingManager) : null,
+      shift_policy: profileForm.shiftPolicy || null,
+      week_off_policy: profileForm.weekOffPolicy || null,
+      send_mobile_login: profileForm.sendMobileLogin,
+      send_web_login: profileForm.sendWebLogin,
+    };
+
+    setSaving(true);
+    try {
+      await apiCall(API_ENDPOINTS.EMPLOYEES.CREATE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      // NOTE: the onboarding checklist (HR/IT/ADMIN/FINANCE task lists)
+      // generated below has no backend table/endpoint at all — there's no
+      // checklist model anywhere in the backend. It's kept as in-memory
+      // local state so the checklist UI below this form still works within
+      // this session, but it is NOT persisted or shared across users/page
+      // reloads until the backend adds real storage for it.
+      resetForm();
+      showToast('Employee created successfully', 'success');
+    } catch (err) {
+      showToast(`Failed to create employee: ${err.message}`, 'error');
+    } finally {
+      setSaving(false);
     }
-
-    let confirmationDate = profileForm.confirmationDate;
-    if (!confirmationDate && profileForm.joiningDate) {
-      const joiningDate = new Date(profileForm.joiningDate);
-      joiningDate.setMonth(joiningDate.getMonth() + 1);
-      confirmationDate = joiningDate.toISOString().split('T')[0];
-    }
-
-    const formData = {
-      ...profileForm,
-      employeeId,
-      confirmationDate,
-      email: profileForm.officialEmail || profileForm.email
-    };
-
-    const newProfile = {
-      id: Date.now().toString(),
-      ...formData,
-      status: 'pending_review',
-      createdAt: new Date().toISOString()
-    };
-
-    const savedProfiles = localStorage.getItem('employeeProfiles');
-    const existingProfiles = savedProfiles ? JSON.parse(savedProfiles) : [];
-    const updatedProfiles = [...existingProfiles, newProfile];
-    localStorage.setItem('employeeProfiles', JSON.stringify(updatedProfiles));
-    const savedChecklists = localStorage.getItem('employeeChecklists');
-    const existingChecklists = savedChecklists ? JSON.parse(savedChecklists) : {};
-    existingChecklists[employeeId] = {
-      HR: getDefaultChecklist('HR').map(t => ({
-        ...t,
-        assignedTo: '',
-        dueDate: '',
-        status: 'pending',
-        completedDate: null
-      })),
-      IT: getDefaultChecklist('IT').map(t => ({
-        ...t,
-        assignedTo: '',
-        dueDate: '',
-        status: 'pending',
-        completedDate: null
-      })),
-      ADMIN: getDefaultChecklist('ADMIN').map(t => ({
-        ...t,
-        assignedTo: '',
-        dueDate: '',
-        status: 'pending',
-        completedDate: null
-      })),
-      FINANCE: getDefaultChecklist('FINANCE').map(t => ({
-        ...t,
-        assignedTo: '',
-        dueDate: '',
-        status: 'pending',
-        completedDate: null
-      }))
-    };
-    localStorage.setItem('employeeChecklists', JSON.stringify(existingChecklists));
-
-    const savedEmployees = localStorage.getItem('employeeList');
-    const existingEmployees = savedEmployees ? JSON.parse(savedEmployees) : [];
-    const newEmployee = {
-      id: employeeId,
-      name: `${profileForm.firstName} ${profileForm.middleName ? profileForm.middleName + ' ' : ''}${profileForm.lastName}`.trim(),
-      department: profileForm.department,
-      designation: profileForm.designation,
-      joiningDate: profileForm.joiningDate,
-      status: 'pending',
-      candidateId: profileForm.candidateId
-    };
-    const updatedEmployees = [...existingEmployees, newEmployee];
-    localStorage.setItem('employeeList', JSON.stringify(updatedEmployees));
-
-    const savedForms = localStorage.getItem('onboardingForms');
-    const existingForms = savedForms ? JSON.parse(savedForms) : [];
-    const newForm = {
-      id: parseInt(Date.now().toString().slice(-6)),
-      candidate: `${profileForm.firstName} ${profileForm.middleName ? profileForm.middleName + ' ' : ''}${profileForm.lastName}`.trim(),
-      created: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      email: profileForm.officialEmail || profileForm.email,
-      mobile: profileForm.phone,
-      info: 'View Form',
-      status: 'Pending',
-      employeeId: employeeId
-    };
-    existingForms.unshift(newForm);
-    localStorage.setItem('onboardingForms', JSON.stringify(existingForms));
-
-    resetForm();
-    showToast('Profile created successfully', 'success');
   };
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -598,13 +562,18 @@ const JoiningDayManagement = () => {
               </div>
 
               <InputWrapper label="Reporting Manager">
-                <input
-                  type="text"
+                <select
                   className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none text-midnight_text"
-                  placeholder="Enter manager's name/ID"
                   value={profileForm.reportingManager}
                   onChange={(e) => setProfileForm({ ...profileForm, reportingManager: e.target.value })}
-                />
+                >
+                  <option value="">Select reporting manager</option>
+                  {reportingManagers.map((mgr) => (
+                    <option key={mgr.id} value={mgr.id}>
+                      {mgr.name} {mgr.employee_code ? `(${mgr.employee_code})` : ''}
+                    </option>
+                  ))}
+                </select>
               </InputWrapper>
             </div>
           </div>
@@ -669,10 +638,11 @@ const JoiningDayManagement = () => {
         </button>
         <button
           onClick={handleSaveProfile}
-          className="px-8 py-2.5 bg-gradient-to-r from-primary to-primary-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
+          disabled={saving}
+          className="px-8 py-2.5 bg-gradient-to-r from-primary to-primary-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Icon icon="heroicons:document-check" className="w-5 h-5" />
-          Save Profile
+          {saving ? "Saving..." : "Save Profile"}
         </button>
       </div>
 
