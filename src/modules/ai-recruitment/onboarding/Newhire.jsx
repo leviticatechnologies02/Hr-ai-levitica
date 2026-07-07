@@ -3,6 +3,7 @@ import { ToastContainer, toast } from "react-toastify";
 import { useNavigate, useLocation } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 const Newhire = () => {
   const [currentStep, setCurrentStep] = useState(0); // Start at step 0 (welcome card)
@@ -12,6 +13,22 @@ const Newhire = () => {
   // Get candidate data from navigation state or use default
   const candidateName = location.state?.candidateName || "Priya Singh";
   const companyName = "Levitica Technologies Private Limited";
+
+  // This wizard is reached via the candidate-invite record created in
+  // NewOnboardingForm.jsx (POST /api/onboarding-forms/candidates/), whose id
+  // is passed as location.state.formId. None of the step backends
+  // (personal-info, statutory, bank-details, family-details, address) are
+  // FK-linked to a "user" model — personal_info's "user_id" is a bare
+  // integer column with no auth relationship — so it's safe and consistent
+  // with the already-wired standalone pages to reuse the candidate id here.
+  const candidateId = location.state?.formId || null;
+
+  // Fields the backend's final submit (POST /onboarding/) needs that no
+  // other step in this wizard collects (same gap as Final.jsx).
+  const [joiningDate, setJoiningDate] = useState("");
+  const [confirmationDate, setConfirmationDate] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   // ===== ALL FORM STATES =====
   // Step 1: Basic Details
@@ -377,11 +394,168 @@ const Newhire = () => {
     toast.info("File removed");
   };
 
-  const handleFinalSubmit = () => {
-    toast.success("🎉 Onboarding Completed Successfully!");
-    setTimeout(() => {
-      navigate("/onboarding/pre-joining");
-    }, 1500);
+  const handleFinalSubmit = async () => {
+    if (!joiningDate || !confirmationDate) {
+      toast.error("Please enter your joining date and confirmation date to finish.");
+      return;
+    }
+
+    setSubmitError(null);
+    setSubmitting(true);
+
+    try {
+      // 1. Personal info — only step with a real user_id/owner column
+      await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PERSONAL_INFO}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: candidateId,
+          blood_group: personalData.bloodGroup,
+          passport_number: personalData.passport || null,
+          driving_license_number: personalData.drivingLicense || null,
+        }),
+      }).then((r) => { if (!r.ok) throw new Error("Failed to save personal information"); });
+
+      // 2. Statutory details
+      await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.STATUTORY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aadhaar_number: statutoryData.aadhar,
+          pan_number: statutoryData.pan,
+          uan_number: statutoryData.uan || null,
+          esi_number: statutoryData.esi || null,
+        }),
+      }).then((r) => { if (!r.ok) throw new Error("Failed to save statutory details"); });
+
+      // 3. Family details
+      await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.FAMILY_DETAILS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marital_status: maritalStatus,
+          father_name: familyData.fatherName || null,
+          father_phone: familyData.fatherPhone || null,
+          father_dob: familyData.fatherDOB || null,
+          mother_name: familyData.motherName || null,
+          mother_phone: familyData.motherPhone || null,
+          mother_dob: familyData.motherDOB || null,
+        }),
+      }).then((r) => { if (!r.ok) throw new Error("Failed to save family details"); });
+
+      // 4. Present address
+      await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PRESENT_ADDRESS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address_line_1: presentAddress.address1,
+          address_line_2: presentAddress.address2 || null,
+          city: presentAddress.city,
+          pincode: presentAddress.pincode,
+          state: presentAddress.state,
+          country: presentAddress.country || "India",
+        }),
+      }).then((r) => { if (!r.ok) throw new Error("Failed to save present address"); });
+
+      // 5. Permanent address
+      await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PERMANENT_ADDRESS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address_line_1: permanentAddress.address1,
+          address_line_2: permanentAddress.address2 || null,
+          city: permanentAddress.city,
+          pincode: permanentAddress.pincode,
+          state: permanentAddress.state,
+          country: permanentAddress.country || "India",
+        }),
+      }).then((r) => { if (!r.ok) throw new Error("Failed to save permanent address"); });
+
+      // 6. Bank details
+      await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.BANK_DETAILS}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bank_name: bankData.bankName,
+          ifsc_code: bankData.ifscCode,
+          account_number: bankData.accountNumber,
+          account_holder_name: bankData.accountHolder,
+        }),
+      }).then((r) => { if (!r.ok) throw new Error("Failed to save bank details"); });
+
+      // 7. Documents. NOTE: the backend's multipart upload only accepts 9
+      // named fields (pan_card, aadhaar_card, highest_education_proof,
+      // esi_card, driving_license, passport, last_relieving_letter,
+      // last_salary_slip, latest_bank_statement). This wizard's UI collects
+      // several document types the backend has no field for at all
+      // (Xth, XIIth, postGraduation, otherEducation, resume, photo, voterId,
+      // other) — those are collected here but cannot be persisted until the
+      // backend adds fields/storage for them. Flagging rather than dropping
+      // silently: only the documents with a real backend field are sent.
+      const docFieldMap = {
+        graduation: "highest_education_proof",
+        aadhar: "aadhaar_card",
+        pan: "pan_card",
+        esi: "esi_card",
+        dl: "driving_license",
+        passport: "passport",
+      };
+      const unsupportedDocs = Object.keys(documents).filter(
+        (key) => documents[key] && !docFieldMap[key]
+      );
+      if (unsupportedDocs.length > 0) {
+        console.warn(
+          "These uploaded documents have no backend field to be saved to yet:",
+          unsupportedDocs
+        );
+      }
+
+      const formData = new FormData();
+      Object.entries(docFieldMap).forEach(([localKey, backendField]) => {
+        const file = documents[localKey];
+        if (file instanceof File) {
+          formData.append(backendField, file);
+        }
+      });
+      if ([...formData.keys()].length > 0) {
+        await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.DOCUMENTS_UPLOAD}`, {
+          method: "POST",
+          body: formData,
+        }).then((r) => { if (!r.ok) throw new Error("Failed to upload documents"); });
+      }
+
+      // 8. Final submit — combines basic + contact details collected in
+      // steps 1-2 with the two dates collected on this last step.
+      const fullName = [basicData.firstName, basicData.middleName, basicData.lastName]
+        .filter(Boolean)
+        .join(" ");
+
+      const submitResponse = await fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.SUBMIT}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: fullName,
+          email: contactData.email,
+          gender: basicData.gender,
+          joining_date: joiningDate,
+          confirmation_date: confirmationDate,
+        }),
+      });
+      if (!submitResponse.ok) {
+        const err = await submitResponse.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to submit onboarding form");
+      }
+
+      toast.success("🎉 Onboarding Completed Successfully!");
+      setTimeout(() => {
+        navigate("/onboarding/pre-joining");
+      }, 1500);
+    } catch (err) {
+      setSubmitError(err.message);
+      toast.error(`⚠️ ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ===== RENDER STEP CONTENT =====
@@ -1236,7 +1410,38 @@ const renderAddress = (title, address, setAddress, isPermanent = false) => (
           You have completed all the sections. <br />
           Click <strong>Back</strong> to make changes.
         </p>
-        
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", maxWidth: "500px", margin: "0 auto 20px", textAlign: "left" }}>
+          <div>
+            <label style={labelStyle}>
+              Joining Date <span style={{ color: "#DC2626" }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={joiningDate}
+              onChange={(e) => setJoiningDate(e.target.value)}
+              style={inputStyle()}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>
+              Confirmation Date <span style={{ color: "#DC2626" }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={confirmationDate}
+              onChange={(e) => setConfirmationDate(e.target.value)}
+              style={inputStyle()}
+            />
+          </div>
+        </div>
+
+        {submitError && (
+          <p style={{ color: "#DC2626", fontSize: "14px", marginBottom: "15px" }}>
+            {submitError}
+          </p>
+        )}
+
         <div style={completionBoxStyle}>
           <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#6B7280" }}>
             Click <strong>Submit</strong> to send your information.
@@ -1614,18 +1819,21 @@ const renderAddress = (title, address, setAddress, isPermanent = false) => (
 
           <button
             onClick={nextStep}
+            disabled={submitting}
             style={{
               padding: "12px 28px",
-              background: currentStep === stepTitles.length - 1 ? "#10B981" : "#0066ff",
+              background: submitting ? "#93c5fd" : currentStep === stepTitles.length - 1 ? "#10B981" : "#0066ff",
               border: "none",
               color: "white",
               borderRadius: "8px",
-              cursor: "pointer",
+              cursor: submitting ? "not-allowed" : "pointer",
               fontSize: "15px",
               fontWeight: 600
             }}
           >
-            {currentStep === stepTitles.length - 1 ? "Submit" : "Continue"} {currentStep < stepTitles.length - 1 && "➜"}
+            {submitting
+              ? "Submitting..."
+              : `${currentStep === stepTitles.length - 1 ? "Submit" : "Continue"} ${currentStep < stepTitles.length - 1 ? "➜" : ""}`}
           </button>
         </div>
 

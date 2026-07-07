@@ -3,6 +3,8 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import html2pdf from 'html2pdf.js';
 import StatCard from "../../../shared/components/StatCard";
 import Modal from "../../../shared/components/Modal";
+import { apiCall } from "../../../shared/utils/api";
+import { API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 const OfferManagement = () => {
   const [offers, setOffers] = useState([]);
@@ -182,22 +184,105 @@ const OfferManagement = () => {
     },
   ];
 
-  useEffect(() => {
-    loadOffersFromStorage();
-  }, []);
-  useEffect(() => {
-    if (offers.length > 0) {
-      localStorage.setItem("offerManagementOffers", JSON.stringify(offers));
-    }
-  }, [offers]);
+  const [kpi, setKpi] = useState(null);
+  const [tabCounts, setTabCounts] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
-  const loadOffersFromStorage = () => {
-    const savedOffers = localStorage.getItem("offerManagementOffers");
-    if (savedOffers && savedOffers !== "[]") {
-      setOffers(JSON.parse(savedOffers));
+  useEffect(() => {
+    loadOffersFromBackend();
+    loadKpiAndTabCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch whenever search/filter/tab change, since the backend does
+  // filtering server-side (GET /offer-letters?search=&status=&department=&offer_type=)
+  useEffect(() => {
+    loadOffersFromBackend();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, filters.status, filters.department, filters.offerType, activeTab]);
+
+  const loadOffersFromBackend = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.set("search", searchTerm);
+      // activeTab (the status tabs) takes priority over the status filter dropdown
+      const statusParam = activeTab !== "all" ? activeTab : (filters.status !== "all" ? filters.status : "");
+      if (statusParam) params.set("status", statusParam);
+      if (filters.department !== "all") params.set("department", filters.department);
+      if (filters.offerType !== "all") params.set("offer_type", filters.offerType);
+      params.set("limit", "200");
+
+      const data = await apiCall(`${API_ENDPOINTS.OFFER_LETTERS.LIST}?${params.toString()}`);
+      // Backend returns OfferListItemSchema[] with snake_case fields; adapt
+      // to the camelCase shape this component's render code already expects.
+      const adapted = (data || []).map(mapOfferFromBackend);
+      setOffers(adapted);
+    } catch (err) {
+      setLoadError(err.message);
+      setOffers([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  const loadKpiAndTabCounts = async () => {
+    try {
+      const [kpiData, tabData] = await Promise.all([
+        apiCall(API_ENDPOINTS.OFFER_LETTERS.KPI),
+        apiCall(API_ENDPOINTS.OFFER_LETTERS.TAB_COUNTS),
+      ]);
+      setKpi(kpiData);
+      setTabCounts(tabData);
+    } catch (err) {
+      console.error("Failed to load offer KPIs/tab counts:", err.message);
+    }
+  };
+
+  // Backend (snake_case, OfferListItemSchema) -> this component's existing
+  // camelCase field names, so the rest of the render code below doesn't
+  // need to change.
+  const mapOfferFromBackend = (o) => ({
+    id: o.id,
+    candidateId: o.candidate_id,
+    candidateName: o.candidate_name,
+    email: o.candidate_email,
+    phone: o.candidate_phone,
+    candidateSource: o.candidate_source,
+    position: o.position,
+    department: o.department,
+    offerType: o.employment_type,
+    joiningDate: o.join_date,
+    grade: o.grade,
+    experience: o.experience_required,
+    ctc: o.gross_salary,
+    ctcBreakup: o.salary_breakdown ? {
+      basic: o.salary_breakdown.basic,
+      hra: o.salary_breakdown.hra,
+      conveyance: o.salary_breakdown.conveyance,
+      specialAllowance: o.salary_breakdown.special_allowance,
+      // NOTE: the backend's salary breakdown only has these 4 components
+      // plus performance_bonus/stipend/other/gross_total. Fields this
+      // mock UI also tracks locally (telephoneAllowance, medicalAllowance,
+      // employeePF, professionalTax, gratuityEmployee, employerPF,
+      // groupInsurance) have no backend column and are NOT persisted.
+    } : {},
+    offerStatus: o.status,
+    history: (o.timeline || []).map((t) => ({
+      action: t.event,
+      by: t.actor,
+      date: t.timestamp,
+      status: o.status,
+    })),
+    expiryDate: o.expiry_date,
+    sentDate: o.sent_date,
+    responseDate: o.response_date,
+    terms: o.offer_content,
+    notes: o.notes,
+    createdDate: o.created_at,
+    lastModified: o.updated_at,
+  });
 
   const parseAmount = (value) => {
     if (!value) return 0;
@@ -274,40 +359,69 @@ const OfferManagement = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const [savingOffer, setSavingOffer] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  // Maps this form's field names onto OfferCreateSchema/OfferUpdateSchema.
+  // NOTE: several fields the mock UI collects have no home in the backend
+  // schema at all (referralDetails, guardian/relation fields, address,
+  // approvalWorkflow steps, enableBGV, requireDigitalSignature,
+  // businessUnit, costCenter, shiftPolicy, weekOffPolicy, employee PF /
+  // professional tax / gratuity / employer PF / group insurance breakup
+  // lines). These stay in local form state for the UI to display/collect,
+  // but are NOT sent to or persisted by the backend until it's extended.
+  const buildOfferPayload = () => ({
+    candidate_id: selectedOffer?.candidateId ?? null,
+    candidate_name: formData.candidateName,
+    candidate_email: formData.email,
+    candidate_phone: formData.phone || null,
+    candidate_source: formData.candidateSource === "Other" ? formData.customSource : formData.candidateSource || null,
+    position: formData.position,
+    department: formData.department || null,
+    employment_type: formData.offerType || "Full-time",
+    join_date: formData.joiningDate || null,
+    grade: formData.grade || null,
+    experience_required: formData.experience || null,
+    gross_salary: parseAmount(formData.ctc) || null,
+    basic: parseAmount(formData.ctcBreakup.basic) || null,
+    hra: parseAmount(formData.ctcBreakup.hra) || null,
+    conveyance: parseAmount(formData.ctcBreakup.conveyance) || null,
+    special_allowance: parseAmount(formData.ctcBreakup.specialAllowance) || null,
+    offer_content: formData.terms,
+    expiry_date: formData.expiryDate || null,
+    notes: formData.notes || null,
+  });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSavingOffer(true);
+    setSaveError(null);
 
-    const newOffer = {
-      id: selectedOffer ? selectedOffer.id : Date.now(),
-      ...formData,
-      offerStatus: selectedOffer ? selectedOffer.offerStatus : OFFER_STATUS.DRAFT,
-      createdDate: selectedOffer ? selectedOffer.createdDate : new Date().toISOString().split("T")[0],
-      approvedBy: selectedOffer ? selectedOffer.approvedBy : "HR Admin",
-      lastModified: new Date().toISOString(),
-      bgvStatus: "pending",
-      history: selectedOffer ? selectedOffer.history : [
-        { action: "Offer Created", by: "HR Admin", date: new Date().toISOString(), status: OFFER_STATUS.DRAFT },
-      ],
-      approvalWorkflow: {
-        workflowId: formData.approvalWorkflow,
-        currentStep: 1,
-        steps: APPROVAL_WORKFLOWS.find(w => w.id === formData.approvalWorkflow)?.steps.map(step => ({
-          ...step,
-          status: "pending",
-          approvedBy: null,
-          approvedDate: null
-        })) || []
+    try {
+      const payload = buildOfferPayload();
+      if (selectedOffer) {
+        await apiCall(API_ENDPOINTS.OFFER_LETTERS.UPDATE(selectedOffer.id), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await apiCall(API_ENDPOINTS.OFFER_LETTERS.CREATE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       }
-    };
 
-    if (selectedOffer) {
-      setOffers(offers.map((o) => (o.id === selectedOffer.id ? newOffer : o)));
-    } else {
-      setOffers([newOffer, ...offers]);
+      await loadOffersFromBackend();
+      await loadKpiAndTabCounts();
+      setShowForm(false);
+      resetForm();
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setSavingOffer(false);
     }
-
-    setShowForm(false);
-    resetForm();
   };
 
   const resetForm = () => {
@@ -369,13 +483,14 @@ const OfferManagement = () => {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this offer?")) {
-      const updatedOffers = offers.filter((offer) => offer.id !== id);
-      setOffers(updatedOffers);
-      if (updatedOffers.length === 0) {
-        localStorage.removeItem("offerManagementOffers");
-      }
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this offer?")) return;
+    try {
+      await apiCall(API_ENDPOINTS.OFFER_LETTERS.DELETE(id), { method: "DELETE" });
+      await loadOffersFromBackend();
+      await loadKpiAndTabCounts();
+    } catch (err) {
+      alert(`Failed to delete offer: ${err.message}`);
     }
   };
 
@@ -552,46 +667,51 @@ const OfferManagement = () => {
     setShowSendModal(true);
   };
 
-  const handleConfirmSendOffer = () => {
+  const handleConfirmSendOffer = async () => {
     if (!selectedOffer) return;
 
-    const updatedOffers = offers.map((o) =>
-      o.id === selectedOffer.id
-        ? {
-          ...o,
-          offerStatus: OFFER_STATUS.SENT,
-          emailSent: emailSettings.sendEmail,
-          emailSentDate: emailSettings.sendEmail ? new Date().toISOString() : null,
-          smsSent: emailSettings.sendSMS,
-          smsSentDate: emailSettings.sendSMS ? new Date().toISOString() : null,
-          history: [
-            ...o.history,
-            { action: "Sent to Candidate", by: "System", date: new Date().toISOString(), status: OFFER_STATUS.SENT },
-          ],
-        }
-        : o
-    );
-    setOffers(updatedOffers);
-    setShowSendModal(false);
-    alert(`Offer sent to ${selectedOffer.candidateName}`);
+    try {
+      // send-email only sends the email; it does not change status on its
+      // own (confirmed in services/offer_letter_service.py), so the status
+      // transition to "Sent" needs a separate /action call.
+      if (emailSettings.sendEmail) {
+        await apiCall(API_ENDPOINTS.OFFER_LETTERS.SEND_EMAIL(selectedOffer.id), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            offer_id: selectedOffer.id,
+            recipient_email: selectedOffer.email,
+            expiry_days: 30,
+          }),
+        });
+      }
+      await apiCall(API_ENDPOINTS.OFFER_LETTERS.ACTION(selectedOffer.id), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send" }),
+      });
+      await loadOffersFromBackend();
+      await loadKpiAndTabCounts();
+      setShowSendModal(false);
+      alert(`Offer sent to ${selectedOffer.candidateName}`);
+    } catch (err) {
+      alert(`Failed to send offer: ${err.message}`);
+    }
   };
 
-  const handleAcceptOffer = (offer) => {
-    const updatedOffers = offers.map((o) =>
-      o.id === offer.id
-        ? {
-          ...o,
-          offerStatus: OFFER_STATUS.ACCEPTED,
-          acceptanceDate: new Date().toISOString(),
-          history: [
-            ...o.history,
-            { action: "Accepted by Candidate", by: "Candidate", date: new Date().toISOString(), status: OFFER_STATUS.ACCEPTED },
-          ],
-        }
-        : o
-    );
-    setOffers(updatedOffers);
-    alert(`Offer accepted by ${offer.candidateName}`);
+  const handleAcceptOffer = async (offer) => {
+    try {
+      await apiCall(API_ENDPOINTS.OFFER_LETTERS.ACTION(offer.id), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "accept" }),
+      });
+      await loadOffersFromBackend();
+      await loadKpiAndTabCounts();
+      alert(`Offer accepted by ${offer.candidateName}`);
+    } catch (err) {
+      alert(`Failed to accept offer: ${err.message}`);
+    }
   };
 
   const handleDeclineOffer = (offer) => {
@@ -599,26 +719,23 @@ const OfferManagement = () => {
     setShowDeclineModal(true);
   };
 
-  const handleConfirmDecline = () => {
+  const handleConfirmDecline = async () => {
     if (!selectedOffer) return;
 
-    const updatedOffers = offers.map((o) =>
-      o.id === selectedOffer.id
-        ? {
-          ...o,
-          offerStatus: OFFER_STATUS.DECLINED,
-          declineReason: declineReason,
-          history: [
-            ...o.history,
-            { action: "Declined by Candidate", by: "Candidate", date: new Date().toISOString(), status: OFFER_STATUS.DECLINED },
-          ],
-        }
-        : o
-    );
-    setOffers(updatedOffers);
-    setShowDeclineModal(false);
-    setDeclineReason("");
-    alert(`Offer declined by ${selectedOffer.candidateName}`);
+    try {
+      await apiCall(API_ENDPOINTS.OFFER_LETTERS.ACTION(selectedOffer.id), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "decline", remarks: declineReason }),
+      });
+      await loadOffersFromBackend();
+      await loadKpiAndTabCounts();
+      setShowDeclineModal(false);
+      setDeclineReason("");
+      alert(`Offer declined by ${selectedOffer.candidateName}`);
+    } catch (err) {
+      alert(`Failed to decline offer: ${err.message}`);
+    }
   };
 
   const handleWithdrawOffer = (offer) => {
@@ -626,63 +743,51 @@ const OfferManagement = () => {
     setShowWithdrawModal(true);
   };
 
-  const handleConfirmWithdraw = () => {
+  const handleConfirmWithdraw = async () => {
     if (!selectedOffer || !withdrawReason.trim()) {
       alert("Please provide a reason for withdrawing the offer");
       return;
     }
 
-    const updatedOffers = offers.map((o) =>
-      o.id === selectedOffer.id
-        ? {
-          ...o,
-          offerStatus: OFFER_STATUS.WITHDRAWN,
-          withdrawReason: withdrawReason,
-          history: [
-            ...o.history,
-            { action: "Offer Withdrawn", by: "HR Admin", date: new Date().toISOString(), status: OFFER_STATUS.WITHDRAWN },
-          ],
-        }
-        : o
-    );
-    setOffers(updatedOffers);
-    setShowWithdrawModal(false);
-    setWithdrawReason("");
-    alert(`Offer withdrawn for ${selectedOffer.candidateName}`);
+    try {
+      await apiCall(API_ENDPOINTS.OFFER_LETTERS.ACTION(selectedOffer.id), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "withdraw", remarks: withdrawReason }),
+      });
+      await loadOffersFromBackend();
+      await loadKpiAndTabCounts();
+      setShowWithdrawModal(false);
+      setWithdrawReason("");
+      alert(`Offer withdrawn for ${selectedOffer.candidateName}`);
+    } catch (err) {
+      alert(`Failed to withdraw offer: ${err.message}`);
+    }
   };
 
-  const handleApproveOffer = (offer, level) => {
-    const workflow = offer.approvalWorkflow || {
-      workflowId: "direct",
-      currentStep: 1,
-      steps: [
-        { level: 1, role: "Direct Manager", status: "pending", approvedBy: null, approvedDate: null },
-        { level: 2, role: "HR Manager", status: "pending", approvedBy: null, approvedDate: null },
-      ],
-    };
-
-    const updatedSteps = workflow.steps.map((step) => {
-      if (step.level === level) {
-        return { ...step, status: "approved", approvedBy: "Current User", approvedDate: new Date().toISOString() };
-      }
-      return step;
-    });
-
-    const allApproved = updatedSteps.every((step) => step.status === "approved");
-    const newStatus = allApproved ? OFFER_STATUS.APPROVED : OFFER_STATUS.PENDING_APPROVAL;
-
-    const updatedOffers = offers.map((o) =>
-      o.id === offer.id
-        ? {
-          ...o,
-          offerStatus: newStatus,
-          approvalWorkflow: { ...workflow, currentStep: level + 1, steps: updatedSteps },
-          history: [...o.history, { action: `Approved by ${workflow.steps.find((s) => s.level === level)?.role}`, by: "Current User", date: new Date().toISOString(), status: newStatus }],
-        }
-        : o
-    );
-    setOffers(updatedOffers);
-    alert(`Offer approved at level ${level}`);
+  // NOTE: the backend only supports a single "approve" action per offer —
+  // there is no multi-level approval-chain concept on the server
+  // (ACTION_STATUS_MAP in offer_letter_service.py has exactly one
+  // "approve" -> "approved" transition). The mock UI's multi-level
+  // APPROVAL_WORKFLOWS (Direct Manager -> HR Manager -> CEO, etc.) has
+  // nowhere to persist per-level state, so every level's "Approve" button
+  // now calls the same backend action; the offer becomes fully "approved"
+  // on the first click rather than progressing level by level. Flagging
+  // this rather than faking multi-level state that the backend would
+  // silently discard.
+  const handleApproveOffer = async (offer, level) => {
+    try {
+      await apiCall(API_ENDPOINTS.OFFER_LETTERS.ACTION(offer.id), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      await loadOffersFromBackend();
+      await loadKpiAndTabCounts();
+      alert(`Offer approved (backend supports a single approval step, not per-level tracking)`);
+    } catch (err) {
+      alert(`Failed to approve offer: ${err.message}`);
+    }
   };
 
   const getOffersByStatus = (status) => {

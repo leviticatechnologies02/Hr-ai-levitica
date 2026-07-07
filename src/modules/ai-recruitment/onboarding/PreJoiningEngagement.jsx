@@ -3,6 +3,8 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import { Icon } from "@iconify/react";
 import Modal from "../../../shared/components/Modal";
+import { apiCall } from "../../../shared/utils/api";
+import { API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 
 export default function OnboardingFormsTable() {
@@ -40,220 +42,106 @@ export default function OnboardingFormsTable() {
   const [formToDelete, setFormToDelete] = useState(null);
   const [deleteCandidateName, setDeleteCandidateName] = useState("");
 
-  const [showNewhireForm, setShowNewhireForm] = useState(false);
-  const [currentFormId, setCurrentFormId] = useState(null);
-  const [currentCandidateName, setCurrentCandidateName] = useState("");
-  const [currentStep, setCurrentStep] = useState(0);
-
-  const [profilePic, setProfilePic] = useState(null);
-  const [basicData, setBasicData] = useState({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    gender: "",
-    dob: "",
-  });
-  const [basicErrors, setBasicErrors] = useState({});
-
-  const [contactData, setContactData] = useState({
-    mobile: "",
-    email: "",
-    homePhone: "",
-    emergencyContact: "",
-  });
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
-
-  const [personalData, setPersonalData] = useState({
-    bloodGroup: "",
-    passport: "",
-    drivingLicense: "",
-  });
-
-  const [statutoryData, setStatutoryData] = useState({
-    aadhar: "",
-    pan: "",
-    uan: "",
-    esi: "",
-  });
-  const [statutoryErrors, setStatutoryErrors] = useState({
-    aadhar: "",
-    pan: "",
-  });
-
-  const [maritalStatus, setMaritalStatus] = useState("");
-  const [familyData, setFamilyData] = useState({
-    fatherName: "",
-    fatherPhone: "",
-    fatherDOB: "",
-    motherName: "",
-    motherPhone: "",
-    motherDOB: "",
-  });
-
-  const [presentAddress, setPresentAddress] = useState({
-    address1: "",
-    address2: "",
-    city: "",
-    pincode: "",
-    state: "",
-    country: "India",
-  });
-
-  const [permanentAddress, setPermanentAddress] = useState({
-    address1: "",
-    address2: "",
-    city: "",
-    pincode: "",
-    state: "",
-    country: "India",
-  });
-
-  const [bankData, setBankData] = useState({
-    bankName: "",
-    ifscCode: "",
-    accountNumber: "",
-    accountHolder: "",
-  });
-
-  const [documents, setDocuments] = useState({
-    pan: null,
-    aadhar: null,
-    photo: null,
-    uan: null,
-    bank: null,
-    esi: null,
-    dl: null,
-    passport: null,
-  });
-
+  // NOTE: this file previously declared an entire second copy of the
+  // 9-step onboarding wizard's local state (basicData, contactData,
+  // personalData, statutoryData, familyData, addresses, bankData,
+  // documents, currentStep, showNewhireForm, etc.) — roughly 90 lines.
+  // None of it was ever referenced anywhere in this file's render or
+  // handlers; "View Form" below navigates to the real wizard at
+  // /newhire instead. Removed as dead/duplicate code rather than wiring
+  // a third copy of the same flow.
 
   const { formId } = useParams();
   const candidate = location.state?.candidate;
-  const processedFormsRef = useRef(new Set());
 
-  useEffect(() => {
-    const savedForms = localStorage.getItem("onboardingForms");
-    const savedProfiles = localStorage.getItem("employeeProfiles");
-
-    if (savedForms) {
-      const parsedForms = JSON.parse(savedForms);
-      setForms(parsedForms);
-    } else if (savedProfiles) {
-      const profiles = JSON.parse(savedProfiles);
-      const convertedForms = profiles.map((profile, index) => ({
-        id: parseInt(profile.id) || 1860 + index,
-        candidate:
-          `${profile.firstName} ${profile.middleName ? profile.middleName + " " : ""}${profile.lastName}`.trim(),
-        created: profile.createdAt
-          ? new Date(profile.createdAt).toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })
-          : new Date().toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }),
-        email: profile.officialEmail || profile.email,
-        mobile: profile.phone || "N/A",
-        info: "View Form",
-        status:
-          profile.status === "approved"
-            ? "Approved"
-            : profile.status === "pending_review"
-              ? "Pending"
-              : "Sent",
-        employeeId: profile.employeeId,
-      }));
-      setForms(convertedForms);
-      localStorage.setItem("onboardingForms", JSON.stringify(convertedForms));
-    } else {
-      setForms([]);
-      localStorage.setItem("onboardingForms", JSON.stringify([]));
+  // Backend status values (SENT/SUBMITTED/APPROVED/REJECTED) don't match
+  // this UI's display labels (Pending/Sent/Approved/Rejected) 1:1 — there's
+  // no "PENDING" state on the backend at all. SUBMITTED (candidate finished
+  // the wizard, awaiting HR review) maps to what this UI calls "Pending".
+  const backendToUiStatus = (status) => {
+    switch (status) {
+      case "SENT": return "Sent";
+      case "SUBMITTED": return "Pending";
+      case "APPROVED": return "Approved";
+      case "REJECTED": return "Rejected";
+      default: return status;
     }
-  }, []);
+  };
+  const uiToBackendStatus = (status) => {
+    switch (status) {
+      case "Sent": return "SENT";
+      case "Pending": return "SUBMITTED";
+      case "Approved": return "APPROVED";
+      case "Rejected": return "REJECTED";
+      default: return null;
+    }
+  };
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedForms = localStorage.getItem("onboardingForms");
-      if (savedForms) {
-        const parsedForms = JSON.parse(savedForms);
-        setForms(parsedForms);
+  const mapCandidateToRow = (c) => ({
+    id: c.id,
+    candidate: c.full_name,
+    created: new Date(c.created_at).toLocaleDateString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+    }),
+    email: c.email,
+    mobile: c.mobile,
+    info: "View Form",
+    status: backendToUiStatus(c.status),
+    mobileVerification: (c.verification_options || []).includes("mobile"),
+    panVerification: (c.verification_options || []).includes("pan"),
+    bankVerification: (c.verification_options || []).includes("bank"),
+    aadhaarVerification: (c.verification_options || []).includes("aadhaar"),
+    selectedCredits: c.credits_used,
+    availableCredits: 0,
+    totalCredits: c.credits_used,
+  });
+
+  const [loadingForms, setLoadingForms] = useState(false);
+  const [loadFormsError, setLoadFormsError] = useState(null);
+
+  const loadCandidates = async () => {
+    setLoadingForms(true);
+    setLoadFormsError(null);
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus !== "All") {
+        const backendStatus = uiToBackendStatus(filterStatus);
+        if (backendStatus) params.set("status", backendStatus);
       }
-    };
+      if (searchQuery) params.set("search", searchQuery);
+      params.set("page", "1");
+      params.set("per_page", "100");
 
-    window.addEventListener("storage", handleStorageChange);
-
-    const interval = setInterval(() => {
-      const savedForms = localStorage.getItem("onboardingForms");
-      if (savedForms) {
-        const parsedForms = JSON.parse(savedForms);
-        const currentFormsStr = JSON.stringify(forms);
-        const savedFormsStr = JSON.stringify(parsedForms);
-        if (currentFormsStr !== savedFormsStr) {
-          setForms(parsedForms);
-        }
-      }
-    }, 1000);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, [forms]);
+      const data = await apiCall(`${API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.LIST}?${params.toString()}`);
+      setForms((data.results || []).map(mapCandidateToRow));
+    } catch (err) {
+      setLoadFormsError(err.message);
+      setForms([]);
+    } finally {
+      setLoadingForms(false);
+    }
+  };
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterStatus]);
-  useEffect(() => {
-    if (location.state?.newForm) {
-      const newForm = location.state.newForm;
-      const formId = newForm.id;
-
-      if (!processedFormsRef.current.has(formId)) {
-        setForms((prev) => {
-          const formExists = prev.some((f) => f.id === formId);
-          if (!formExists) {
-            processedFormsRef.current.add(formId);
-            const updatedForms = [newForm, ...prev];
-            localStorage.setItem(
-              "onboardingForms",
-              JSON.stringify(updatedForms),
-            );
-            return updatedForms;
-          }
-          return prev;
-        });
-        setTimeout(() => {
-          navigate(location.pathname, { replace: true, state: {} });
-        }, 0);
-      }
-    }
-  }, [location.state?.newForm?.id]);
 
   useEffect(() => {
-    if (location.state?.updatedForm && location.state?.formId) {
-      const updatedForm = location.state.updatedForm;
-      const formId = location.state.formId;
+    loadCandidates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterStatus, searchQuery]);
 
-      setForms((prev) => {
-        const formIndex = prev.findIndex((f) => f.id === formId);
-        if (formIndex !== -1) {
-          const updatedForms = [...prev];
-          updatedForms[formIndex] = updatedForm;
-          localStorage.setItem("onboardingForms", JSON.stringify(updatedForms));
-          return updatedForms;
-        }
-        return prev;
-      });
-
-      setTimeout(() => {
-        navigate(location.pathname, { replace: true, state: {} });
-      }, 0);
+  // NewOnboardingForm.jsx already persists new/edited candidates to the
+  // real backend before navigating here; on arrival, just refetch the
+  // authoritative list instead of trusting/merging the router-state blob
+  // (which previously lived only in localStorage and would go stale).
+  useEffect(() => {
+    if (location.state?.newForm || location.state?.updatedForm) {
+      loadCandidates();
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state?.updatedForm, location.state?.formId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.newForm?.id, location.state?.updatedForm]);
 
   const filteredForms = forms.filter((f) => {
     const matchesStatus = filterStatus === "All" || f.status === filterStatus;
@@ -303,68 +191,51 @@ export default function OnboardingFormsTable() {
     resetForm();
   };
 
-  const handleSubmit = (e) => {
+  const [savingForm, setSavingForm] = useState(false);
+
+  const buildVerificationOptions = () => {
+    const options = [];
+    if (formData.mobileVerification) options.push("mobile");
+    if (formData.panVerification) options.push("pan");
+    if (formData.bankVerification) options.push("bank");
+    if (formData.aadhaarVerification) options.push("aadhaar");
+    return options;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSavingForm(true);
 
-    if (editMode && formIdToEdit) {
-      const updatedForm = {
-        id: formIdToEdit,
-        candidate: formData.candidateName,
-        created: forms.find(f => f.id === formIdToEdit)?.created || new Date().toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
-        email: formData.email,
-        mobile: formData.mobile,
-        info: "View Form",
-        status: "Pending",
-        mobileVerification: formData.mobileVerification,
-        panVerification: formData.panVerification,
-        bankVerification: formData.bankVerification,
-        aadhaarVerification: formData.aadhaarVerification,
-        selectedCredits: formData.selectedCredits,
-        availableCredits: formData.availableCredits,
-        totalCredits: formData.totalCredits,
-      };
+    const payload = {
+      full_name: formData.candidateName,
+      email: formData.email,
+      mobile: formData.mobile,
+      verification_options: buildVerificationOptions(),
+    };
 
-      const updatedForms = forms.map(f =>
-        f.id === formIdToEdit ? updatedForm : f
-      );
-
-      setForms(updatedForms);
-      localStorage.setItem("onboardingForms", JSON.stringify(updatedForms));
-    } else {
-      const newId = forms.length > 0 ? Math.max(...forms.map(f => f.id)) + 1 : 1861;
-      const newForm = {
-        id: newId,
-        candidate: formData.candidateName,
-        created: new Date().toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
-        email: formData.email,
-        mobile: formData.mobile,
-        info: "View Form",
-        status: "Pending",
-        mobileVerification: formData.mobileVerification,
-        panVerification: formData.panVerification,
-        bankVerification: formData.bankVerification,
-        aadhaarVerification: formData.aadhaarVerification,
-        selectedCredits: formData.selectedCredits,
-        availableCredits: formData.availableCredits,
-        totalCredits: formData.totalCredits,
-      };
-
-      const updatedForms = [newForm, ...forms];
-      setForms(updatedForms);
-      localStorage.setItem("onboardingForms", JSON.stringify(updatedForms));
+    try {
+      if (editMode && formIdToEdit) {
+        await apiCall(API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.UPDATE(formIdToEdit), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await apiCall(API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.CREATE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+      await loadCandidates();
+      resetForm();
+      setShowFormModal(false);
+      setShowConfirmModal(false);
+    } catch (err) {
+      alert(`Failed to save onboarding form: ${err.message}`);
+    } finally {
+      setSavingForm(false);
     }
-
-    resetForm();
-    setShowFormModal(false);
-    setShowConfirmModal(false);
   };
 
 
@@ -429,66 +300,37 @@ export default function OnboardingFormsTable() {
     });
   };
 
-  const handleReject = (formId) => {
+  const handleReject = async (formId) => {
     const form = forms.find((f) => f.id === formId);
     if (!form) return;
 
-    if (form.status === "Pending" || form.status === "Sent") {
-      const updatedForms = forms.map((f) =>
-        f.id === formId ? { ...f, status: "Rejected" } : f,
-      );
-      setForms(updatedForms);
-      localStorage.setItem("onboardingForms", JSON.stringify(updatedForms));
-
-      const savedProfiles = localStorage.getItem("employeeProfiles");
-      if (savedProfiles && form.employeeId) {
-        const profiles = JSON.parse(savedProfiles);
-        const updatedProfiles = profiles.map((p) =>
-          p.employeeId === form.employeeId
-            ? { ...p, status: "rejected", rejectedAt: new Date().toISOString() }
-            : p,
-        );
-        localStorage.setItem(
-          "employeeProfiles",
-          JSON.stringify(updatedProfiles),
-        );
-      }
-
+    // NOTE: the backend only allows reject from SUBMITTED, not from SENT
+    // (routers/onboarding/admin_candidates.py). A "Sent" invite the
+    // candidate hasn't filled in yet can't be rejected on the server;
+    // surfacing the real error rather than pretending it succeeded.
+    try {
+      await apiCall(API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.REJECT(formId), {
+        method: "PUT",
+      });
+      await loadCandidates();
       alert(`Form for ${form.candidate} has been rejected.`);
-    } else if (form.status === "Rejected") {
-      alert(`Form for ${form.candidate} is already rejected.`);
-    } else {
-      alert(`Cannot reject an already approved form.`);
+    } catch (err) {
+      alert(`Could not reject this form: ${err.message}`);
     }
   };
 
-  const handleApprove = (formId) => {
+  const handleApprove = async (formId) => {
     const form = forms.find((f) => f.id === formId);
     if (!form) return;
 
-    if (form.status === "Pending" || form.status === "Sent") {
-      const updatedForms = forms.map((f) =>
-        f.id === formId ? { ...f, status: "Approved" } : f,
-      );
-      setForms(updatedForms);
-      localStorage.setItem("onboardingForms", JSON.stringify(updatedForms));
-      const savedProfiles = localStorage.getItem("employeeProfiles");
-      if (savedProfiles && form.employeeId) {
-        const profiles = JSON.parse(savedProfiles);
-        const updatedProfiles = profiles.map((p) =>
-          p.employeeId === form.employeeId
-            ? { ...p, status: "approved", approvedAt: new Date().toISOString() }
-            : p,
-        );
-        localStorage.setItem(
-          "employeeProfiles",
-          JSON.stringify(updatedProfiles),
-        );
-      }
-
+    try {
+      await apiCall(API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.APPROVE(formId), {
+        method: "PUT",
+      });
+      await loadCandidates();
       alert(`Form for ${form.candidate} has been approved successfully!`);
-    } else {
-      alert(`Form is already ${form.status}.`);
+    } catch (err) {
+      alert(`Could not approve this form: ${err.message}`);
     }
   };
 
@@ -501,15 +343,21 @@ export default function OnboardingFormsTable() {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!formToDelete) return;
 
-    const updatedForms = forms.filter((f) => f.id !== formToDelete);
-    setForms(updatedForms);
-    localStorage.setItem("onboardingForms", JSON.stringify(updatedForms));
-    setShowDeleteModal(false);
-    setFormToDelete(null);
-    setDeleteCandidateName("");
+    try {
+      await apiCall(API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.DELETE(formToDelete), {
+        method: "DELETE",
+      });
+      await loadCandidates();
+    } catch (err) {
+      alert(`Failed to delete this form: ${err.message}`);
+    } finally {
+      setShowDeleteModal(false);
+      setFormToDelete(null);
+      setDeleteCandidateName("");
+    }
   };
 
   const cancelDelete = () => {
