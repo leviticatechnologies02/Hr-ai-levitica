@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit3, Trash2, GripVertical, Save, X, Check } from 'lucide-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../../shared/constants/api.config';
 
 const Stages = () => {
+
+  const [stages, setStages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -23,6 +30,27 @@ const Stages = () => {
     return typeClasses[type] || 'badge bg-secondary-50 text-secondary-600 border';
   };
 
+  const loadStages = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.STAGES}`);
+      if (!res.ok) throw new Error('Failed to load stages');
+      const data = await res.json();
+      setStages(data.map((s) => ({ id: s.id, name: s.name, order: s.order, type: s.stage_type || 'Screening' })));
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Failed to load stages');
+      toast.error('Failed to load pipeline stages from the server');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStages();
+  }, [loadStages]);
+
   const handleDragStart = (e, stage) => {
     setDraggedStage(stage);
     e.dataTransfer.effectAllowed = 'move';
@@ -33,7 +61,7 @@ const Stages = () => {
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e, targetStage) => {
+  const handleDrop = async (e, targetStage) => {
     e.preventDefault();
     if (!draggedStage || draggedStage.id === targetStage.id) return;
 
@@ -59,15 +87,32 @@ const Stages = () => {
     setEditingName(stage.name);
   };
 
-  const handleEditSave = (stageId) => {
-    setStages(stages.map(stage => 
-      stage.id === stageId 
-        ? { ...stage, name: editingName }
-        : stage
-    ));
-    setEditingStage(null);
-    setEditingName('');
-    setHasChanges(true);
+  const handleEditSave = async (stageId) => {
+    const trimmed = editingName.trim();
+    if (!trimmed) return;
+
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.STAGE(stageId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to rename stage');
+      }
+      setStages(stages.map(stage =>
+        stage.id === stageId
+          ? { ...stage, name: trimmed }
+          : stage
+      ));
+      toast.success('Stage renamed');
+    } catch (err) {
+      toast.error(err.message || 'Failed to rename stage');
+    } finally {
+      setEditingStage(null);
+      setEditingName('');
+    }
   };
 
   const handleEditCancel = () => {
@@ -75,13 +120,28 @@ const Stages = () => {
     setEditingName('');
   };
 
-  const handleTypeChange = (stageId, newType) => {
-    setStages(stages.map(stage => 
-      stage.id === stageId 
+  const handleTypeChange = async (stageId, newType) => {
+    const prevStages = stages;
+    setStages(stages.map(stage =>
+      stage.id === stageId
         ? { ...stage, type: newType }
         : stage
     ));
-    setHasChanges(true);
+
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.STAGE(stageId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage_type: newType }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to update stage type');
+      }
+    } catch (err) {
+      setStages(prevStages); // revert on failure
+      toast.error(err.message || 'Failed to update stage type');
+    }
   };
 
   const handleDeleteStage = (stageId) => {
@@ -90,10 +150,21 @@ const Stages = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteStage = () => {
-    if (stageToDelete) {
+  const confirmDeleteStage = async () => {
+    if (!stageToDelete) return;
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.STAGE(stageToDelete.id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok && res.status !== 204) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to delete stage');
+      }
       setStages(stages.filter(stage => stage.id !== stageToDelete.id));
-      setHasChanges(true);
+      toast.success(`Stage "${stageToDelete.name}" deleted`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete stage');
+    } finally {
       setShowDeleteModal(false);
       setStageToDelete(null);
     }
@@ -104,33 +175,59 @@ const Stages = () => {
     setStageToDelete(null);
   };
 
-  const handleAddStage = () => {
-    if (newStage.name.trim()) {
-      const maxId = Math.max(...stages.map(s => s.id), 0);
-      const newStageObj = {
-        id: maxId + 1,
-        name: newStage.name.trim(),
-        type: newStage.type,
-        order: stages.length + 1
-      };
-      setStages([...stages, newStageObj]);
+  const handleAddStage = async () => {
+    if (!newStage.name.trim()) return;
+
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.STAGES}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newStage.name.trim(),
+          order: stages.length + 1,
+          stage_type: newStage.type,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to add stage');
+      }
+      const created = await res.json();
+      setStages([...stages, { id: created.id, name: created.name, order: created.order, type: created.stage_type || 'Screening' }]);
       setNewStage({ name: '', type: 'Screening' });
       setShowAddModal(false);
-      setHasChanges(true);
+      toast.success(`Stage "${created.name}" added`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to add stage');
     }
   };
 
-  const handleSaveWorkflow = () => {
-    setHasChanges(false);
-    const successMsg = document.createElement('div');
-    successMsg.className = 'position-fixed top-0 end-0 bg-success text-white px-16 py-8 rounded shadow-lg z-3 m-16';
-    successMsg.textContent = 'Pipeline workflow saved successfully!';
-    document.body.appendChild(successMsg);
-    setTimeout(() => successMsg.remove(), 3000);
+  const handleSaveWorkflow = async () => {
+    try {
+      // Persist the current order for every stage (drag-and-drop reordering
+      // is batched locally until this button is clicked).
+      await Promise.all(
+        stages.map((stage) =>
+          fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.STAGE(stage.id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: stage.order }),
+          })
+        )
+      );
+      setHasChanges(false);
+      toast.success('Pipeline workflow saved successfully!');
+    } catch (err) {
+      toast.error('Failed to save the new stage order');
+    }
   };
 
   return (
     <div className='container-fluid py-4'>
+      <ToastContainer position="top-right" autoClose={3000} />
+      {error && <div className="alert alert-danger">{error}</div>}
+      {loading && <div className="text-muted small mb-3">Loading stages…</div>}
+
       <div className='mb-12'>
         <h4 className='mb-2'>Pipeline Stages</h4>
         <p className='text-secondary-light mb-0'>Customize your hiring workflow by adding, editing, and reordering stages.</p>

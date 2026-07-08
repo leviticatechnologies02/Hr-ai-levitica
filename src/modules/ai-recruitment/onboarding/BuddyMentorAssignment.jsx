@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import StatCard from "../../../shared/components/StatCard";
+import { buddyMentorAPI, employeeAPI } from "../../../shared/utils/api";
 import BuddyCreateProgramModal from "../../hrms/modal/BuddyCreateProgramModal";
 import BuddyAssignmentModal from "../../hrms/modal/BuddyAssignmentModal";
 import BuddyFeedbackModal from "../../hrms/modal/BuddyFeedbackModal";
@@ -148,33 +149,106 @@ const BuddyMentorAssignment = () => {
   const [viewMode, setViewMode] = useState("programs");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-  useEffect(() => {
-    const initializeData = () => {
-      const allBuddies = [];
-      const allNewJoiners = [];
+  // Backend list shape (BuddyProgramListOut) -> local UI shape.
+  const mapProgramSummary = (p) => ({
+    id: p.id,
+    name: p.program_name,
+    programType: p.program_type,
+    description: '',
+    department: p.department || 'All',
+    location: p.location || 'All',
+    startDate: p.start_date,
+    endDate: p.end_date,
+    status: p.status,
+    assignmentRules: [],
+    assignments: [],
+    buddyResponsibilities: [],
+    feedback: [],
+    analytics: {
+      totalPairs: p.total_pairs || 0,
+      activePairs: p.active_pairs || 0,
+      completedPairs: 0,
+      averageRating: p.avg_rating || 0,
+      completionRate: 0,
+      feedbackCount: 0,
+      averageMatchScore: 0,
+      departmentDistribution: {},
+      locationDistribution: {},
+      satisfactionScore: 0,
+      timeToProductivity: "N/A",
+    },
+    totalPairs: p.total_pairs || 0,
+    activePairs: p.active_pairs || 0,
+    completionRate: 0,
+    overallRating: p.avg_rating || 0,
+  });
 
-      buddyPrograms.forEach((program) => {
-        program.assignments?.forEach((assignment) => {
-          if (!allBuddies.find((b) => b.id === assignment.buddy.id)) {
-            allBuddies.push(assignment.buddy);
-          }
-          if (!allNewJoiners.find((n) => n.id === assignment.newJoiner.id)) {
-            allNewJoiners.push(assignment.newJoiner);
-          }
-        });
-      });
+  const [dashboard, setDashboard] = useState(null);
 
-      setBuddies(allBuddies);
-      setNewJoiners(allNewJoiners);
+  const loadBuddyMentorData = async () => {
+    setLoading(true);
+    try {
+      const [dashboardData, programsData] = await Promise.all([
+        buddyMentorAPI.getDashboard().catch((err) => {
+          console.error('Error loading buddy-mentor dashboard:', err);
+          return null;
+        }),
+        buddyMentorAPI.listPrograms().catch((err) => {
+          console.error('Error loading buddy-mentor programs:', err);
+          return [];
+        }),
+      ]);
 
-      if (buddyPrograms.length > 0 && !selectedProgram) {
-        setSelectedProgram(buddyPrograms[0]);
+      setDashboard(dashboardData);
+      const mappedPrograms = Array.isArray(programsData) ? programsData.map(mapProgramSummary) : [];
+      setBuddyPrograms(mappedPrograms);
+      if (mappedPrograms.length > 0) {
+        setSelectedProgram(mappedPrograms[0]);
       }
 
+      // NOTE: there is no backend endpoint for "available buddies" /
+      // "unassigned new joiners" as such — GET /buddy-mentor/dashboard
+      // only returns counts. As a stand-in real data source (rather than
+      // leaving the picker permanently empty) we pull the general
+      // employee list here. Fields the matching UI expects but the
+      // Employee record doesn't have (tenure, skills, maxAssignments,
+      // officeLocation) are defaulted, so those specific match rules
+      // will not score meaningfully until a real buddy-eligibility
+      // endpoint exists on the backend.
+      try {
+        const employees = await employeeAPI.list();
+        const employeeList = Array.isArray(employees) ? employees : [];
+        setBuddies(employeeList.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department,
+          officeLocation: emp.location,
+          tenure: null,
+          skills: [],
+          currentAssignments: 0,
+          maxAssignments: 3,
+          totalMentees: 0,
+        })));
+        setNewJoiners(employeeList.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department,
+          location: emp.location,
+          skills: [],
+          assignedBuddy: false,
+        })));
+      } catch (err) {
+        console.error('Error loading employees for buddy/new-joiner pool:', err);
+      }
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    initializeData();
+  useEffect(() => {
+    loadBuddyMentorData();
   }, []);
 
   const getStatusBadge = (status) => {
@@ -289,43 +363,28 @@ const BuddyMentorAssignment = () => {
       return;
     }
 
-    const newProgram = {
-      id: Date.now(),
-      ...programForm,
-      assignments: [],
-      buddyResponsibilities: [
-        {
-          id: 1,
-          category: "Week 1",
-          tasks: [
-            { id: 1, task: "Welcome Call", description: "First introduction call", deadline: "Day 1", status: "pending", priority: "high" },
-            { id: 2, task: "Tool Access Setup", description: "Slack, GitHub and tools", deadline: "Day 2", status: "pending", priority: "high" }
-          ]
-        }
-      ],
-      feedback: [],
-      analytics: {
-        totalPairs: 0,
-        activePairs: 0,
-        completedPairs: 0,
-        averageRating: 0,
-        completionRate: 0,
-        feedbackCount: 0,
-        averageMatchScore: 0,
-        departmentDistribution: {},
-        locationDistribution: {},
-        satisfactionScore: 0,
-        timeToProductivity: "N/A",
-      },
-      totalPairs: 0,
-      activePairs: 0,
-      completionRate: 0,
-      overallRating: 0,
-      createdBy: "Sarah Johnson",
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+    buddyMentorAPI.createProgram({
+      program_name: programForm.name,
+      program_type: programForm.programType,
+      description: programForm.description || undefined,
+      department: programForm.department,
+      location: programForm.location,
+      start_date: programForm.startDate,
+      end_date: programForm.endDate || undefined,
+      status: (programForm.status || 'active').toUpperCase(),
+      created_by: "Sarah Johnson",
+      assignment_rules: (programForm.assignmentRules || []).map((r) => ({
+        rule_text: r.rule,
+        is_mandatory: r.mandatory,
+        weight_score: r.weight,
+      })),
+    })
+      .then(() => loadBuddyMentorData())
+      .catch((err) => {
+        console.error('Error creating buddy program:', err);
+        alert('Failed to create program: ' + (err.message || 'Unknown error'));
+      });
 
-    setBuddyPrograms([...buddyPrograms, newProgram]);
     setShowCreateProgram(false);
     setProgramForm({
       name: "",
@@ -355,7 +414,7 @@ const BuddyMentorAssignment = () => {
     alert("Buddy program created successfully!");
   };
 
-  const handleAssignBuddy = () => {
+  const handleAssignBuddy = async () => {
     const {
       programId,
       buddyId,
@@ -390,9 +449,27 @@ const BuddyMentorAssignment = () => {
     }
 
     const matchScore = calculateMatchScore(buddy, newJoiner, program);
+    const effectiveDate = assignmentDate || new Date().toISOString().split("T")[0];
+
+    let pairingId;
+    try {
+      const created = await buddyMentorAPI.createPairing({
+        program_id: programId,
+        buddy_id: buddyId,
+        new_joiner_id: newJoinerId,
+        assignment_date: effectiveDate,
+        match_score: matchScore,
+        status: "ACTIVE",
+      });
+      pairingId = created?.id;
+    } catch (err) {
+      console.error('Error creating buddy pairing:', err);
+      alert('Failed to save the pairing to the server: ' + (err.message || 'Unknown error'));
+      return;
+    }
 
     const newAssignment = {
-      id: Date.now(),
+      id: pairingId ?? Date.now(),
       buddy: {
         ...buddy,
         currentAssignments: buddy.currentAssignments + 1,
@@ -401,7 +478,7 @@ const BuddyMentorAssignment = () => {
         ...newJoiner,
         assignedBuddy: true,
       },
-      assignmentDate: assignmentDate || new Date().toISOString().split("T")[0],
+      assignmentDate: effectiveDate,
       status: "active",
       matchScore,
       pairingReason: pairingReason || "Manual assignment",
@@ -509,6 +586,35 @@ const BuddyMentorAssignment = () => {
       return;
     }
 
+    const findCategory = (name) =>
+      categories.find((cat) => cat.category === name);
+    const categoryRating = (name) => {
+      const cat = findCategory(name);
+      return cat && cat.rating ? parseFloat(cat.rating) : undefined;
+    };
+    const categoryComment = (name) => {
+      const cat = findCategory(name);
+      return cat && cat.comment ? cat.comment : undefined;
+    };
+
+    buddyMentorAPI.submitFeedback({
+      pairing_id: Number(assignmentId),
+      submitted_by: submittedBy,
+      overall_rating: Math.round(parseFloat(overallRating)),
+      responsiveness: categoryRating("Responsiveness"),
+      knowledge_sharing: categoryRating("Knowledge Sharing"),
+      support: categoryRating("Support"),
+      communication: categoryRating("Communication"),
+      overall_comments: overallComment || undefined,
+      responsiveness_comments: categoryComment("Responsiveness"),
+      knowledge_sharing_comments: categoryComment("Knowledge Sharing"),
+      support_comments: categoryComment("Support"),
+      communication_comments: categoryComment("Communication"),
+    }).catch((err) => {
+      console.error('Error submitting buddy feedback:', err);
+      alert('Failed to save feedback to the server: ' + (err.message || 'Unknown error'));
+    });
+
     const newFeedback = {
       id: Date.now(),
       assignmentId,
@@ -580,6 +686,26 @@ const BuddyMentorAssignment = () => {
       alert("Please fill required fields");
       return;
     }
+
+    const nextCheckInDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+
+    const parsedDuration = parseInt(duration, 10);
+
+    buddyMentorAPI.recordCommunication({
+      pairing_id: Number(assignmentId),
+      communication_type: type,
+      date,
+      duration_minutes: Number.isNaN(parsedDuration) ? undefined : parsedDuration,
+      next_checkin_date: nextCheckInDate,
+      topics_discussed: topics || undefined,
+      follow_up_actions: followUp || undefined,
+      additional_notes: notes || undefined,
+    }).catch((err) => {
+      console.error('Error recording buddy communication:', err);
+      alert('Failed to save communication log to the server: ' + (err.message || 'Unknown error'));
+    });
 
     const newCommunication = {
       id: Date.now(),
@@ -654,7 +780,7 @@ const BuddyMentorAssignment = () => {
     );
   };
 
-  const handleAutoMatch = (programId) => {
+  const handleAutoMatch = async (programId) => {
     const program = buddyPrograms.find((p) => p.id === programId);
     if (!program) return;
 
@@ -673,128 +799,155 @@ const BuddyMentorAssignment = () => {
       return;
     }
 
+    // The backend's /pairings/auto-match endpoint scores ONE specific
+    // buddy/new-joiner pair (AutoMatchRequest -> AutoMatchOut), it doesn't
+    // do bulk matching across everyone unassigned. To reproduce the old
+    // "match everyone" behavior with a real, server-computed score
+    // (rather than the local calculateMatchScore heuristic, whose rule
+    // inputs like tenure/skills are currently empty defaults for every
+    // employee), we call it once per candidate buddy for each unassigned
+    // new joiner and keep the best result. This means this action makes
+    // (new joiners × available buddies) requests — fine for typical
+    // program sizes, but worth knowing if either list grows large.
     const matches = [];
+    const buddyAssignmentCounts = new Map(
+      availableBuddies.map((b) => [b.id, b.currentAssignments])
+    );
 
-    unassignedNewJoiners.forEach((newJoiner) => {
+    for (const newJoiner of unassignedNewJoiners) {
       let bestMatch = null;
-      let bestScore = 0;
+      let bestScore = -1;
+      let bestReason = "";
 
-      availableBuddies.forEach((buddy) => {
-        if (buddy.currentAssignments >= buddy.maxAssignments) return;
+      for (const buddy of availableBuddies) {
+        const count = buddyAssignmentCounts.get(buddy.id) ?? buddy.currentAssignments;
+        if (count >= buddy.maxAssignments) continue;
 
-        const score = calculateMatchScore(buddy, newJoiner, program);
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = buddy;
+        try {
+          const result = await buddyMentorAPI.autoMatch(programId, buddy.id, newJoiner.id);
+          if (result && result.match_score > bestScore) {
+            bestScore = result.match_score;
+            bestMatch = buddy;
+            bestReason = result.match_reason;
+          }
+        } catch (err) {
+          console.error(`Error scoring buddy ${buddy.id} for new joiner ${newJoiner.id}:`, err);
         }
-      });
+      }
 
       if (bestMatch && bestScore >= 60) {
-        matches.push({
-          newJoinerId: newJoiner.id,
-          buddyId: bestMatch.id,
-          score: bestScore,
-        });
-
-        bestMatch.currentAssignments += 1;
+        matches.push({ newJoiner, buddy: bestMatch, score: bestScore, reason: bestReason });
+        buddyAssignmentCounts.set(
+          bestMatch.id,
+          (buddyAssignmentCounts.get(bestMatch.id) ?? bestMatch.currentAssignments) + 1
+        );
       }
-    });
+    }
 
     if (matches.length === 0) {
       alert("No suitable matches found (minimum 60% match score required)");
       return;
     }
 
-    matches.forEach((match) => {
-      const buddy = availableBuddies.find((b) => b.id === match.buddyId);
-      const newJoiner = unassignedNewJoiners.find(
-        (n) => n.id === match.newJoinerId
+    for (const match of matches) {
+      const { buddy, newJoiner, score, reason } = match;
+      let pairingId;
+      try {
+        const created = await buddyMentorAPI.createPairing({
+          program_id: programId,
+          buddy_id: buddy.id,
+          new_joiner_id: newJoiner.id,
+          assignment_date: new Date().toISOString().split("T")[0],
+          match_score: score,
+          status: "ACTIVE",
+        });
+        pairingId = created?.id;
+      } catch (err) {
+        console.error('Error creating auto-matched pairing:', err);
+        continue;
+      }
+
+      const newAssignment = {
+        id: pairingId ?? Date.now(),
+        buddy: { ...buddy, currentAssignments: buddy.currentAssignments },
+        newJoiner: { ...newJoiner, assignedBuddy: true },
+        assignmentDate: new Date().toISOString().split("T")[0],
+        status: "active",
+        matchScore: score,
+        pairingReason: reason || `Auto-matched based on ${score}% compatibility`,
+        communicationRecords: [],
+        lastCheckIn: null,
+        nextCheckIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        feedbackScore: 0,
+        completionPercentage: 0,
+        milestones: [
+          { id: 1, name: "Initial onboarding", completed: false, date: null },
+          {
+            id: 2,
+            name: "First task completion",
+            completed: false,
+            date: null,
+          },
+          { id: 3, name: "Mid-program review", completed: false, date: null },
+        ],
+      };
+
+      setBuddyPrograms((prev) =>
+        prev.map((p) => {
+          if (p.id === programId) {
+            return {
+              ...p,
+              assignments: [...(p.assignments || []), newAssignment],
+              totalPairs: p.totalPairs + 1,
+              activePairs: p.activePairs + 1,
+              analytics: {
+                ...p.analytics,
+                totalPairs: p.analytics.totalPairs + 1,
+                activePairs: p.analytics.activePairs + 1,
+                averageMatchScore:
+                  (p.analytics.averageMatchScore * p.analytics.totalPairs +
+                    score) /
+                  (p.analytics.totalPairs + 1),
+                departmentDistribution: {
+                  ...p.analytics.departmentDistribution,
+                  [newJoiner.department]:
+                    (p.analytics.departmentDistribution[
+                      newJoiner.department
+                    ] || 0) + 1,
+                },
+                locationDistribution: {
+                  ...p.analytics.locationDistribution,
+                  [newJoiner.location]:
+                    (p.analytics.locationDistribution[newJoiner.location] ||
+                      0) + 1,
+                },
+              },
+            };
+          }
+          return p;
+        })
       );
 
-      if (buddy && newJoiner) {
-        const newAssignment = {
-          id: Date.now(),
-          buddy: { ...buddy, currentAssignments: buddy.currentAssignments },
-          newJoiner: { ...newJoiner, assignedBuddy: true },
-          assignmentDate: new Date().toISOString().split("T")[0],
-          status: "active",
-          matchScore: match.score,
-          pairingReason: `Auto-matched based on ${match.score}% compatibility`,
-          communicationRecords: [],
-          lastCheckIn: null,
-          nextCheckIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          feedbackScore: 0,
-          completionPercentage: 0,
-          milestones: [
-            { id: 1, name: "Initial onboarding", completed: false, date: null },
-            {
-              id: 2,
-              name: "First task completion",
-              completed: false,
-              date: null,
-            },
-            { id: 3, name: "Mid-program review", completed: false, date: null },
-          ],
-        };
-
-        setBuddyPrograms((prev) =>
-          prev.map((p) => {
-            if (p.id === programId) {
-              return {
-                ...p,
-                assignments: [...(p.assignments || []), newAssignment],
-                totalPairs: p.totalPairs + 1,
-                activePairs: p.activePairs + 1,
-                analytics: {
-                  ...p.analytics,
-                  totalPairs: p.analytics.totalPairs + 1,
-                  activePairs: p.analytics.activePairs + 1,
-                  averageMatchScore:
-                    (p.analytics.averageMatchScore * p.analytics.totalPairs +
-                      match.score) /
-                    (p.analytics.totalPairs + 1),
-                  departmentDistribution: {
-                    ...p.analytics.departmentDistribution,
-                    [newJoiner.department]:
-                      (p.analytics.departmentDistribution[
-                        newJoiner.department
-                      ] || 0) + 1,
-                  },
-                  locationDistribution: {
-                    ...p.analytics.locationDistribution,
-                    [newJoiner.location]:
-                      (p.analytics.locationDistribution[newJoiner.location] ||
-                        0) + 1,
-                  },
-                },
-              };
+      setBuddies((prev) =>
+        prev.map((b) =>
+          b.id === buddy.id
+            ? {
+              ...b,
+              currentAssignments: b.currentAssignments + 1,
+              totalMentees: b.totalMentees + 1,
             }
-            return p;
-          })
-        );
+            : b
+        )
+      );
 
-        setBuddies((prev) =>
-          prev.map((b) =>
-            b.id === buddy.id
-              ? {
-                ...b,
-                currentAssignments: b.currentAssignments + 1,
-                totalMentees: b.totalMentees + 1,
-              }
-              : b
-          )
-        );
-
-        setNewJoiners((prev) =>
-          prev.map((n) =>
-            n.id === newJoiner.id ? { ...n, assignedBuddy: true } : n
-          )
-        );
-      }
-    });
+      setNewJoiners((prev) =>
+        prev.map((n) =>
+          n.id === newJoiner.id ? { ...n, assignedBuddy: true } : n
+        )
+      );
+    }
 
     alert(`${matches.length} new joiners auto-matched with buddies!`);
   };

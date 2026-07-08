@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 
 import StatCard from '../../../shared/components/StatCard';
-import { probationAPI } from '../../../shared/utils/api';
 
 import AddEmployeeProbationModal from '../../hrms/modal/AddEmployeeProbationModal';
 import ReviewProbationModal from '../../hrms/modal/ReviewProbationModal';
 import ExtendProbationModal from '../../hrms/modal/ExtendProbationModal';
 import ConfirmProbationModal from '../../hrms/modal/ConfirmProbationModal';
 import TerminateProbationModal from '../../hrms/modal/TerminateProbationModal';
+import { apiCall } from '../../../shared/utils/api';
+import { API_ENDPOINTS } from '../../../shared/constants/api.config';
 
 const ProbationManagement = () => {
   const initialProbationEmployees = [];
@@ -164,7 +165,83 @@ const ProbationManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const stats = {
+  const [kpi, setKpi] = useState(null);
+  const [departmentsList, setDepartmentsList] = useState([]);
+  const [loadingProbation, setLoadingProbation] = useState(true);
+  const [probationLoadError, setProbationLoadError] = useState(null);
+
+  // Backend field names (schema/onboarding/probation_management.py) are
+  // already camelCase and match this component's existing field names
+  // closely — mapped 1:1 below rather than needing a translation layer
+  // like some of the other files in this pass.
+  const mapEmployeeFromBackend = (e) => ({
+    id: e.id,
+    confirmationId: e.confirmationId ?? e.id,
+    employeeId: e.employeeId,
+    name: e.name,
+    designation: e.designation,
+    department: e.department,
+    location: e.location,
+    status: (e.probationStatus || '').toLowerCase().replace(/\s+/g, '_'),
+    extensionCount: e.extensionCount,
+    progress: e.progressPercent,
+    riskLevel: (e.riskLevel || '').toLowerCase(),
+    review30: { completed: e.milestone30Done, date: null, rating: null },
+    review60: { completed: e.milestone60Done, date: null, rating: null },
+    review90: { completed: e.milestone90Done, date: null, rating: null },
+    nextReviewDate: e.nextReviewDate,
+    daysRemaining: e.daysRemaining,
+    probationEndDate: e.probationEndDate,
+    currentRating: e.currentRating,
+    probationStartDate: e.probationStartDate,
+    joiningDate: e.joiningDate,
+  });
+
+  const loadProbationList = async () => {
+    setLoadingProbation(true);
+    setProbationLoadError(null);
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.set('search', searchTerm);
+      if (filterStatus !== 'all') params.set('status', filterStatus);
+      if (filterDepartment !== 'all') params.set('department', filterDepartment);
+      if (filterRisk !== 'all') params.set('risk_level', filterRisk);
+      params.set('sort_by', sortBy);
+      params.set('limit', '100');
+
+      const data = await apiCall(`${API_ENDPOINTS.PROBATION.EMPLOYEES}?${params.toString()}`);
+      const list = Array.isArray(data) ? data : (data.results || data.employees || []);
+      setProbationEmployees(list.map(mapEmployeeFromBackend));
+    } catch (err) {
+      setProbationLoadError(err.message);
+      setProbationEmployees([]);
+    } finally {
+      setLoadingProbation(false);
+    }
+  };
+
+  useEffect(() => {
+    apiCall(API_ENDPOINTS.PROBATION.KPI).then(setKpi).catch((err) => console.error('Failed to load probation KPIs:', err.message));
+    apiCall(API_ENDPOINTS.PROBATION.DEPARTMENTS).then((d) => setDepartmentsList(d.departments || d || [])).catch((err) => console.error('Failed to load departments:', err.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadProbationList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, filterStatus, filterDepartment, filterRisk, sortBy]);
+
+  // Kept as a client-side fallback (used only if the KPI endpoint hasn't
+  // loaded yet) — the real source of truth is `kpi` above, from
+  // GET /probation-management/kpi.
+  const stats = kpi ? {
+    total: kpi.totalEmployees,
+    inProgress: kpi.inProgress,
+    atRisk: kpi.atRisk,
+    endingThisWeek: kpi.endingThisWeek,
+    completed: kpi.completed,
+    highRisk: kpi.highRisk,
+  } : {
     total: probationEmployees.length,
     inProgress: probationEmployees.filter(e => e.status === 'in_progress').length,
     underReview: probationEmployees.filter(e => e.status === 'under_review').length,
@@ -212,90 +289,27 @@ const ProbationManagement = () => {
     return date.toISOString().split('T')[0];
   };
 
-  // ------------------------------------------------------------------
-  // Backend (ProbationEmployeeSchema) -> local UI shape.
-  // Backend uses Title-Case status/risk strings and three boolean
-  // milestone flags with one shared nextReviewDate; the UI was built
-  // around lowercase_underscore status values and a separate
-  // {completed, date, rating} object per 30/60/90-day review. This maps
-  // one to the other so the rest of the component (which reads
-  // emp.status, emp.progress, emp.review30.completed, etc.) keeps working
-  // unchanged.
-  // ------------------------------------------------------------------
-  const mapProbationEmployee = (e) => {
-    const statusMap = {
-      'In Progress': 'in_progress',
-      'Under Review': 'under_review',
-      'Extended': 'extended',
-      'At Risk': 'at_risk',
-      'Completed': 'completed',
-      'Terminated': 'terminated',
-    };
-    const milestoneRating = (done) => (done ? (e.currentRating || 'Not Rated') : null);
-    return {
-      ...e,
-      id: e.id,
-      confirmationId: e.confirmationId ?? e.id,
-      employeeId: e.employeeId,
-      name: e.name,
-      designation: e.designation,
-      department: e.department,
-      workLocation: e.location,
-      status: statusMap[e.probationStatus] || (e.probationStatus || '').toLowerCase().replace(/\s+/g, '_'),
-      progress: e.progressPercent ?? 0,
-      riskLevel: (e.riskLevel || '').toLowerCase(),
-      review30: {
-        completed: !!e.milestone30Done,
-        date: e.nextReviewDate || null,
-        rating: milestoneRating(e.milestone30Done),
-      },
-      review60: {
-        completed: !!e.milestone60Done,
-        date: e.nextReviewDate || null,
-        rating: milestoneRating(e.milestone60Done),
-      },
-      review90: {
-        completed: !!e.milestone90Done,
-        date: e.nextReviewDate || null,
-        rating: milestoneRating(e.milestone90Done),
-      },
-      currentRating: e.currentRating || 'Not Rated',
-      nextReviewDate: e.nextReviewDate,
-      probationEndDate: e.probationEndDate,
-      probationStartDate: e.probationStartDate,
-      joiningDate: e.joiningDate,
-      daysRemaining: e.daysRemaining ?? calculateDaysRemaining(e.probationEndDate),
-      extensionCount: e.extensionCount ?? 0,
-    };
-  };
+  // NOTE: ProbationAddEmployeeSchema requires a real numeric employee_id
+  // referencing an existing Employee record (created via POST /employees
+  // in JoiningDayManagement.jsx) — it does not accept a freshly-typed
+  // name/email/etc the way this form originally collected them. The
+  // newEmployee.employeeId field below is now expected to be that real
+  // numeric ID. A proper fix would turn this into a searchable employee
+  // picker (like the reporting-manager dropdown in JoiningDayManagement.jsx)
+  // inside the separate AddEmployeeProbationModal component — outside this
+  // file's scope, so flagging rather than guessing at that modal's markup.
+  const [addingEmployee, setAddingEmployee] = useState(false);
 
-  const [loadingEmployees, setLoadingEmployees] = useState(false);
-  const [loadError, setLoadError] = useState(null);
-
-  const loadProbationEmployees = async () => {
-    setLoadingEmployees(true);
-    setLoadError(null);
-    try {
-      const data = await probationAPI.listEmployees();
-      const list = Array.isArray(data) ? data : (data?.items || []);
-      setProbationEmployees(list.map(mapProbationEmployee));
-    } catch (err) {
-      console.error('Error loading probation employees:', err);
-      setLoadError(err.message || 'Failed to load probation employees');
-    } finally {
-      setLoadingEmployees(false);
-    }
-  };
-
-  useEffect(() => {
-    loadProbationEmployees();
-  }, []);
-
-  const handleAddEmployee = (e) => {
+  const handleAddEmployee = async (e) => {
     e.preventDefault();
 
     if (!isValidDate(newEmployee.joiningDate)) {
       alert('Please enter a valid joining date');
+      return;
+    }
+    const employeeIdNum = Number(newEmployee.employeeId);
+    if (!employeeIdNum) {
+      alert('Please enter the employee\'s numeric Employee ID (from the Employee directory)');
       return;
     }
 
@@ -303,79 +317,42 @@ const ProbationManagement = () => {
     const probationEndDate = new Date(joiningDate);
     probationEndDate.setDate(probationEndDate.getDate() + parseInt(newEmployee.probationPeriod));
 
-    const today = new Date();
-    const daysSinceJoining = Math.max(0, Math.floor((today - joiningDate) / (1000 * 60 * 60 * 24)));
-    const totalProbationDays = parseInt(newEmployee.probationPeriod);
-    const calculatedProgress = Math.min(100, Math.round((daysSinceJoining / totalProbationDays) * 100));
-    const daysRemaining = calculateDaysRemaining(probationEndDate);
-
-    let initialRiskLevel = 'low';
-    if (daysRemaining <= 30) initialRiskLevel = 'medium';
-    if (daysRemaining <= 7) initialRiskLevel = 'high';
-
-    const review30Completed = daysSinceJoining >= 30;
-    const review60Completed = daysSinceJoining >= 60;
-    const review90Completed = daysSinceJoining >= 90;
-
-    const newEmp = {
-      ...newEmployee,
-      id: probationEmployees.length + 1,
-      employeeId: newEmployee.employeeId || `EMP${String(probationEmployees.length + 1).padStart(3, '0')}`,
-      status: 'in_progress',
-      riskLevel: initialRiskLevel,
-      progress: calculatedProgress,
-      review30: {
-        completed: review30Completed,
-        date: review30Completed ? calculateNextReviewDate(newEmployee.joiningDate, 30) : null,
-        rating: review30Completed ? 'Not Rated' : null
-      },
-      review60: {
-        completed: review60Completed,
-        date: review60Completed ? calculateNextReviewDate(newEmployee.joiningDate, 60) : null,
-        rating: review60Completed ? 'Not Rated' : null
-      },
-      review90: {
-        completed: review90Completed,
-        date: review90Completed ? calculateNextReviewDate(newEmployee.joiningDate, 90) : null,
-        rating: review90Completed ? 'Not Rated' : null
-      },
-      currentRating: 'Not Rated',
-      nextReviewDate: calculateNextReviewDate(newEmployee.joiningDate, 30),
-      probationEndDate: probationEndDate.toISOString().split('T')[0],
-      daysRemaining: daysRemaining,
-      extensionCount: 0,
-      hrBusinessPartner: 'Anita Verma',
-      contactEmail: `${newEmployee.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
-      contactPhone: '+91-9876543210',
-      lastReviewDate: null,
-      probationType: 'regular',
-      noticePeriod: '60',
-      workLocation: newEmployee.workLocation || 'Bangalore',
-      employmentType: newEmployee.employmentType || 'Permanent',
-      salary: `₹${(Math.floor(Math.random() * 500000) + 500000).toLocaleString('en-IN')}`,
-      skills: [],
-      trainingCompleted: ['Orientation']
-    };
-
-    setProbationEmployees([...probationEmployees, newEmp]);
-    setShowAddModal(false);
-    setNewEmployee({
-      name: '',
-      employeeId: '',
-      email: '',
-      phone: '',
-      designation: '',
-      department: 'Engineering',
-      manager: '',
-      hrBusinessPartner: '',
-      joiningDate: '',
-      probationPeriod: '90',
-      probationType: 'regular',
-      workLocation: 'Bangalore',
-      employmentType: 'Permanent'
-    });
-
-    alert(`Employee ${newEmp.name} added to probation tracking`);
+    setAddingEmployee(true);
+    try {
+      await apiCall(API_ENDPOINTS.PROBATION.EMPLOYEES, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: employeeIdNum,
+          probation_start_date: newEmployee.joiningDate,
+          probation_end_date: probationEndDate.toISOString().split('T')[0],
+          reviewed_by: null,
+          remarks: null,
+        }),
+      });
+      await loadProbationList();
+      setShowAddModal(false);
+      setNewEmployee({
+        name: '',
+        employeeId: '',
+        email: '',
+        phone: '',
+        designation: '',
+        department: 'Engineering',
+        manager: '',
+        hrBusinessPartner: '',
+        joiningDate: '',
+        probationPeriod: '90',
+        probationType: 'regular',
+        workLocation: 'Bangalore',
+        employmentType: 'Permanent'
+      });
+      alert(`Employee added to probation tracking`);
+    } catch (err) {
+      alert(`Failed to add employee to probation: ${err.message}`);
+    } finally {
+      setAddingEmployee(false);
+    }
   };
 
   const handleBulkActionSubmit = (e) => {
@@ -384,12 +361,6 @@ const ProbationManagement = () => {
     const selectedEmployeesData = probationEmployees.filter(
       emp => selectedEmployees.includes(emp.id)
     );
-
-    // Backend action names line up 1:1 with bulkAction.action here.
-    const confirmationIds = selectedEmployeesData.map(emp => emp.confirmationId ?? emp.id);
-    probationAPI.bulkAction(confirmationIds, bulkAction.action)
-      .then(() => loadProbationEmployees())
-      .catch(err => console.error('Error running bulk action:', err));
 
     switch (bulkAction.action) {
       case 'schedule_review':
@@ -414,6 +385,13 @@ const ProbationManagement = () => {
     setShowBulkActionModal(false);
   };
 
+
+
+  // NOTE: the backend's bulk-action endpoint only supports 4 actions —
+  // "confirm", "extend", "terminate", "send_reminder" (confirmed by reading
+  // bulk_action_probation in services/probation_management.py). There is no
+  // "schedule_review" bulk action on the server; kept local-only rather
+  // than fabricating an endpoint.
   const handleBulkScheduleReview = (employees) => {
     const updatedEmployees = probationEmployees.map(emp => {
       if (selectedEmployees.includes(emp.id)) {
@@ -426,56 +404,63 @@ const ProbationManagement = () => {
       return emp;
     });
     setProbationEmployees(updatedEmployees);
-    showVisualFeedback(`Reviews scheduled for ${employees.length} employees`);
+    showVisualFeedback(`Reviews scheduled for ${employees.length} employees (not persisted — no backend bulk "schedule review" action exists)`);
   };
 
-  const handleBulkSendReminder = (employees) => {
-    showVisualFeedback(`Reminders sent to ${employees.length} employees`);
+  const handleBulkSendReminder = async (employees) => {
+    try {
+      await apiCall(API_ENDPOINTS.PROBATION.BULK_ACTION, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmation_ids: employees.map(e => e.confirmationId),
+          action: 'send_reminder',
+        }),
+      });
+      showVisualFeedback(`Reminders sent to ${employees.length} employees`);
+    } catch (err) {
+      alert(`Failed to send reminders: ${err.message}`);
+    }
   };
 
-  const handleBulkExtendProbation = (employees) => {
-    const updatedEmployees = probationEmployees.map(emp => {
-      if (selectedEmployees.includes(emp.id)) {
-        const extensionDays = parseInt(bulkAction.extensionDays);
-        const currentEndDate = new Date(emp.probationEndDate);
-        currentEndDate.setDate(currentEndDate.getDate() + extensionDays);
-
-        return {
-          ...emp,
-          status: 'extended',
-          probationEndDate: currentEndDate.toISOString().split('T')[0],
-          extensionCount: (emp.extensionCount || 0) + 1,
-          extendedTo: currentEndDate.toISOString().split('T')[0],
-          daysRemaining: calculateDaysRemaining(currentEndDate),
-          riskLevel: 'high',
-          progress: Math.min(100, emp.progress + 10)
-        };
-      }
-      return emp;
-    });
-    setProbationEmployees(updatedEmployees);
-    showVisualFeedback(`Probation extended for ${employees.length} employees`);
+  const handleBulkExtendProbation = async (employees) => {
+    // NOTE: the backend's bulk "extend" action always adds a fixed 90 days
+    // to probation_end_date (hardcoded in services/probation_management.py)
+    // — it ignores bulkAction.extensionDays entirely. Flagging since this
+    // UI lets HR pick a custom day count that the backend won't honor for
+    // bulk extensions (the single-employee extend flow above does respect
+    // a custom date).
+    try {
+      await apiCall(API_ENDPOINTS.PROBATION.BULK_ACTION, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmation_ids: employees.map(e => e.confirmationId),
+          action: 'extend',
+        }),
+      });
+      await loadProbationList();
+      showVisualFeedback(`Probation extended for ${employees.length} employees (backend applies a fixed 90-day extension)`);
+    } catch (err) {
+      alert(`Failed to extend probation: ${err.message}`);
+    }
   };
 
-  const handleBulkConfirmEmployees = (employees) => {
-    const updatedEmployees = probationEmployees.map(emp => {
-      if (selectedEmployees.includes(emp.id)) {
-        const confirmationDate = bulkAction.effectiveDate || new Date().toISOString().split('T')[0];
-        const letterId = bulkAction.generateLetters ? `CONF-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}-${emp.employeeId}` : null;
-
-        return {
-          ...emp,
-          status: 'completed',
-          progress: 100,
-          confirmationDate: confirmationDate,
-          confirmationLetterId: letterId,
-          currentRating: 'Meets Expectations'
-        };
-      }
-      return emp;
-    });
-    setProbationEmployees(updatedEmployees);
-    showVisualFeedback(`${employees.length} employees confirmed successfully`);
+  const handleBulkConfirmEmployees = async (employees) => {
+    try {
+      await apiCall(API_ENDPOINTS.PROBATION.BULK_ACTION, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmation_ids: employees.map(e => e.confirmationId),
+          action: 'confirm',
+        }),
+      });
+      await loadProbationList();
+      showVisualFeedback(`${employees.length} employees confirmed successfully`);
+    } catch (err) {
+      alert(`Failed to confirm employees: ${err.message}`);
+    }
   };
 
   const handleBulkExportData = (employees) => {
@@ -580,89 +565,64 @@ const ProbationManagement = () => {
     setReviewStep('manager');
   };
 
-  const handleSubmitReview = (e) => {
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const handleSubmitReview = async (e) => {
     if (e) e.preventDefault();
 
-    const updatedEmployees = probationEmployees.map(emp => {
-      if (emp.id === selectedEmployee.id) {
-        const updatedEmp = { ...emp };
-        const reviewKey = `review${reviewForm.reviewType === '30_day' ? '30' : reviewForm.reviewType === '60_day' ? '60' : '90'}`;
+    const milestoneMap = { '30_day': '30', '60_day': '60', '90_day': '90', final: 'final' };
+    const ratingLabel = reviewForm.rating.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const combinedRemarks = [
+      reviewForm.managerComments,
+      reviewForm.hrComments,
+      reviewForm.selfAssessment,
+    ].filter(Boolean).join(' | ') || null;
 
-        if (reviewForm.reviewType !== 'final') {
-          updatedEmp[reviewKey] = {
-            completed: true,
-            date: reviewForm.reviewDate,
-            rating: reviewForm.rating.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-          };
-        }
+    setSubmittingReview(true);
+    try {
+      // NOTE: reading services/probation_management.py's complete_milestone,
+      // only milestone === "final" actually updates the employee's status/
+      // rating on the server. Submitting a 30/60/90-day review logs a
+      // review row (visible in reports) but does NOT flip the
+      // milestone30Done/60Done/90Done flags shown elsewhere in this UI —
+      // that's a real gap in the backend's own logic, not something fixable
+      // from this file. Flagging rather than faking the checkbox update.
+      await apiCall(API_ENDPOINTS.PROBATION.MILESTONE(selectedEmployee.confirmationId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmation_id: selectedEmployee.confirmationId,
+          milestone: milestoneMap[reviewForm.reviewType] || reviewForm.reviewType,
+          rating: ratingLabel,
+          remarks: combinedRemarks,
+        }),
+      });
+      await loadProbationList();
 
-        updatedEmp.currentRating = reviewForm.rating.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-        updatedEmp.progress = Math.min(100, updatedEmp.progress + 25);
+      // Local review-history entry for this session's UI — the backend's
+      // ProbationReview row doesn't expose a GET endpoint to list history
+      // back out, so this stays as an in-memory log rather than a real
+      // synced read.
+      setReviewHistory(prev => [...prev, {
+        id: prev.length + 1,
+        employeeId: selectedEmployee.employeeId,
+        reviewType: reviewForm.reviewType.replace('_', ' ').toUpperCase(),
+        reviewDate: reviewForm.reviewDate,
+        reviewer: 'HR Manager',
+        rating: ratingLabel,
+        managerComments: reviewForm.managerComments,
+        hrComments: reviewForm.hrComments,
+        selfAssessment: reviewForm.selfAssessment,
+        status: 'completed',
+      }]);
 
-        if (reviewForm.reviewType === 'final') {
-          if (reviewForm.recommendation === 'confirm') {
-            updatedEmp.status = 'completed';
-            updatedEmp.progress = 100;
-          } else if (reviewForm.recommendation === 'extend') {
-            updatedEmp.status = 'extended';
-            updatedEmp.riskLevel = 'high';
-          }
-        } else if (reviewForm.recommendation === 'extend' || reviewForm.rating === 'needs_improvement' || reviewForm.rating === 'unsatisfactory') {
-          updatedEmp.status = 'at_risk';
-          updatedEmp.riskLevel = 'high';
-        }
-
-        updatedEmp.lastReviewDate = reviewForm.reviewDate;
-        if (reviewForm.reviewType === '30_day') {
-          updatedEmp.nextReviewDate = calculateNextReviewDate(reviewForm.reviewDate, 30);
-        } else if (reviewForm.reviewType === '60_day') {
-          updatedEmp.nextReviewDate = calculateNextReviewDate(reviewForm.reviewDate, 30);
-        } else if (reviewForm.reviewType === '90_day') {
-          updatedEmp.nextReviewDate = calculateNextReviewDate(reviewForm.reviewDate, 0);
-        }
-
-        return updatedEmp;
-      }
-      return emp;
-    });
-
-    setProbationEmployees(updatedEmployees);
-
-    probationAPI.completeMilestone(selectedEmployee.confirmationId ?? selectedEmployee.id, {
-      milestone: reviewForm.reviewType,
-      rating: reviewForm.rating,
-      remarks: reviewForm.managerComments || reviewForm.hrComments || undefined,
-    }).catch(err => console.error('Error recording probation milestone:', err));
-
-    const newReview = {
-      id: reviewHistory.length + 1,
-      employeeId: selectedEmployee.employeeId,
-      reviewType: reviewForm.reviewType.replace('_', ' ').toUpperCase(),
-      reviewDate: reviewForm.reviewDate,
-      reviewer: 'HR Manager',
-      rating: reviewForm.rating.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      managerComments: reviewForm.managerComments,
-      skipLevelManagerComments: reviewForm.skipLevelManagerComments,
-      skipLevelManager: reviewForm.skipLevelManager,
-      hrComments: reviewForm.hrComments,
-      hrRecommendation: reviewForm.hrRecommendation,
-      selfAssessment: reviewForm.selfAssessment,
-      selfRating: reviewForm.selfRating,
-      achievements: reviewForm.achievements,
-      challenges: reviewForm.challenges,
-      goals: reviewForm.goals,
-      recommendations: reviewForm.recommendations,
-      status: 'completed',
-      attachments: reviewForm.attachments.map(f => f.name || f),
-      actionItems: reviewForm.actionItems,
-      meetingScheduled: reviewForm.meetingScheduled,
-      meetingDate: reviewForm.meetingDate,
-      meetingTime: reviewForm.meetingTime
-    };
-
-    setReviewHistory([newReview, ...reviewHistory]);
-    setShowReviewModal(false);
-    setReviewStep('self');
+      setShowReviewModal(false);
+      alert('Review submitted successfully');
+    } catch (err) {
+      alert(`Failed to submit review: ${err.message}`);
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   const handleScheduleMeeting = (employee, reviewType) => {
@@ -717,61 +677,50 @@ const ProbationManagement = () => {
     setShowExtendModal(true);
   };
 
-  const handleSubmitExtension = (e) => {
+  const handleSubmitExtension = async (e) => {
     e.preventDefault();
     if (!isValidDate(extensionForm.newEndDate)) {
       alert('Please select a valid new end date');
       return;
     }
-    const updatedEmployees = probationEmployees.map(emp => {
-      if (emp.id === selectedEmployee.id) {
-        const newEndDate = new Date(extensionForm.newEndDate);
-        const daysRemaining = calculateDaysRemaining(newEndDate);
-        return {
-          ...emp,
-          status: 'extended',
-          probationEndDate: extensionForm.newEndDate,
-          extensionCount: (emp.extensionCount || 0) + 1,
-          extendedTo: extensionForm.newEndDate,
-          daysRemaining: daysRemaining,
-          probationType: 'extended',
-          riskLevel: 'high',
-          progress: Math.min(100, emp.progress + 10)
-        };
-      }
-      return emp;
-    });
-    setProbationEmployees(updatedEmployees);
-    setShowExtendModal(false);
-    probationAPI.updateStatus(selectedEmployee.confirmationId ?? selectedEmployee.id, {
-      status: 'Extended',
-      extended_till: extensionForm.newEndDate,
-      remarks: extensionForm.reason,
-    }).catch(err => console.error('Error extending probation:', err));
-    alert(`Probation extended for ${selectedEmployee.name} until ${formatDate(extensionForm.newEndDate)}`);
+    try {
+      await apiCall(API_ENDPOINTS.PROBATION.STATUS(selectedEmployee.confirmationId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Extended',
+          extended_till: extensionForm.newEndDate,
+          remarks: extensionForm.reason || null,
+        }),
+      });
+      await loadProbationList();
+      setShowExtendModal(false);
+      alert(`Probation extended for ${selectedEmployee.name} until ${formatDate(extensionForm.newEndDate)}`);
+    } catch (err) {
+      alert(`Failed to extend probation: ${err.message}`);
+    }
   };
 
-  const handleConfirmEmployee = () => {
+  const handleConfirmEmployee = async () => {
+    // NOTE: confirmationLetterId generation stays client-side — there's no
+    // letter/document model on the backend (same gap as the confirmation
+    // letter modal flagged further below).
     const letterId = `CONF-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-    const updatedEmployees = probationEmployees.map(emp => {
-      if (emp.id === selectedEmployee.id) {
-        return {
-          ...emp,
-          status: 'completed',
-          progress: 100,
-          confirmationDate: new Date().toISOString().split('T')[0],
-          confirmationLetterId: letterId
-        };
-      }
-      return emp;
-    });
-    setProbationEmployees(updatedEmployees);
-    setShowConfirmModal(false);
-    probationAPI.updateStatus(selectedEmployee.confirmationId ?? selectedEmployee.id, {
-      status: 'Completed',
-      confirmation_date: new Date().toISOString().split('T')[0],
-    }).catch(err => console.error('Error confirming employee:', err));
-    alert(`Employee confirmed successfully! Letter ID: ${letterId}`);
+    try {
+      await apiCall(API_ENDPOINTS.PROBATION.STATUS(selectedEmployee.confirmationId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Completed',
+          confirmation_date: new Date().toISOString().split('T')[0],
+        }),
+      });
+      await loadProbationList();
+      setShowConfirmModal(false);
+      alert(`Employee confirmed successfully! Letter ID: ${letterId}`);
+    } catch (err) {
+      alert(`Failed to confirm employee: ${err.message}`);
+    }
   };
 
   const handleEarlyConfirmation = (employee) => {
@@ -795,28 +744,26 @@ const ProbationManagement = () => {
     setShowTerminateModal(true);
   };
 
-  const handleSubmitTermination = (e) => {
+  const handleSubmitTermination = async (e) => {
     e.preventDefault();
-    const updatedEmployees = probationEmployees.map(emp => {
-      if (emp.id === selectedEmployee.id) {
-        return {
-          ...emp,
-          status: 'terminated',
-          terminationDate: terminationForm.effectiveDate,
-          terminationReason: terminationForm.reason,
-          terminationComments: terminationForm.comments,
-          progress: 0
-        };
-      }
-      return emp;
-    });
-    setProbationEmployees(updatedEmployees);
-    setShowTerminateModal(false);
-    probationAPI.updateStatus(selectedEmployee.confirmationId ?? selectedEmployee.id, {
-      status: 'Terminated',
-      remarks: [terminationForm.reason, terminationForm.comments].filter(Boolean).join(' — '),
-    }).catch(err => console.error('Error terminating probation:', err));
-    alert(`Probation terminated for ${selectedEmployee.name}`);
+    // NOTE: terminationForm.effectiveDate, noticePeriodWaived, and
+    // severancePackage have no matching column on ProbationStatusUpdateSchema
+    // — folded into remarks as free text, or not sent at all.
+    try {
+      await apiCall(API_ENDPOINTS.PROBATION.STATUS(selectedEmployee.confirmationId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Terminated',
+          remarks: [terminationForm.reason, terminationForm.comments].filter(Boolean).join(' — ') || null,
+        }),
+      });
+      await loadProbationList();
+      setShowTerminateModal(false);
+      alert(`Probation terminated for ${selectedEmployee.name}`);
+    } catch (err) {
+      alert(`Failed to terminate probation: ${err.message}`);
+    }
   };
 
   const handleSelectEmployee = (id) => {
@@ -972,9 +919,30 @@ const ProbationManagement = () => {
     );
   };
 
-  const handleGenerateReport = () => {
-    alert('Generating PDF report...');
-    setShowReportModal(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  const handleGenerateReport = async () => {
+    // NOTE: GET /probation-management/reports returns aggregate report
+    // data (confirmation rate, avg probation days, by-department/risk/
+    // rating breakdowns) — real and fetched below. Actually rendering that
+    // into a downloadable PDF/Excel file is a separate concern with no
+    // backend endpoint for file generation; left as a browser alert as
+    // a placeholder for that follow-up, same as before, but now backed
+    // by real numbers logged to the console for verification.
+    setGeneratingReport(true);
+    try {
+      const params = new URLSearchParams();
+      if (reportFilters.department !== 'all') params.set('department', reportFilters.department);
+      if (reportFilters.status !== 'all') params.set('status', reportFilters.status);
+      const report = await apiCall(`${API_ENDPOINTS.PROBATION.REPORTS}?${params.toString()}`);
+      console.log('Probation report data:', report);
+      alert(`Report generated — ${report.totalOnProbation} on probation, ${report.confirmed} confirmed, ${report.confirmationRate}% confirmation rate. (Full PDF export not implemented — no file-generation endpoint on the backend yet.)`);
+      setShowReportModal(false);
+    } catch (err) {
+      alert(`Failed to generate report: ${err.message}`);
+    } finally {
+      setGeneratingReport(false);
+    }
   };
 
   return (

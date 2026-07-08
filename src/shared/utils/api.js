@@ -1480,6 +1480,196 @@ export const probationAPI = {
 };
 
 // ==========================================
+// BUDDY / MENTOR PROGRAM APIs
+// ==========================================
+export const buddyMentorAPI = {
+  getDashboard: () => apiCall('/buddy-mentor/dashboard'),
+
+  listPrograms: () => apiCall('/buddy-mentor/programs'),
+  getProgram: (id) => apiCall(`/buddy-mentor/programs/${id}`),
+  // { program_name, program_type, description?, department?, location?,
+  //   start_date, end_date?, status?, created_by, assignment_rules?: [{rule_text, is_mandatory, weight_score}] }
+  createProgram: (payload) =>
+    apiCall('/buddy-mentor/programs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  updateProgram: (id, payload) =>
+    apiCall(`/buddy-mentor/programs/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  deleteProgram: (id) =>
+    apiCall(`/buddy-mentor/programs/${id}`, { method: 'DELETE' }),
+
+  addRule: (programId, payload) =>
+    apiCall(`/buddy-mentor/programs/${programId}/rules`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  deleteRule: (ruleId) =>
+    apiCall(`/buddy-mentor/rules/${ruleId}`, { method: 'DELETE' }),
+
+  getProgramPairings: (programId) =>
+    apiCall(`/buddy-mentor/programs/${programId}/pairings`),
+  // { program_id, buddy_id, new_joiner_id, assignment_date, match_score?, status? }
+  // buddy_id / new_joiner_id are Employee record ids (see employeeAPI.list()) —
+  // there is no dedicated "available buddies" / "unassigned new joiners"
+  // endpoint on the backend, so the caller has to source and filter that
+  // list itself (e.g. from employeeAPI.list() cross-referenced with
+  // getProgramPairings() to exclude people already paired).
+  createPairing: (payload) =>
+    apiCall('/buddy-mentor/pairings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  updatePairing: (pairingId, payload) =>
+    apiCall(`/buddy-mentor/pairings/${pairingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  autoMatch: (programId, buddyId, newJoinerId) =>
+    apiCall('/buddy-mentor/pairings/auto-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ program_id: programId, buddy_id: buddyId, new_joiner_id: newJoinerId })
+    }),
+
+  // { pairing_id, submitted_by, overall_rating(1-5), responsiveness?, knowledge_sharing?, support?, communication?, *_comments? }
+  submitFeedback: (payload) =>
+    apiCall('/buddy-mentor/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  getPairingFeedback: (pairingId) =>
+    apiCall(`/buddy-mentor/pairings/${pairingId}/feedback`),
+
+  // { pairing_id, communication_type, date, duration_minutes?, next_checkin_date?, topics_discussed?, follow_up_actions?, additional_notes? }
+  recordCommunication: (payload) =>
+    apiCall(`/buddy-mentor/pairings/${payload.pairing_id}/communications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  getPairingCommunications: (pairingId) =>
+    apiCall(`/buddy-mentor/pairings/${pairingId}/communications`),
+
+  getProgramAnalytics: (programId) =>
+    apiCall(`/buddy-mentor/programs/${programId}/analytics`),
+};
+
+// ==========================================
+// INDUCTION & ORIENTATION APIs
+// ==========================================
+export const inductionAPI = {
+  getStats: () => apiCall('/api/induction/stats'),
+
+  listPrograms: () => apiCall('/api/induction/programs'),
+  // { name, description?, type: 'batch'|'individual', status?, start_date, end_date, max_participants? }
+  createProgram: (payload) =>
+    apiCall('/api/induction/programs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  updateProgram: (id, payload) =>
+    apiCall(`/api/induction/programs/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  deleteProgram: (id) =>
+    apiCall(`/api/induction/programs/${id}`, { method: 'DELETE' }),
+
+  listParticipants: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.search) q.append('search', params.search);
+    if (params.department) q.append('department', params.department);
+    if (params.programId) q.append('program_id', params.programId);
+    const qs = q.toString();
+    return apiCall(`/api/induction/participants${qs ? `?${qs}` : ''}`);
+  },
+  // { employee_id, program_id }
+  addParticipant: (payload) =>
+    apiCall('/api/induction/participants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  // { employee_ids: [...], program_id }
+  bulkAddParticipants: (employeeIds, programId) =>
+    apiCall('/api/induction/participants/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_ids: employeeIds, program_id: programId })
+    }),
+  // { attendance: 'Present' | 'Absent' | 'Not Marked' }
+  markAttendance: (participantId, attendance) =>
+    apiCall(`/api/induction/participants/${participantId}/attendance`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attendance })
+    }),
+  // { updates: [{ participant_id, attendance }, ...] }
+  bulkMarkAttendance: (updates) =>
+    apiCall('/api/induction/participants/bulk-attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates })
+    }),
+  removeParticipant: (participantId) =>
+    apiCall(`/api/induction/participants/${participantId}`, { method: 'DELETE' }),
+
+  listSessions: () => apiCall('/api/induction/sessions'),
+  // { program_id, title, description?, session_date, start_time, end_time, duration_hrs?, mode?, status? }
+  createSession: (payload) =>
+    apiCall('/api/induction/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  updateSession: (id, payload) =>
+    apiCall(`/api/induction/sessions/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  deleteSession: (id) =>
+    apiCall(`/api/induction/sessions/${id}`, { method: 'DELETE' }),
+
+  listPolicies: () => apiCall('/api/induction/policies'),
+  // { title, category: 'general'|'compliance'|'security', version, effective_date, status?, total_employees?, total_modules? }
+  createPolicy: (payload) =>
+    apiCall('/api/induction/policies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  updatePolicy: (id, payload) =>
+    apiCall(`/api/induction/policies/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  deletePolicy: (id) =>
+    apiCall(`/api/induction/policies/${id}`, { method: 'DELETE' }),
+
+  // { acknowledged, modules_completed? }
+  acknowledgePolicy: (policyId, employeeId, payload) =>
+    apiCall(`/api/induction/policies/${policyId}/acknowledge/${employeeId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+};
+
+// ==========================================
 // Export default for convenience
 // ==========================================
 const apiServices = {
@@ -1508,6 +1698,8 @@ const apiServices = {
   superAdminAPI,
   bgvAPI,
   probationAPI,
+  buddyMentorAPI,
+  inductionAPI,
 };
 
 export default apiServices;
