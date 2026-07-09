@@ -10,7 +10,7 @@ import { Search,  Filter,  Download,  Printer,  Plus,  Edit,  Eye,  Home,  Calen
         Camera,  Wifi,  WifiOff,  Smartphone,  LogOut,  Monitor,  Fingerprint,  BarChart3,  Users,  Calendar as CalendarIcon,  Settings,  RefreshCw,
         Upload,  FileText,  ExternalLink,  MoreVertical,  User,} from "lucide-react";
 import { Icon } from "@iconify/react";
-import { attendanceAPI } from "../../../shared/utils/api";
+import { attendanceAPI, employeeAPI } from "../../../shared/utils/api";
 
 // ==================== CONTEXT API ====================
 const AttendanceContext = React.createContext();
@@ -322,6 +322,63 @@ const AttendanceCapture = () => {
   const [fieldEmployees, setFieldEmployees] = useState([]);
   const [wfhRequests, setWfhRequests] = useState([]);
   // ==================== EFFECTS ====================
+  // Employees here were always an empty local array (initialEmployees=[]).
+  // Loading the real directory via employeeAPI (same one AllEmployees.jsx
+  // uses). Kept `.id` as the employeeId-style string for backward
+  // compatibility with the many `employees.find(e => e.id === selectedEmployee)`
+  // call sites already in this file, and added `.numericId` (the real FK)
+  // for actual GPS/web/biometric check-in API calls, which need a true
+  // integer employee_id.
+  const loadEmployees = async () => {
+    try {
+      const list = await employeeAPI.list();
+      dispatch({
+        type: "SET_EMPLOYEES",
+        payload: (list || []).map((e) => ({
+          id: e.employeeId,
+          numericId: e.id,
+          name: e.name,
+          department: e.department,
+          designation: e.designation,
+        })),
+      });
+    } catch (err) {
+      console.error("Failed to load employees:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadGeoFences = async () => {
+    try {
+      const fences = await attendanceAPI.listGeoFences(true);
+      dispatch({
+        type: "SET_LOCATIONS",
+        payload: (fences || []).map((f) => ({
+          id: f.id,
+          backendId: f.id,
+          name: f.name,
+          radius: f.radius_meters,
+          lat: f.latitude,
+          lng: f.longitude,
+          address: `${f.latitude.toFixed(4)}, ${f.longitude.toFixed(4)}`,
+          employees: 0,
+          createdAt: f.created_at,
+        })),
+      });
+    } catch (err) {
+      console.error("Failed to load geo-fences:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadGeoFences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [devicesLoadError, setDevicesLoadError] = useState(null);
 
@@ -1328,6 +1385,12 @@ const AttendanceCapture = () => {
       const selectedEmp = employees.find((e) => e.id === selectedEmployee);
       const now = new Date();
 
+      if (!selectedEmp?.numericId) {
+        alert("Selected employee record is missing a linked employee ID — cannot submit GPS check-in.");
+        setGpsState((prev) => ({ ...prev, [actionKey]: false }));
+        return;
+      }
+
       const attendanceRecord = {
         id: Date.now(),
         employeeId: selectedEmployee,
@@ -1354,23 +1417,42 @@ const AttendanceCapture = () => {
 
         alert(`✅ ${type} recorded offline (${newQueue.length} pending sync)`);
       } else {
-        // Online storage
-        dispatch({ type: "ADD_ATTENDANCE", payload: attendanceRecord });
+        // Real submission — backend re-validates geo-fence server-side too
+        // (client-side check above is a fast pre-flight UX gate, not the
+        // authority).
+        try {
+          const result = await attendanceAPI.gpsCheckIn({
+            employee_id: selectedEmp.numericId,
+            latitude: locationResult.location.lat,
+            longitude: locationResult.location.lng,
+            punch_type: type === "checkin" ? "IN" : "OUT",
+            geo_fence_id: currentGeoFence?.matchedLocation?.backendId || null,
+          });
 
-        // Add punch record
-        const punch = {
-          id: Date.now(),
-          employeeId: selectedEmployee,
-          employeeName: selectedEmp?.name,
-          timestamp: now.toISOString(),
-          type: type,
-          method: "gps",
-          location: locationResult.location,
-          verified: true,
-        };
-        dispatch({ type: "ADD_PUNCH", payload: punch });
+          dispatch({ type: "ADD_ATTENDANCE", payload: { ...attendanceRecord, id: result.id } });
 
-        alert(`✅ GPS ${type} successful!`);
+          const punch = {
+            id: result.id,
+            employeeId: selectedEmployee,
+            employeeName: selectedEmp?.name,
+            timestamp: now.toISOString(),
+            type: type,
+            method: "gps",
+            location: locationResult.location,
+            verified: result.is_within_fence,
+          };
+          dispatch({ type: "ADD_PUNCH", payload: punch });
+
+          alert(
+            result.is_within_fence
+              ? `✅ GPS ${type} successful!`
+              : `⚠️ GPS ${type} recorded, but outside all geo-fences`
+          );
+        } catch (err) {
+          alert(`GPS ${type} failed: ${err.message}`);
+          setGpsState((prev) => ({ ...prev, [actionKey]: false }));
+          return;
+        }
       }
 
       // Clear selfie after use
@@ -1385,30 +1467,46 @@ const AttendanceCapture = () => {
   };
 
   // Add this function after your other functions but before renderGPSTab
-  const addGeoLocation = () => {
+  const [addingGeoFence, setAddingGeoFence] = useState(false);
+
+  const addGeoLocation = async () => {
     if (!userLocation || !newLocation.name) {
       alert("Please capture location and enter location name");
       return;
     }
 
-    const location = {
-      id: Date.now(),
-      name: newLocation.name,
-      radius: parseInt(newLocation.radius) || 100,
-      lat: userLocation.lat,
-      lng: userLocation.lng,
-      address:
-        newLocation.address ||
-        `Location near ${userLocation.lat.toFixed(
-          4
-        )}, ${userLocation.lng.toFixed(4)}`,
-      employees: 0,
-      createdAt: new Date().toISOString(),
-    };
+    setAddingGeoFence(true);
+    try {
+      const created = await attendanceAPI.addGeoFence({
+        name: newLocation.name,
+        latitude: userLocation.lat,
+        longitude: userLocation.lng,
+        radius_meters: parseInt(newLocation.radius) || 100,
+        is_active: true,
+      });
 
-    dispatch({ type: "ADD_LOCATION", payload: location });
-    setNewLocation({ name: "", radius: 100, address: "" });
-    alert("Geo-fence added successfully!");
+      const location = {
+        id: created.id,
+        backendId: created.id,
+        name: created.name,
+        radius: created.radius_meters,
+        lat: created.latitude,
+        lng: created.longitude,
+        address:
+          newLocation.address ||
+          `Location near ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`,
+        employees: 0,
+        createdAt: created.created_at,
+      };
+
+      dispatch({ type: "ADD_LOCATION", payload: location });
+      setNewLocation({ name: "", radius: 100, address: "" });
+      alert("Geo-fence added successfully!");
+    } catch (err) {
+      alert(`Failed to add geo-fence: ${err.message}`);
+    } finally {
+      setAddingGeoFence(false);
+    }
   };
 
   // Add this function to sync offline data:

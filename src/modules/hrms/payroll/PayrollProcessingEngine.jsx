@@ -11,6 +11,7 @@ import HoldSalaryModal from '../modal/HoldSalaryModal';
 import DetailsModal from '../modal/DetailsModal';
 import PayrollRunModal from '../modal/PayrollRunModal';
 import PayrollConfigModal from '../modal/PayrollConfigModal';
+import { payrollAPI } from '../../../shared/utils/api';
 
 const PayrollProcessingEngine = () => {
   const [activeSection, setActiveSection] = useState('configuration');
@@ -112,8 +113,51 @@ const PayrollProcessingEngine = () => {
     loadInitialData();
   }, []);
 
+  // Backend PayrollRunResponse -> local UI shape. Backend status values are
+  // "Draft"/"Approved"/"Paid" (Title Case); this component's own convention
+  // (getStatusBadge, the completedRuns/inProgressRuns stat counts) uses
+  // lowercase 'draft'/'processing'/'completed'. Approved is treated as
+  // "processing" here since that's this component's existing in-between
+  // state before a run is marked paid.
+  const mapRun = (r) => {
+    const statusMap = { Draft: 'draft', Approved: 'processing', Paid: 'completed' };
+    return {
+      id: r.id,
+      month: new Date(0, (r.run_month || 1) - 1).toLocaleDateString('en-US', { month: 'long' }) + ' ' + r.run_year,
+      status: statusMap[r.status] || (r.status || '').toLowerCase(),
+      totalAmount: Number(r.total_net_pay) || 0,
+      employeesCount: r.total_employees || 0,
+      processedDate: r.run_date ? r.run_date.split('T')[0] : null,
+      paidDate: r.status === 'Paid' ? (r.run_date ? r.run_date.split('T')[0] : null) : '',
+      type: 'regular',
+      runBy: r.run_by,
+      approvedBy: r.approved_by,
+      notes: r.notes,
+      details: {
+        totalEarnings: Number(r.total_gross) || 0,
+        totalDeductions: Number(r.total_deductions) || 0,
+        taxAmount: 0,
+        pfAmount: 0,
+        esiAmount: 0,
+        arrearsIncluded: 0,
+        loanEMI: 0,
+        advanceRecovery: 0,
+        heldEmployeesCount: 0,
+      },
+    };
+  };
+
+  const loadPayrollRuns = () => {
+    payrollAPI.listRuns()
+      .then((data) => setPayrollRuns(Array.isArray(data) ? data.map(mapRun) : []))
+      .catch((err) => {
+        console.error('Failed to load payroll runs:', err);
+        toast.error(err.message || 'Failed to load payroll runs');
+      });
+  };
+
   const loadInitialData = () => {
-    setPayrollRuns([]);
+    loadPayrollRuns();
     setValidationResults([]);
     setEmployees([]);
     setSalaryComponents([]);
@@ -135,6 +179,7 @@ const PayrollProcessingEngine = () => {
   const getStatusBadge = (status) => {
     const config = {
       'completed': { label: 'Completed', color: 'emerald' },
+      'draft': { label: 'Draft', color: 'gray' },
       'processing': { label: 'Processing', color: 'amber' },
       'pending': { label: 'Pending', color: 'blue' },
       'failed': { label: 'Failed', color: 'rose' },
@@ -201,6 +246,12 @@ const PayrollProcessingEngine = () => {
     setShowRunModal(true);
   };
 
+  // Creates a real Draft payroll run on the backend. IMPORTANT: this does
+  // NOT compute anyone's pay — the backend has no calculation engine (see
+  // payrollAPI.listRuns/createRun notes in api.js). This only creates the
+  // empty run shell; totals stay 0 until employees are individually added
+  // via addEmployeeToRun() with pre-computed figures, which isn't wired
+  // anywhere yet because nothing computes those figures.
   const handleStartPayrollProcessing = (type = 'regular') => {
     if (payrollLocked) {
       toast.error('Payroll is locked. Please unlock to run payroll.');
@@ -208,101 +259,69 @@ const PayrollProcessingEngine = () => {
     }
 
     setIsProcessing(true);
+    const now = new Date();
 
-    setTimeout(() => {
-      const newRun = {
-        id: `PAY${String(payrollRuns.length + 1).padStart(3, '0')}`,
-        month: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-        status: 'processing',
-        totalAmount: 1250000,
-        employeesCount: 85,
-        processedDate: new Date().toISOString().split('T')[0],
-        paidDate: '',
-        type: type,
-        details: {
-          totalEarnings: 1500000,
-          totalDeductions: 250000,
-          taxAmount: 150000,
-          pfAmount: 75000,
-          esiAmount: 25000,
-          arrearsIncluded: 0,
-          loanEMI: 5000,
-          advanceRecovery: 2000,
-          heldEmployeesCount: 0
-        }
-      };
-
-      setPayrollRuns([newRun, ...payrollRuns]);
-      setCurrentPayrollRun(newRun);
-      setShowRunModal(false);
-      setIsProcessing(false);
-
-      const newApproval = {
-        id: approvalWorkflow.length + 1,
-        payrollId: newRun.id,
-        approver: 'Finance Manager',
-        role: 'Finance',
-        status: 'pending',
-        submittedDate: new Date().toISOString().split('T')[0],
-        comments: 'Awaiting review'
-      };
-
-      setApprovalWorkflow([newApproval, ...approvalWorkflow]);
-      toast.success(`Payroll ${type} run started successfully!`);
-    }, 2000);
+    payrollAPI.createRun({
+      run_month: now.getMonth() + 1,
+      run_year: now.getFullYear(),
+      notes: type !== 'regular' ? `Type: ${type}` : undefined,
+    })
+      .then((created) => {
+        const newRun = mapRun(created);
+        setPayrollRuns((prev) => [newRun, ...prev]);
+        setCurrentPayrollRun(newRun);
+        toast.success(`Payroll ${type} run created as Draft. No employee pay has been calculated yet — this backend has no automatic computation, so employees still need to be added to this run individually once their figures are computed.`);
+      })
+      .catch((err) => {
+        console.error('Failed to create payroll run:', err);
+        toast.error(err.message || 'Failed to create payroll run');
+      })
+      .finally(() => {
+        setShowRunModal(false);
+        setIsProcessing(false);
+      });
   };
 
-  const handleApprovePayroll = (approvalId) => {
-    setApprovalWorkflow(approvalWorkflow.map(approval =>
-      approval.id === approvalId
-        ? {
-          ...approval,
-          status: 'approved',
-          approvedDate: new Date().toISOString().split('T')[0],
-          comments: 'Approved by Finance Manager'
-        }
-        : approval
-    ));
-
-    const approval = approvalWorkflow.find(a => a.id === approvalId);
-    if (approval) {
-      const relatedApprovals = approvalWorkflow.filter(a => a.payrollId === approval.payrollId);
-      const allApproved = relatedApprovals.every(a => a.status === 'approved');
-
-      if (allApproved) {
-        setPayrollRuns(runs =>
-          runs.map(run =>
-            run.id === approval.payrollId
-              ? { ...run, status: 'completed', paidDate: new Date().toISOString().split('T')[0] }
-              : run
-          )
-        );
-      }
-    }
-    toast.success('Payroll approved successfully!');
+  // The backend has NO multi-approver workflow model — a PayrollRun has a
+  // single `approved_by` string field and one `/approve` action, not a list
+  // of per-approver records with roles/comments/rejection reasons. So the
+  // "Approvals" tab's whole table (Payroll ID / Approver / Role / Status)
+  // has nothing real to source it from; `approvalWorkflow` is left empty by
+  // loadInitialData rather than fabricated. These two handlers are wired to
+  // the one real action that exists — approving the RUN itself — for
+  // whenever this tab gets a real data source. `handleRejectPayroll` has no
+  // backend equivalent at all (no "rejected" status transition exists).
+  const handleApprovePayroll = (runId) => {
+    payrollAPI.approveRun(runId)
+      .then(() => {
+        toast.success('Payroll approved successfully!');
+        loadPayrollRuns();
+      })
+      .catch((err) => {
+        console.error('Failed to approve payroll run:', err);
+        toast.error(err.message || 'Failed to approve payroll run');
+      });
   };
 
-  const handleRejectPayroll = (approvalId) => {
-    const comment = window.prompt('Please enter rejection reason:');
-    if (!comment) return;
-
-    setApprovalWorkflow(approvalWorkflow.map(approval =>
-      approval.id === approvalId
-        ? {
-          ...approval,
-          status: 'rejected',
-          rejectedDate: new Date().toISOString().split('T')[0],
-          comments: comment
-        }
-        : approval
-    ));
-    toast.info('Payroll rejected!');
+  const handleRejectPayroll = () => {
+    toast.error('Rejecting a payroll run isn\'t supported by the backend yet — only Draft → Approved → Paid transitions exist.');
   };
 
+  // Wired to the real /processing/config/lock and /config/unlock endpoints.
   const handleTogglePayrollLock = () => {
-    const newLockedState = !payrollLocked;
-    setPayrollLocked(newLockedState);
-    toast.success(`Payroll ${newLockedState ? 'locked' : 'unlocked'} successfully!`);
+    const action = payrollLocked ? payrollAPI.unlockPayroll : payrollAPI.lockPayroll;
+    const reason = payrollLocked ? undefined : (window.prompt('Reason for locking payroll (optional):') || undefined);
+
+    action(reason)
+      .then((res) => {
+        const nowLocked = res?.payroll_status === 'Locked' || !payrollLocked;
+        setPayrollLocked(nowLocked);
+        toast.success(`Payroll ${nowLocked ? 'locked' : 'unlocked'} successfully!`);
+      })
+      .catch((err) => {
+        console.error('Failed to toggle payroll lock:', err);
+        toast.error(err.message || 'Failed to update payroll lock status');
+      });
   };
 
   const handleRefreshData = () => {

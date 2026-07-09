@@ -1290,9 +1290,6 @@ export const adminAPI = {
 export const employeeAPI = {
   list: () => apiCall('/api/employees/'),
   getById: (id) => apiCall(`/api/employees/${id}`),
-  create: (data) => apiCall('/api/employees/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  update: (id, data) => apiCall(`/api/employees/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  remove: (id, hard = false) => apiCall(`/api/employees/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
   deactivate: (id) => apiCall(`/api/employees/${id}/deactivate`, { method: 'PATCH' }),
   activate: (id) => apiCall(`/api/employees/${id}/activate`, { method: 'PATCH' }),
   createMaster: (data) => apiCall('/api/employees/master/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
@@ -1312,90 +1309,140 @@ export const employeeAPI = {
 };
 
 // ==========================================
-// ATTENDANCE APIs
+// PAYROLL APIs
 // ==========================================
-export const attendanceAPI = {
-  // Daily Punches (routers/HR_Automation/attendance/routers/daily_punches.py)
-  // — matches the filter set used by DailyAttendance.jsx exactly (business
-  // unit/location/cost center/department/late/absent/no-punches).
-  listDailyPunches: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiCall(`/api/attendance/daily-punches/list${qs ? `?${qs}` : ''}`);
-  },
-  getPunchFilterOptions: () => apiCall('/api/attendance/daily-punches/filter-options'),
-  getEmployeePunches: (employeeId, punchDate) =>
-    apiCall(`/api/attendance/daily-punches/employee/${employeeId}?punch_date=${punchDate}`),
-  recordPunch: (data) => apiCall('/api/attendance/daily-punches/punches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  addManualPunch: (data) => apiCall('/api/attendance/daily-punches/manual-punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updatePunch: (punchId, data) => apiCall(`/api/attendance/daily-punches/punches/${punchId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  deletePunch: (punchId) => apiCall(`/api/attendance/daily-punches/punches/${punchId}`, { method: 'DELETE' }),
-  regularisePunch: (data) => apiCall('/api/attendance/daily-punches/regularise', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  markProcessed: (summaryIds) => apiCall('/api/attendance/daily-punches/mark-processed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(summaryIds) }),
-  exportDailyPunchesUrl: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return `${BASE_URL}/api/attendance/daily-punches/export${qs ? `?${qs}` : ''}`;
-  },
-
-  // Attendance Capture & Tracking (routers/.../attendance_capture.py, mounted at /api/attendance/capture)
-  getDashboardSummary: () => apiCall('/api/attendance/capture/dashboard/summary'),
-
-  // Biometric devices
-  listDevices: (activeOnly = false) => apiCall(`/api/attendance/capture/biometric/devices${activeOnly ? '?active_only=true' : ''}`),
-  getDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}`),
-  addDevice: (data) => apiCall('/api/attendance/capture/biometric/devices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updateDevice: (id, data) => apiCall(`/api/attendance/capture/biometric/devices/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  deleteDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}`, { method: 'DELETE' }),
-  syncDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}/sync`, { method: 'POST' }),
-  syncAllDevices: () => apiCall('/api/attendance/capture/biometric/sync-all', { method: 'POST' }),
-  reconnectOfflineDevices: () => apiCall('/api/attendance/capture/biometric/reconnect-offline', { method: 'POST' }),
-  getSyncLogs: (deviceId, limit = 20) => apiCall(`/api/attendance/capture/biometric/sync-logs?${deviceId ? `device_id=${deviceId}&` : ''}limit=${limit}`),
-  simulateBiometricPunch: (data) => apiCall('/api/attendance/capture/biometric/simulate-punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  getPunchStatistics: (employeeId) => apiCall(`/api/attendance/capture/biometric/punch-stats/${employeeId}`),
-
-  // GPS / Geo-fencing
-  listGeoFences: (activeOnly = true) => apiCall(`/api/attendance/capture/gps/geo-fences?active_only=${activeOnly}`),
-  addGeoFence: (data) => apiCall('/api/attendance/capture/gps/geo-fences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updateGeoFence: (id, data) => apiCall(`/api/attendance/capture/gps/geo-fences/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  deleteGeoFence: (id) => apiCall(`/api/attendance/capture/gps/geo-fences/${id}`, { method: 'DELETE' }),
-  gpsCheckIn: (data) => apiCall('/api/attendance/capture/gps/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  getGpsStatistics: (employeeId) => apiCall(`/api/attendance/capture/gps/statistics${employeeId ? `?employee_id=${employeeId}` : ''}`),
-  getGpsRecentActivity: (limit = 20) => apiCall(`/api/attendance/capture/gps/recent-activity?limit=${limit}`),
-
-  // Web portal check-in / IP whitelist
-  listIpWhitelist: () => apiCall('/api/attendance/capture/web/ip-whitelist'),
-  addIpWhitelist: (data) => apiCall('/api/attendance/capture/web/ip-whitelist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  removeIpWhitelist: (id) => apiCall(`/api/attendance/capture/web/ip-whitelist/${id}`, { method: 'DELETE' }),
-  checkMyIp: () => apiCall('/api/attendance/capture/web/check-ip'),
-  webCheckIn: (data) => apiCall('/api/attendance/capture/web/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  markWfh: (employeeId, workDate) => apiCall(`/api/attendance/capture/web/mark-wfh?employee_id=${employeeId}${workDate ? `&work_date=${workDate}` : ''}`, { method: 'POST' }),
-  getWebRecentActivity: (limit = 20) => apiCall(`/api/attendance/capture/web/recent-activity?limit=${limit}`),
-
-  // Daily attendance (capture-scoped view) + settings
-  getCaptureDailyAttendance: (employeeId, attDate) => {
-    const params = new URLSearchParams();
-    if (employeeId) params.set('employee_id', employeeId);
-    if (attDate) params.set('att_date', attDate);
-    return apiCall(`/api/attendance/capture/daily${params.toString() ? `?${params}` : ''}`);
-  },
-  getCaptureTodayAttendance: () => apiCall('/api/attendance/capture/daily/today'),
-  getAttendanceSettings: () => apiCall('/api/attendance/capture/settings'),
-  updateAttendanceSettings: (data) => apiCall('/api/attendance/capture/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  resetAttendanceSettings: () => apiCall('/api/attendance/capture/settings/reset', { method: 'POST' }),
-};
-
 export const payrollAPI = {
+  // ---------------- Salary Structure: dashboard ----------------
+  getSalaryStructureDashboard: () => apiCall('/api/payroll/salary-structures/dashboard'),
+
+  // ---------------- Salary Structure: components (master data) ----------------
+  getComponentsMaster: () => apiCall('/api/payroll/salary-structures/components'),
+  createComponent: (data) => apiCall('/api/payroll/salary-structures/components', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listComponents: (category, isActive) => {
+    const q = new URLSearchParams();
+    if (category) q.append('category', category);
+    if (isActive != null) q.append('is_active', isActive);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/salary-structures/components/list${qs ? `?${qs}` : ''}`);
+  },
+  getComponent: (componentId) => apiCall(`/api/payroll/salary-structures/components/${componentId}`),
+  updateComponent: (componentId, data) => apiCall(`/api/payroll/salary-structures/components/${componentId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteComponent: (componentId) => apiCall(`/api/payroll/salary-structures/components/${componentId}`, { method: 'DELETE' }),
+
+  // ---------------- Salary Structure: templates ----------------
+  getStructureTemplatesOverview: () => apiCall('/api/payroll/salary-structures/templates'),
+  createStructureTemplate: (data) => apiCall('/api/payroll/salary-structures/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getStructureTemplate: (templateId) => apiCall(`/api/payroll/salary-structures/templates/${templateId}`),
+  updateStructureTemplate: (templateId, data) => apiCall(`/api/payroll/salary-structures/templates/${templateId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  activateStructureTemplate: (templateId) => apiCall(`/api/payroll/salary-structures/templates/${templateId}/activate`, { method: 'POST' }),
+  deactivateStructureTemplate: (templateId) => apiCall(`/api/payroll/salary-structures/templates/${templateId}/deactivate`, { method: 'POST' }),
+  deleteStructureTemplate: (templateId) => apiCall(`/api/payroll/salary-structures/templates/${templateId}`, { method: 'DELETE' }),
+
+  // ---------------- Salary Structure: assignments (employee <-> template) ----------------
+  listAssignments: () => apiCall('/api/payroll/salary-structures/assignments'),
+  createAssignment: (data) => apiCall('/api/payroll/salary-structures/assignments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateAssignment: (assignmentId, data) => apiCall(`/api/payroll/salary-structures/assignments/${assignmentId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteAssignment: (assignmentId) => apiCall(`/api/payroll/salary-structures/assignments/${assignmentId}`, { method: 'DELETE' }),
+
+  // ---------------- Salary Structure: simple percent-based structure + employee mapping ----------------
   listStructures: () => apiCall('/api/payroll/salary-structures/'),
   createStructure: (data) => apiCall('/api/payroll/salary-structures/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  assignStructure: (data) => apiCall('/api/payroll/salary-structures/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getStructure: (structureId) => apiCall(`/api/payroll/salary-structures/${structureId}`),
+  updateStructure: (structureId, data) => apiCall(`/api/payroll/salary-structures/${structureId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteStructure: (structureId) => apiCall(`/api/payroll/salary-structures/${structureId}`, { method: 'DELETE' }),
   getEmployeeStructure: (employeeId) => apiCall(`/api/payroll/salary-structures/employee/${employeeId}`),
-  listSlips: () => apiCall('/api/payroll/salary-slips/'),
-  generateSlip: (data) => apiCall('/api/payroll/salary-slips/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  getSlip: (id) => apiCall(`/api/payroll/salary-slips/${id}`),
+
+  // NOTE: everything below this line (slips/runs/loans/transfers/reimbursements/
+  // settlements/statutory) is the ORIGINAL scaffold and has NOT been verified
+  // against the real backend yet — it's a rough placeholder, not confirmed
+  // coverage. Two confirmed-wrong entries already found and left as-is pending
+  // a real fix pass: `assignStructure` below points at a path that doesn't
+  // exist (`/salary-structures/assign` — real route is `/salary-structures/
+  // assignments`, superseded by createAssignment() above), and
+  // listTransfers/createTransfer point at `/bank-transfers/` (plural) but the
+  // real router prefix is `/bank-transfer` (singular). Each of these routers
+  // has far more real endpoints (bank_transfer.py alone has ~37) than this
+  // 2-method-per-module scaffold covers — treat this whole block as
+  // "unverified" until we get to that file.
+  assignStructure: (data) => apiCall('/api/payroll/salary-structures/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getSlipDashboard: () => apiCall('/api/payroll/salary-slips/dashboard'),
+
+  // { employee_id, pay_period_month, pay_period_year, distribution_method?, protect_with_dob? }
+  generateSlip: (data) => apiCall('/api/payroll/salary-slips/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // { pay_period_month, pay_period_year, distribution_method?, protect_with_dob?, employee_ids?: [...] }
+  generateAllSlips: (data) => apiCall('/api/payroll/salary-slips/generate/all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getSlipPreview: (employeeId, month, year) => apiCall(`/api/payroll/salary-slips/generate/preview?employee_id=${employeeId}&month=${month}&year=${year}`),
+
+  getSlipHistory: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.search) q.append('search', params.search);
+    if (params.slipMonth) q.append('slip_month', params.slipMonth);
+    if (params.slipYear) q.append('slip_year', params.slipYear);
+    if (params.slipStatus) q.append('slip_status', params.slipStatus);
+    if (params.employeeId) q.append('employee_id', params.employeeId);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/salary-slips/history${qs ? `?${qs}` : ''}`);
+  },
+  bulkDownloadSlips: (slipIds) => apiCall(`/api/payroll/salary-slips/bulk-download${slipIds?.length ? `?slip_ids=${slipIds.join(',')}` : ''}`),
+  bulkDeleteSlips: (slipIds) => apiCall('/api/payroll/salary-slips/bulk-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(slipIds) }),
+  // { pay_period_month, pay_period_year, format?, ... }
+  exportSlips: (data) => apiCall('/api/payroll/salary-slips/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  printSlipReports: (data) => apiCall('/api/payroll/salary-slips/print-reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+
+  getDistributionSettings: () => apiCall('/api/payroll/salary-slips/distribution/settings'),
+  updateDistributionSettings: (data) => apiCall('/api/payroll/salary-slips/distribution/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  resetDistributionSettings: () => apiCall('/api/payroll/salary-slips/distribution/settings/reset', { method: 'POST' }),
+  resetEmailTemplate: () => apiCall('/api/payroll/salary-slips/distribution/settings/reset-template', { method: 'POST' }),
+  // { method?, recipient_email?, recipient_phone? } (slip_id set from the URL, not the body)
+  sendSlip: (slipId, data) => apiCall(`/api/payroll/salary-slips/distribution/${slipId}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  bulkDistributeSlips: (data) => apiCall('/api/payroll/salary-slips/distribution/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getDistributionRecords: (slipId) => apiCall(`/api/payroll/salary-slips/distribution/${slipId}/records`),
+
+  getSlipConfig: () => apiCall('/api/payroll/salary-slips/settings'),
+  createSlipConfig: (data) => apiCall('/api/payroll/salary-slips/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateSlipConfig: (data) => apiCall('/api/payroll/salary-slips/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  resetSlipConfig: () => apiCall('/api/payroll/salary-slips/settings/reset', { method: 'POST' }),
+  updateAdvancedSlipConfig: (data) => apiCall('/api/payroll/salary-slips/settings/advanced', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+
+  createSlip: (data) => apiCall('/api/payroll/salary-slips/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listSlips: (employeeId, slipMonth, slipYear) => {
+    const q = new URLSearchParams();
+    if (employeeId) q.append('employee_id', employeeId);
+    if (slipMonth) q.append('slip_month', slipMonth);
+    if (slipYear) q.append('slip_year', slipYear);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/salary-slips/${qs ? `?${qs}` : ''}`);
+  },
   getEmployeeSlips: (employeeId) => apiCall(`/api/payroll/salary-slips/employee/${employeeId}`),
-  listRuns: () => apiCall('/api/payroll/runs/'),
+  getSlip: (slipId) => apiCall(`/api/payroll/salary-slips/${slipId}`),
+  publishSlip: (slipId) => apiCall(`/api/payroll/salary-slips/${slipId}/publish`, { method: 'PATCH' }),
+  updateSlip: (slipId, data) => apiCall(`/api/payroll/salary-slips/${slipId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteSlip: (slipId) => apiCall(`/api/payroll/salary-slips/${slipId}`, { method: 'DELETE' }),
+  listRuns: (year, status) => {
+    const q = new URLSearchParams();
+    if (year) q.append('year', year);
+    if (status) q.append('status', status);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/runs/${qs ? `?${qs}` : ''}`);
+  },
   createRun: (data) => apiCall('/api/payroll/runs/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   getRun: (id) => apiCall(`/api/payroll/runs/${id}`),
-  approveRun: (id) => apiCall(`/api/payroll/runs/${id}/approve`, { method: 'PATCH' }),
+  approveRun: (id, approvedBy) => apiCall(`/api/payroll/runs/${id}/approve${approvedBy ? `?approved_by=${encodeURIComponent(approvedBy)}` : ''}`, { method: 'PATCH' }),
+  markRunPaid: (id) => apiCall(`/api/payroll/runs/${id}/mark-paid`, { method: 'PATCH' }),
+  addEmployeeToRun: (id, data) => apiCall(`/api/payroll/runs/${id}/add-employee`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listRunDetails: (id) => apiCall(`/api/payroll/runs/${id}/details`),
+  // NOTE: there is no bulk-compute endpoint anywhere in the backend. Payroll
+  // runs are pure bookkeeping — you create a Draft run, then add-employee
+  // requires the caller to already have every figure computed (basic, hra,
+  // gross_salary, pf_employee, esi_employee, professional_tax, tds, net_pay).
+  // Nothing here calculates payroll from attendance/salary structure/loans —
+  // that logic doesn't exist server-side yet.
+
+  // ---------------- Payroll Processing: config + lock ----------------
+  getPayrollConfig: () => apiCall('/api/payroll/processing/config'),
+  updatePayrollConfig: (data) => apiCall('/api/payroll/processing/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  lockPayroll: (reason, actionedBy) => apiCall('/api/payroll/processing/config/lock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, actioned_by: actionedBy }) }),
+  unlockPayroll: (reason, actionedBy) => apiCall('/api/payroll/processing/config/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, actioned_by: actionedBy }) }),
   listLoans: () => apiCall('/api/payroll/loans/'),
   createLoan: (data) => apiCall('/api/payroll/loans/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   getEmployeeLoans: (employeeId) => apiCall(`/api/payroll/loans/employee/${employeeId}`),
@@ -1763,7 +1810,6 @@ const apiServices = {
   crmPipelinesAPI,
   adminAPI,
   employeeAPI,
-  attendanceAPI,
   payrollAPI,
   hrOpsAPI,
   reportsAPI,

@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import StatCard from '../../../shared/components/StatCard';
 import EmployeeDetailModal from '../modal/EmployeeDetailModal';
 import AddEmployeeModal from '../modal/AddEmployeeMasterModal';
+import { employeeAPI } from "../../../shared/services/api";
 
 const EmployeeMasterData = () => {
   const [employees, setEmployees] = useState([]);
@@ -16,6 +17,28 @@ const EmployeeMasterData = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const itemsPerPage = 6;
+
+  const loadEmployees = async () => {
+    try {
+      const res = await employeeAPI.listMaster();
+      if (Array.isArray(res)) {
+        setEmployees(res);
+      } else if (res.items) {
+        setEmployees(res.items);
+      } else if (res.data) {
+        setEmployees(res.data);
+      } else {
+        setEmployees([]);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadEmployees();
+  }, []);
 
   const createEmployeeObject = (baseData) => {
     return {
@@ -332,7 +355,16 @@ const EmployeeMasterData = () => {
 
   const handleDeleteEmployee = (id) => {
     if (window.confirm('Are you sure you want to delete this employee?')) {
-      setEmployees(employees.filter(emp => emp.id !== id));
+      try {
+        await employeeAPI.deleteMaster(id);
+        await loadEmployees();
+        if (selectedEmployee?.id === id) {
+            setSelectedEmployee(null);
+            setShowDetailModal(false);
+          }
+        } catch (err) {
+            alert(err.message);
+      }
       if (selectedEmployee?.id === id) {
         setShowDetailModal(false);
         setSelectedEmployee(null);
@@ -340,7 +372,7 @@ const EmployeeMasterData = () => {
     }
   };
 
-  const handleAddEmployee = (newEmployeeData) => {
+  const handleAddEmployee = async (newEmployeeData) => {
     const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
     const employeeId = `EMP${String(newId).padStart(3, '0')}`;
     const joinDate = newEmployeeData.employmentInfo.dateOfJoining || new Date().toISOString().split('T')[0];
@@ -386,8 +418,15 @@ const EmployeeMasterData = () => {
       }
     });
     
-    setEmployees([...employees, newEmp]);
-    setShowAddModal(false);
+    try {
+        await employeeAPI.createMaster(newEmp);
+        await loadEmployees();
+        setShowAddModal(false);
+        alert("Employee added successfully");
+      } catch (err) {
+        console.error(err);
+        alert(err.message);
+      }   
   };
 
   const exportToCSV = () => {
@@ -424,13 +463,17 @@ const EmployeeMasterData = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const refreshData = () => {
-    setCurrentPage(1);
-    setSearchTerm('');
-    setDepartmentFilter('All');
-    setStatusFilter('All');
-    setSortConfig({ key: 'name', direction: 'asc' });
-    alert('Employee data refreshed successfully!');
+  const refreshData = async () => {
+      setCurrentPage(1);
+      setSearchTerm("");
+      setDepartmentFilter("All");
+      setStatusFilter("All");
+      setSortConfig({
+          key: "name",
+          direction: "asc"
+      });
+
+      await loadEmployees();
   };
 
   return (

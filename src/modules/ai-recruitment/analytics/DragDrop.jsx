@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, User, Calendar, MapPin, Phone, Mail, FileText, MoreVertical } from 'lucide-react';
+import { toast as showToast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../../shared/constants/api.config';
 
 const PipelineDragDrop = () => {
-  
 
   const getStageBadgeClass = (stageIdOrName) => {
     const key = String(stageIdOrName).toLowerCase();
@@ -15,14 +17,45 @@ const PipelineDragDrop = () => {
     return 'badge bg-neutral-200 text-black';
   };
 
-  
+  const [stages, setStages] = useState([]);
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [draggedCandidate, setDraggedCandidate] = useState(null);
   const [selectedJob, setSelectedJob] = useState('all');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [toast, setToast] = useState('');
+  const [toastMsg, setToastMsg] = useState('');
 
-  const jobs = ['All Jobs', 'Frontend Engineer', 'Backend Developer', 'Full Stack Developer'];
+  const loadBoard = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [stagesRes, candidatesRes] = await Promise.all([
+        fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.STAGES}`),
+        fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.CANDIDATES}`),
+      ]);
+      if (!stagesRes.ok) throw new Error('Failed to load stages');
+      if (!candidatesRes.ok) throw new Error('Failed to load candidates');
+      const stagesData = await stagesRes.json();
+      const candidatesData = await candidatesRes.json();
+      setStages(stagesData.sort((a, b) => a.order - b.order).map((s) => ({ id: s.name, name: s.name })));
+      setCandidates(candidatesData);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Failed to load the pipeline board');
+      showToast.error('Failed to load the pipeline board from the server');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBoard();
+  }, [loadBoard]);
+
+  const jobs = ['All Jobs', ...Array.from(new Set(candidates.map((c) => c.role)))];
 
   const filteredCandidates = candidates.filter(candidate => {
     const matchesSearch = candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -36,6 +69,23 @@ const PipelineDragDrop = () => {
     return acc;
   }, {});
 
+  const moveCandidateToStage = async (candidate, targetStage) => {
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.PIPELINE.CANDIDATE(candidate.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: targetStage }),
+      });
+      if (!res.ok) throw new Error('Failed to move candidate');
+
+      setCandidates(prev => prev.map(c => c.id === candidate.id ? { ...c, stage: targetStage } : c));
+      setToastMsg(`${candidate.name} moved to ${targetStage}`);
+      setTimeout(() => setToastMsg(''), 3000);
+    } catch (err) {
+      showToast.error(err.message || 'Failed to move candidate');
+    }
+  };
+
   const handleDragStart = (e, candidate) => {
     setDraggedCandidate(candidate);
     e.dataTransfer.effectAllowed = 'move';
@@ -48,33 +98,25 @@ const PipelineDragDrop = () => {
 
   const handleDrop = (e, targetStage) => {
     e.preventDefault();
-    
     if (draggedCandidate && draggedCandidate.stage !== targetStage) {
-      setCandidates(prev => prev.map(candidate => 
-        candidate.id === draggedCandidate.id 
-          ? { 
-              ...candidate, 
-              stage: targetStage,
-              timeline: [...candidate.timeline, {
-                stage: stages.find(s => s.id === targetStage)?.name || targetStage,
-                date: new Date().toISOString().split('T')[0],
-                note: `Moved to ${stages.find(s => s.id === targetStage)?.name || targetStage}`
-              }]
-            }
-          : candidate
-      ));
-      
-      const stageName = stages.find(s => s.id === targetStage)?.name || targetStage;
-      setToast(`${draggedCandidate.name} moved to ${stageName}`);
-      setTimeout(() => setToast(''), 3000);
+      moveCandidateToStage(draggedCandidate, targetStage);
     }
-    
     setDraggedCandidate(null);
+  };
+
+  const handleReject = (candidate) => {
+    const rejectStage = stages.find((s) => s.id.toLowerCase().includes('reject'));
+    if (!rejectStage) {
+      showToast.info('No "Rejected" stage is configured yet — add one on the Stages page first.');
+      return;
+    }
+    moveCandidateToStage(candidate, rejectStage.id);
+    setSelectedCandidate(null);
   };
 
   const CandidateCard = ({ candidate }) => {
     const handleViewClick = (e) => {
-      e.stopPropagation(); 
+      e.stopPropagation();
       setSelectedCandidate(candidate);
     };
 
@@ -98,13 +140,9 @@ const PipelineDragDrop = () => {
             </div>
             <MoreVertical size={16} className="text-secondary-light" />
           </div>
-          <div className="d-flex align-items-center text-secondary-light text-sm mb-2">
-            <Calendar size={14} className="me-2" />
-            <span>Applied {candidate.appliedDate}</span>
-          </div>
           <div className="d-flex align-items-center justify-content-between">
             <span className={getStageBadgeClass(candidate.stage)}>
-              Current: {stages.find(s => s.id === candidate.stage)?.name}
+              {candidate.stage}
             </span>
             <button onClick={handleViewClick} className="btn btn-link p-0 text-primary-600">
               View →
@@ -159,7 +197,7 @@ const PipelineDragDrop = () => {
                 <div>
                   <h6 className="mb-2">{candidate.name}</h6>
                   <div className="text-secondary-light">{candidate.role}</div>
-                  <span className={getStageBadgeClass(candidate.stage)}>{stages.find(s => s.id === candidate.stage)?.name}</span>
+                  <span className={getStageBadgeClass(candidate.stage)}>{candidate.stage}</span>
                 </div>
               </div>
               <button type="button" className="btn-close" aria-label="Close" onClick={onClose}></button>
@@ -171,58 +209,35 @@ const PipelineDragDrop = () => {
                     <Mail size={18} />
                     <span>{candidate.email}</span>
                   </div>
-                  <div className="d-flex align-items-center gap-2 text-secondary-light">
-                    <Phone size={18} />
-                    <span>{candidate.phone}</span>
-                  </div>
-                  <div className="d-flex align-items-center gap-2 text-secondary-light">
-                    <MapPin size={18} />
-                    <span>{candidate.location}</span>
-                  </div>
                   <div className="d-flex align-items-center gap-2">
                     <FileText size={18} />
-                    <button className="btn btn-link p-0">View Resume</button>
+                    {candidate.resume_url ? (
+                      <a href={candidate.resume_url} target="_blank" rel="noreferrer" className="btn btn-link p-0">View Resume</a>
+                    ) : (
+                      <span className="text-secondary-light text-sm">No resume on file</span>
+                    )}
                   </div>
                 </div>
                 <div className="col-md-6">
                   <h6 className="mb-2">Quick Actions</h6>
                   <div className="d-grid gap-2">
-                    <button
-                      onClick={() => { setToast(`${candidate.name} has been shortlisted!`); setTimeout(() => setToast(''), 3000); }}
-                      className="btn btn-success"
-                    >Shortlist Candidate</button>
-                    <button
-                      onClick={() => { setToast(`Interview scheduled for ${candidate.name}`); setTimeout(() => setToast(''), 3000); }}
-                      className="btn btn-primary"
-                    >Schedule Interview</button>
-                    <button
-                      onClick={() => {
-                        setCandidates(prev => prev.map(c => c.id === candidate.id ? { ...c, stage: 'rejected', timeline: [...c.timeline, { stage: 'Rejected', date: new Date().toISOString().split('T')[0], note: 'Candidate rejected from quick actions' }] } : c));
-                        setToast(`${candidate.name} moved to Rejected`);
-                        setTimeout(() => setToast(''), 3000);
-                        setSelectedCandidate(null);
-                      }}
-                      className="btn btn-danger"
-                    >Reject Candidate</button>
+                    <button onClick={() => handleReject(candidate)} className="btn btn-danger">
+                      Reject Candidate
+                    </button>
+                  </div>
+                  <div className="text-secondary-light text-xs mt-2">
+                    Shortlist / interview scheduling actions live on the Interview Scheduling page — not duplicated here.
                   </div>
                 </div>
               </div>
               <div>
-                <h6 className="mb-2">Timeline</h6>
-                <div className="d-grid gap-2">
-                  {candidate.timeline.map((item, index) => (
-                    <div key={index} className="d-flex align-items-start gap-2 pb-2 border-bottom">
-                      <span className="w-8-px h-8-px rounded-circle bg-primary-600 mt-1"></span>
-                      <div className="flex-grow-1">
-                        <div className="d-flex align-items-center justify-content-between">
-                          <span className="fw-medium">{item.stage}</span>
-                          <span className="text-sm text-secondary-light">{item.date}</span>
-                        </div>
-                        <div className="text-secondary-light text-sm mt-1">{item.note}</div>
-                      </div>
-                    </div>
-                  ))}
+                <h6 className="mb-2">Notes</h6>
+                <div className="text-secondary-light text-sm">
+                  {candidate.notes || candidate.recruiter_comments || 'No notes yet.'}
                 </div>
+                {/* NOTE: a full stage-change timeline/audit-trail isn't tracked
+                    in the backend yet (only the current stage is stored) —
+                    intentionally not fabricated here. */}
               </div>
             </div>
           </div>
@@ -234,6 +249,10 @@ const PipelineDragDrop = () => {
 
   return (
     <div className="container-fluid py-4">
+      <ToastContainer position="top-right" autoClose={3000} />
+      {error && <div className="alert alert-danger">{error}</div>}
+      {loading && <div className="text-muted small mb-3">Loading pipeline board…</div>}
+
       <div className="mb-12">
         <h4 className="mb-2">Pipeline (Drag & Drop)</h4>
         <p className="text-secondary-light mb-0">Manage candidate progress by moving them across stages</p>
@@ -272,9 +291,9 @@ const PipelineDragDrop = () => {
         ))}
       </div>
 
-      {toast && (
+      {toastMsg && (
         <div className="position-fixed bottom-0 end-0 m-3 alert alert-success shadow" role="alert" style={{ zIndex: 1060 }}>
-          {toast}
+          {toastMsg}
         </div>
       )}
 
