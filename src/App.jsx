@@ -626,6 +626,130 @@ const App = () => {
         }
       />
 
+      {/* Attendance Routes — components existed and were imported but had
+          no <Route> at all (confirmed zero registrations, zero sidebar
+          links) until this pass. */}
+      <Route
+        path='/hrms/attendance/daily'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <DailyAttendance />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/capture'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <AttendanceCapture />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/punches'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <DailyPunches />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/monthly'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <MonthlyAttendance />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/manual'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <ManualAttendance />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/leave-correction'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <LeaveCorrection />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/shifts'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <ShiftManagement />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/work-hour-rules'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <WorkHourRules />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/regularization'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <Regularization />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/holiday-calendar'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <HolidayCalendar />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/attendance/payroll-integration'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <PayrollIntegration />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/leave'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <LeaveManagement />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Employee Management Routes (match sidebar links) */}
       <Route
         path='/employee/master'
@@ -1601,7 +1725,3 @@ const App = () => {
 };
 
 export default App;
-
-
-
-

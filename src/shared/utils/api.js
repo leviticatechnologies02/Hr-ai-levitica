@@ -1290,6 +1290,9 @@ export const adminAPI = {
 export const employeeAPI = {
   list: () => apiCall('/api/employees/'),
   getById: (id) => apiCall(`/api/employees/${id}`),
+  create: (data) => apiCall('/api/employees/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  update: (id, data) => apiCall(`/api/employees/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  remove: (id, hard = false) => apiCall(`/api/employees/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
   deactivate: (id) => apiCall(`/api/employees/${id}/deactivate`, { method: 'PATCH' }),
   activate: (id) => apiCall(`/api/employees/${id}/activate`, { method: 'PATCH' }),
   createMaster: (data) => apiCall('/api/employees/master/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
@@ -1309,8 +1312,77 @@ export const employeeAPI = {
 };
 
 // ==========================================
-// PAYROLL APIs
+// ATTENDANCE APIs
 // ==========================================
+export const attendanceAPI = {
+  // Daily Punches (routers/HR_Automation/attendance/routers/daily_punches.py)
+  // — matches the filter set used by DailyAttendance.jsx exactly (business
+  // unit/location/cost center/department/late/absent/no-punches).
+  listDailyPunches: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/daily-punches/list${qs ? `?${qs}` : ''}`);
+  },
+  getPunchFilterOptions: () => apiCall('/api/attendance/daily-punches/filter-options'),
+  getEmployeePunches: (employeeId, punchDate) =>
+    apiCall(`/api/attendance/daily-punches/employee/${employeeId}?punch_date=${punchDate}`),
+  recordPunch: (data) => apiCall('/api/attendance/daily-punches/punches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  addManualPunch: (data) => apiCall('/api/attendance/daily-punches/manual-punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updatePunch: (punchId, data) => apiCall(`/api/attendance/daily-punches/punches/${punchId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deletePunch: (punchId) => apiCall(`/api/attendance/daily-punches/punches/${punchId}`, { method: 'DELETE' }),
+  regularisePunch: (data) => apiCall('/api/attendance/daily-punches/regularise', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  markProcessed: (summaryIds) => apiCall('/api/attendance/daily-punches/mark-processed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(summaryIds) }),
+  exportDailyPunchesUrl: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return `${BASE_URL}/api/attendance/daily-punches/export${qs ? `?${qs}` : ''}`;
+  },
+
+  // Attendance Capture & Tracking (routers/.../attendance_capture.py, mounted at /api/attendance/capture)
+  getDashboardSummary: () => apiCall('/api/attendance/capture/dashboard/summary'),
+
+  // Biometric devices
+  listDevices: (activeOnly = false) => apiCall(`/api/attendance/capture/biometric/devices${activeOnly ? '?active_only=true' : ''}`),
+  getDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}`),
+  addDevice: (data) => apiCall('/api/attendance/capture/biometric/devices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateDevice: (id, data) => apiCall(`/api/attendance/capture/biometric/devices/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}`, { method: 'DELETE' }),
+  syncDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}/sync`, { method: 'POST' }),
+  syncAllDevices: () => apiCall('/api/attendance/capture/biometric/sync-all', { method: 'POST' }),
+  reconnectOfflineDevices: () => apiCall('/api/attendance/capture/biometric/reconnect-offline', { method: 'POST' }),
+  getSyncLogs: (deviceId, limit = 20) => apiCall(`/api/attendance/capture/biometric/sync-logs?${deviceId ? `device_id=${deviceId}&` : ''}limit=${limit}`),
+  simulateBiometricPunch: (data) => apiCall('/api/attendance/capture/biometric/simulate-punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getPunchStatistics: (employeeId) => apiCall(`/api/attendance/capture/biometric/punch-stats/${employeeId}`),
+
+  // GPS / Geo-fencing
+  listGeoFences: (activeOnly = true) => apiCall(`/api/attendance/capture/gps/geo-fences?active_only=${activeOnly}`),
+  addGeoFence: (data) => apiCall('/api/attendance/capture/gps/geo-fences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateGeoFence: (id, data) => apiCall(`/api/attendance/capture/gps/geo-fences/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteGeoFence: (id) => apiCall(`/api/attendance/capture/gps/geo-fences/${id}`, { method: 'DELETE' }),
+  gpsCheckIn: (data) => apiCall('/api/attendance/capture/gps/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getGpsStatistics: (employeeId) => apiCall(`/api/attendance/capture/gps/statistics${employeeId ? `?employee_id=${employeeId}` : ''}`),
+  getGpsRecentActivity: (limit = 20) => apiCall(`/api/attendance/capture/gps/recent-activity?limit=${limit}`),
+
+  // Web portal check-in / IP whitelist
+  listIpWhitelist: () => apiCall('/api/attendance/capture/web/ip-whitelist'),
+  addIpWhitelist: (data) => apiCall('/api/attendance/capture/web/ip-whitelist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  removeIpWhitelist: (id) => apiCall(`/api/attendance/capture/web/ip-whitelist/${id}`, { method: 'DELETE' }),
+  checkMyIp: () => apiCall('/api/attendance/capture/web/check-ip'),
+  webCheckIn: (data) => apiCall('/api/attendance/capture/web/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  markWfh: (employeeId, workDate) => apiCall(`/api/attendance/capture/web/mark-wfh?employee_id=${employeeId}${workDate ? `&work_date=${workDate}` : ''}`, { method: 'POST' }),
+  getWebRecentActivity: (limit = 20) => apiCall(`/api/attendance/capture/web/recent-activity?limit=${limit}`),
+
+  // Daily attendance (capture-scoped view) + settings
+  getCaptureDailyAttendance: (employeeId, attDate) => {
+    const params = new URLSearchParams();
+    if (employeeId) params.set('employee_id', employeeId);
+    if (attDate) params.set('att_date', attDate);
+    return apiCall(`/api/attendance/capture/daily${params.toString() ? `?${params}` : ''}`);
+  },
+  getCaptureTodayAttendance: () => apiCall('/api/attendance/capture/daily/today'),
+  getAttendanceSettings: () => apiCall('/api/attendance/capture/settings'),
+  updateAttendanceSettings: (data) => apiCall('/api/attendance/capture/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  resetAttendanceSettings: () => apiCall('/api/attendance/capture/settings/reset', { method: 'POST' }),
+};
+
 export const payrollAPI = {
   listStructures: () => apiCall('/api/payroll/salary-structures/'),
   createStructure: (data) => apiCall('/api/payroll/salary-structures/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
@@ -1691,6 +1763,7 @@ const apiServices = {
   crmPipelinesAPI,
   adminAPI,
   employeeAPI,
+  attendanceAPI,
   payrollAPI,
   hrOpsAPI,
   reportsAPI,

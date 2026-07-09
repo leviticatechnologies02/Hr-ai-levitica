@@ -4,6 +4,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Icon } from "@iconify/react";
 import AddPunchModal from "../modal/AddPunchModal";
 import AllPunchesModal from "../modal/AllPunchesModal";
+import { attendanceAPI } from "../../../shared/utils/api";
 
 const punchTypes = [
   { label: "Selfie", value: "selfie" },
@@ -36,36 +37,120 @@ const DailyAttendance = () => {
   const [employeePunches, setEmployeePunches] = useState({});
 
   const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [filterOptionsData, setFilterOptionsData] = useState({
+    business_units: ["All Units"], locations: ["All"], cost_centers: ["All"], departments: ["All"],
+  });
+
+  // UI shows dates as "15-Jun-2026"; the backend's query params expect
+  // ISO "2026-06-15".
+  const toIsoDate = (displayDate) => {
+    const [day, monStr, year] = displayDate.split("-");
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = String(monthNames.indexOf(monStr) + 1).padStart(2, "0");
+    return `${year}-${month}-${day.padStart(2, "0")}`;
+  };
+
+  const mapPunchRowToAttendanceRow = (row) => ({
+    id: row.id,
+    name: row.employee_name || "",
+    code: row.employee_code || "",
+    date: row.summary_date,
+    status: row.attendance_mark,
+    note: "",
+    location: row.location_name || "All",
+    businessUnit: row.business_unit || "All Units",
+    costCenter: row.cost_center || "All",
+    designation: row.designation || "",
+    department: row.department || "All",
+    punchIn: row.start?.time || "--",
+    punchOut: row.end?.time || "--",
+    punchType: "Manual",
+    isLate: row.is_late,
+    processStatus: row.process_status,
+    employeeId: row.employee_id,
+  });
+
+  const loadFilterOptions = async () => {
+    try {
+      const opts = await attendanceAPI.getPunchFilterOptions();
+      setFilterOptionsData({
+        business_units: ["All Units", ...(opts.business_units || [])],
+        locations: ["All", ...(opts.locations || [])],
+        cost_centers: ["All", ...(opts.cost_centers || [])],
+        departments: ["All", ...(opts.departments || [])],
+      });
+    } catch (err) {
+      console.error("Failed to load attendance filter options:", err.message);
+    }
+  };
+
+  const loadDailyPunches = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const params = {
+        punch_date: toIsoDate(date),
+        page: 1,
+        page_size: 200,
+      };
+      if (filter.businessUnit !== "All Units") params.business_unit = filter.businessUnit;
+      if (filter.location !== "All") params.location = filter.location;
+      if (filter.costCenter !== "All") params.cost_center = filter.costCenter;
+      if (filter.department !== "All") params.department = filter.department;
+      if (selectedPunchFilter === "late") params.late_only = true;
+      if (selectedPunchFilter === "absent") params.absent_only = true;
+      if (selectedPunchFilter === "nopunch") params.no_punches = true;
+
+      const result = await attendanceAPI.listDailyPunches(params);
+      setAttendanceData((result.items || []).map(mapPunchRowToAttendanceRow));
+    } catch (err) {
+      setLoadError(err.message);
+      setAttendanceData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setEmployeePunches((prev) => {
-      const updated = { ...prev };
-      attendanceData.forEach((emp) => {
-        if (!updated[emp.id]) {
-          updated[emp.id] = [
-            {
-              time: emp.punchIn !== "--" ? emp.punchIn : "08:40:16",
-              type: `${emp.punchType || "Manual"} Punch`,
-              direction: "IN",
-              id: `${emp.id}-in`
-            },
-            ...(emp.punchOut !== "--" ? [{
-              time: emp.punchOut,
-              type: `${emp.punchType || "Manual"} Punch`,
-              direction: "OUT",
-              id: `${emp.id}-out`
-            }] : []),
-          ];
-        }
-      });
-      return updated;
+    loadFilterOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadDailyPunches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, filter.businessUnit, filter.location, filter.costCenter, filter.department, selectedPunchFilter]);
+
+  useEffect(() => {
+    // Load each visible employee's individual punch list (IN/OUT events)
+    // lazily from the real per-employee endpoint, only for rows not
+    // already cached — avoids re-fetching on every unrelated re-render.
+    attendanceData.forEach((emp) => {
+      if (!employeePunches[emp.id] && emp.employeeId) {
+        attendanceAPI.getEmployeePunches(emp.employeeId, toIsoDate(date))
+          .then((punches) => {
+            setEmployeePunches((prev) => ({
+              ...prev,
+              [emp.id]: (punches || []).map((p) => ({
+                time: p.punch_time,
+                type: `${p.punch_type} Punch`,
+                direction: p.punch_type,
+                id: p.id,
+              })),
+            }));
+          })
+          .catch((err) => console.error(`Failed to load punches for employee ${emp.employeeId}:`, err.message));
+      }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attendanceData]);
 
-  const businessUnit = ["All Units", "Development", "Support"];
-  const locations = ["All", "Hyderabad", "Chennai", "Bengaluru", "Pune", "Delhi"];
-  const costCenters = ["All", "Cost-1", "Cost-2"];
-  const departments = ["All", "Technical", "Support", "HR", "Engineering", "Quality Assurance", "Technical Support"];
+  const businessUnit = filterOptionsData.business_units;
+  const locations = filterOptionsData.locations;
+  const costCenters = filterOptionsData.cost_centers;
+  const departments = filterOptionsData.departments;
 
   const filteredAttendanceData = attendanceData.filter((emp) => {
     if (filter.businessUnit !== "All Units" && emp.businessUnit !== filter.businessUnit) {
@@ -148,6 +233,14 @@ const DailyAttendance = () => {
     toast.info("Filter applied successfully");
   };
 
+  // NOTE: daily-punches (the router this screen is wired to) has no bulk
+  // CSV import endpoint. Only daily_attendance.py has one (POST
+  // .../attendance/daily/upload), but its contract requires resolving each
+  // row to a real employee_code and creating full attendance records, not
+  // the free-text preview rows this importer builds. Left as a local-only
+  // preview — imported rows appear in the table but are NOT sent to or
+  // persisted by the backend. Flagging as a needed follow-up rather than
+  // silently faking persistence.
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -193,34 +286,25 @@ const DailyAttendance = () => {
   };
 
   const handleExport = () => {
-    if (!filteredAttendanceData.length) {
-      toast.error("No data to export!");
-      return;
-    }
+    const params = { punch_date: toIsoDate(date) };
+    if (filter.businessUnit !== "All Units") params.business_unit = filter.businessUnit;
+    if (filter.location !== "All") params.location = filter.location;
+    if (filter.costCenter !== "All") params.cost_center = filter.costCenter;
+    if (filter.department !== "All") params.department = filter.department;
+    if (selectedPunchFilter === "late") params.late_only = true;
+    if (selectedPunchFilter === "absent") params.absent_only = true;
+    if (selectedPunchFilter === "nopunch") params.no_punches = true;
 
-    const headers = ["id", "name", "code", "date", "status", "location", "designation", "department", "punchIn", "punchOut", "punchType"];
-    const csvRows = [headers.join(",")];
-
-    filteredAttendanceData.forEach((row) => {
-      const values = headers.map((header) => {
-        const val = row[header] ? row[header].toString() : "";
-        return `"${val.replace(/"/g, '""')}"`;
-      });
-      csvRows.push(values.join(","));
-    });
-
-    const csvString = csvRows.join("\n");
-    const blob = new Blob([csvString], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `daily_attendance_${date.replace(/-/g, "_")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Exported successfully");
+    // Real server-side CSV export (routers .../daily-punches/export) —
+    // triggers a browser download directly from the backend rather than
+    // re-serializing whatever's currently in local state.
+    window.open(attendanceAPI.exportDailyPunchesUrl(params), "_blank");
+    toast.success("Export started");
   };
 
-  const handleAddPunchSubmit = (formData) => {
+  const [addingPunch, setAddingPunch] = useState(false);
+
+  const handleAddPunchSubmit = async (formData) => {
     const { date: pDate, time, remarks: pRemarks, type } = formData;
     if (!pDate) {
       toast.error("Please select a punch date");
@@ -230,40 +314,59 @@ const DailyAttendance = () => {
       toast.error("Please enter complete punch time (HH:MM:SS)");
       return;
     }
+    if (!selectedEmployee?.employeeId) {
+      toast.error("This row has no linked employee record to punch against");
+      return;
+    }
 
     const finalTime = `${String(time.hh).padStart(2, "0")}:${String(time.mm).padStart(2, "0")}:${String(time.ss).padStart(2, "0")}`;
     const punchTypeLabel = punchTypes.find((pt) => pt.value === type)?.label || type;
 
-    const newPunch = {
-      time: finalTime,
-      type: `${punchTypeLabel} Punch`,
-      direction: "IN",
-      id: `${selectedEmployee.id}-${Date.now()}`,
-    };
-
-    setEmployeePunches((prev) => ({
-      ...prev,
-      [selectedEmployee.id]: [
-        ...(prev[selectedEmployee.id] || []),
-        newPunch,
-      ],
-    }));
-
-    toast.success(`Punch Added: ${pDate} ${finalTime} (${punchTypeLabel})`);
-    setShowAddPunchModal(false);
-    setSelectedEmployee(null);
+    setAddingPunch(true);
+    try {
+      // NOTE: the backend's manual-punch endpoint takes in_time/out_time as
+      // a pair (not a single directional IN/OUT event), and no "punch type"
+      // (selfie/remote/manual) or free-text reason distinction beyond
+      // `reason`. Sending the new time as in_time; punchTypeLabel is folded
+      // into the reason text since there's no dedicated field for it.
+      await attendanceAPI.addManualPunch({
+        employee_id: selectedEmployee.employeeId,
+        punch_date: toIsoDate(pDate),
+        in_time: finalTime,
+        reason: `${punchTypeLabel} punch${pRemarks ? `: ${pRemarks}` : ''}`,
+      });
+      await loadDailyPunches();
+      setEmployeePunches((prev) => {
+        const next = { ...prev };
+        delete next[selectedEmployee.id]; // force refetch of this employee's punch list
+        return next;
+      });
+      toast.success(`Punch Added: ${pDate} ${finalTime} (${punchTypeLabel})`);
+      setShowAddPunchModal(false);
+      setSelectedEmployee(null);
+    } catch (err) {
+      toast.error(`Failed to add punch: ${err.message}`);
+    } finally {
+      setAddingPunch(false);
+    }
   };
 
-  const handleDeletePunch = (punchId) => {
+  const handleDeletePunch = async (punchId) => {
     if (!selectedEmployee) return;
-    const updatedPunches = employeePunches[selectedEmployee.id].filter(
-      (p) => p.id !== punchId
-    );
-    setEmployeePunches((prev) => ({
-      ...prev,
-      [selectedEmployee.id]: updatedPunches,
-    }));
-    toast.success("Punch deleted successfully");
+    try {
+      await attendanceAPI.deletePunch(punchId);
+      const updatedPunches = employeePunches[selectedEmployee.id].filter(
+        (p) => p.id !== punchId
+      );
+      setEmployeePunches((prev) => ({
+        ...prev,
+        [selectedEmployee.id]: updatedPunches,
+      }));
+      await loadDailyPunches();
+      toast.success("Punch deleted successfully");
+    } catch (err) {
+      toast.error(`Failed to delete punch: ${err.message}`);
+    }
   };
 
   const getStatusBadge = (status) => {

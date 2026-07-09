@@ -10,6 +10,7 @@ import { Search,  Filter,  Download,  Printer,  Plus,  Edit,  Eye,  Home,  Calen
         Camera,  Wifi,  WifiOff,  Smartphone,  LogOut,  Monitor,  Fingerprint,  BarChart3,  Users,  Calendar as CalendarIcon,  Settings,  RefreshCw,
         Upload,  FileText,  ExternalLink,  MoreVertical,  User,} from "lucide-react";
 import { Icon } from "@iconify/react";
+import { attendanceAPI } from "../../../shared/utils/api";
 
 // ==================== CONTEXT API ====================
 const AttendanceContext = React.createContext();
@@ -321,6 +322,51 @@ const AttendanceCapture = () => {
   const [fieldEmployees, setFieldEmployees] = useState([]);
   const [wfhRequests, setWfhRequests] = useState([]);
   // ==================== EFFECTS ====================
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [devicesLoadError, setDevicesLoadError] = useState(null);
+
+  // Backend BiometricDeviceOut only has {id, name, device_code, location,
+  // ip_address, port, is_active, is_online, last_sync_at, created_at} — no
+  // health-score/storage-usage/uptime-percentage fields at all. Those stay
+  // as local-only simulated metrics (see calculateDeviceHealth etc. below);
+  // real fields are mapped, simulated ones get sensible defaults.
+  const mapDeviceFromBackend = (d) => ({
+    id: d.id,
+    vendor: d.name?.split(' ')[0] || 'Unknown',
+    model: d.name || '',
+    deviceCode: d.device_code,
+    ipAddress: d.ip_address || '',
+    location: d.location || '',
+    port: d.port,
+    type: 'fingerprint', // no device-type field on the backend
+    status: d.is_online ? 'Online' : 'Offline',
+    lastSync: d.last_sync_at,
+    employees: 0,
+    health: d.is_online ? 95 : 0,
+    healthMetrics: { connectivity: d.is_online ? 100 : 0, syncFrequency: 100, errorRate: 0, storageUsage: 30, uptime: d.is_online ? 99 : 0 },
+    healthStatus: d.is_online ? 'Healthy' : 'Offline',
+    storageUsage: 30,
+    uptime: d.is_online ? 99.9 : 0,
+  });
+
+  const loadBiometricDevices = async () => {
+    setDevicesLoading(true);
+    setDevicesLoadError(null);
+    try {
+      const devices = await attendanceAPI.listDevices();
+      dispatch({ type: "SET_DEVICES", payload: (devices || []).map(mapDeviceFromBackend) });
+    } catch (err) {
+      setDevicesLoadError(err.message);
+    } finally {
+      setDevicesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBiometricDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(
       "attendanceRecords",
@@ -818,6 +864,10 @@ const AttendanceCapture = () => {
   };
 
   // Update device health for all devices
+  // NOTE: health/storage/uptime scoring is simulated client-side — the
+  // backend's BiometricDeviceOut has no such fields (only is_online,
+  // last_sync_at). This stays as a cosmetic local simulation layered on
+  // top of the real is_online/last_sync_at values from the backend.
   const updateDeviceHealthMetrics = () => {
     const updatedDevices = biometricDevices.map(device => {
       const healthData = calculateDeviceHealth(device);
@@ -835,82 +885,65 @@ const AttendanceCapture = () => {
   };
 
   // ==================== BIOMETRIC FUNCTIONS ====================
-  const addBiometricDevice = () => {
+  const [addingDevice, setAddingDevice] = useState(false);
+
+  const addBiometricDevice = async () => {
     if (!newDevice.model || !newDevice.ipAddress) {
       alert("Please enter model and IP address");
       return;
     }
 
-    const device = {
-      id: Date.now(),
-      vendor: newDevice.vendor,
-      model: newDevice.model,
-      ipAddress: newDevice.ipAddress,
-      type: newDevice.type,
-      status: "Online",
-      lastSync: new Date().toISOString(),
-      employees: 0,
-      health: 100,
-      healthMetrics: {
-        connectivity: 100,
-        syncFrequency: 100,
-        errorRate: 0,
-        storageUsage: 70,
-        uptime: 100,
-      },
-      healthStatus: "Healthy",
-      storageUsage: 30,
-      uptime: 99.9,
-    };
+    setAddingDevice(true);
+    try {
+      // NOTE: backend has no vendor/type fields — folded vendor+model into
+      // `name`, and device_code is generated here since nothing in this
+      // form collects one. `type` (fingerprint/face) is UI-only.
+      const created = await attendanceAPI.addDevice({
+        name: `${newDevice.vendor} ${newDevice.model}`.trim(),
+        device_code: `DEV-${Date.now()}`,
+        ip_address: newDevice.ipAddress,
+        is_active: true,
+      });
 
-    dispatch({ type: "ADD_DEVICE", payload: device });
-    setNewDevice({
-      vendor: "ZKTeco",
-      model: "",
-      ipAddress: "",
-      type: "fingerprint",
-    });
-    addSyncLog(
-      "device",
-      "Success",
-      `Added device ${device.vendor} ${device.model}`
-    );
+      dispatch({ type: "ADD_DEVICE", payload: { ...mapDeviceFromBackend(created), vendor: newDevice.vendor, type: newDevice.type } });
+      setNewDevice({
+        vendor: "ZKTeco",
+        model: "",
+        ipAddress: "",
+        type: "fingerprint",
+      });
+      addSyncLog(
+        "device",
+        "Success",
+        `Added device ${newDevice.vendor} ${newDevice.model}`
+      );
+    } catch (err) {
+      alert(`Failed to add device: ${err.message}`);
+      addSyncLog("device", "Failed", err.message);
+    } finally {
+      setAddingDevice(false);
+    }
   };
 
   const syncBiometricData = async (deviceId = null) => {
     setProcessingAttendance(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Real device sync — POST .../devices/{id}/sync for a specific
+      // device, or .../sync-all when no device is targeted.
+      const result = deviceId
+        ? await attendanceAPI.syncDevice(deviceId)
+        : await attendanceAPI.syncAllDevices();
 
-      const syncLog = {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        deviceId,
-        type: "biometric",
-        status: "Success",
-        records: Math.floor(Math.random() * 50) + 10,
-      };
-
-      dispatch({ type: "ADD_SYNC_LOG", payload: syncLog });
       dispatch({ type: "SYNC_DATA" });
+      await loadBiometricDevices(); // refresh device statuses/last_sync_at
 
-      if (deviceId) {
-        const device = biometricDevices.find((d) => d.id === deviceId);
-        if (device) {
-          dispatch({
-            type: "UPDATE_DEVICE",
-            payload: {
-              ...device,
-              lastSync: new Date().toISOString(),
-              status: "Online",
-              health: 95,
-            },
-          });
-        }
-      }
-
-      addSyncLog("biometric", "Success", `Synced ${syncLog.records} records`);
+      const recordsSynced = deviceId ? (result.records_synced ?? 0) : 0;
+      addSyncLog(
+        "biometric",
+        "Success",
+        deviceId ? `Synced ${recordsSynced} records` : (result.message || "Synced all devices")
+      );
     } catch (error) {
       addSyncLog("biometric", "Failed", error.message);
     } finally {

@@ -231,6 +231,41 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
     },
     {
       type: 'dropdown',
+      label: 'Attendance',
+      icon: HiOutlineClock,
+      items: [
+        { to: '/hrms/attendance/daily', tabKey: 'daily-attendance', label: 'Daily Attendance', icon: HiOutlineCalendar },
+        { to: '/hrms/attendance/capture', tabKey: 'attendance-capture', label: 'Attendance Capture', icon: HiOutlineCalendar },
+        { to: '/hrms/attendance/punches', tabKey: 'daily-punches', label: 'Daily Punches', icon: HiOutlineClock },
+        { to: '/hrms/attendance/monthly', tabKey: 'monthly-attendance', label: 'Monthly Attendance', icon: HiOutlineCalendar },
+        { to: '/hrms/attendance/manual', tabKey: 'manual-attendance', label: 'Manual Attendance', icon: HiOutlineCalendar },
+        { to: '/hrms/attendance/leave-correction', tabKey: 'leave-correction', label: 'Leave Correction', icon: HiOutlineCalendar },
+        { to: '/hrms/attendance/shifts', tabKey: 'shift-management', label: 'Shift Management', icon: HiOutlineClock },
+        { to: '/hrms/attendance/work-hour-rules', tabKey: 'work-hour-rules', label: 'Work Hour Rules', icon: HiOutlineClock },
+        { to: '/hrms/attendance/regularization', tabKey: 'regularization', label: 'Regularization', icon: HiOutlineCalendar },
+        { to: '/hrms/attendance/holiday-calendar', tabKey: 'holiday-calendar', label: 'Holiday Calendar', icon: HiOutlineCalendar },
+        { to: '/hrms/attendance/payroll-integration', tabKey: 'attendance-payroll-integration', label: 'Payroll Integration', icon: HiOutlineClock },
+        { to: '/hrms/leave', tabKey: 'leave-management', label: 'Leave Management', icon: HiOutlineCalendar },
+      ]
+    },
+    {
+      type: 'dropdown',
+      label: 'Payroll',
+      icon: HiOutlineFolderOpen,
+      items: [
+        { to: '/hrms/payroll/salary-structure', tabKey: 'salary-structure', label: 'Salary Structure', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/salary-slip', tabKey: 'salary-slip', label: 'Salary Slip', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/processing-engine', tabKey: 'payroll-processing', label: 'Processing Engine', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/statutory-compliance', tabKey: 'statutory-compliance', label: 'Statutory Compliance', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/reimbursements', tabKey: 'reimbursements', label: 'Reimbursements', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/loans-advances', tabKey: 'loans-advances', label: 'Loans & Advances', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/bank-transfer', tabKey: 'bank-transfer', label: 'Bank Transfer', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/final-settlement', tabKey: 'final-settlement', label: 'Final Settlement', icon: HiOutlineFolderOpen },
+        { to: '/hrms/payroll/reports', tabKey: 'payroll-reports', label: 'Payroll Reports', icon: HiOutlineFolderOpen },
+      ]
+    },
+    {
+      type: 'dropdown',
       label: 'Onboarding & Pre-Joining',
       icon: HiOutlineUserPlus,
       items: [

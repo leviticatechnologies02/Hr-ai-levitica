@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Icon } from '@iconify/react';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../../shared/constants/api.config';
 import StatCard from "../../../shared/components/StatCard";
-import { buddyMentorAPI, employeeAPI } from "../../../shared/utils/api";
 import BuddyCreateProgramModal from "../../hrms/modal/BuddyCreateProgramModal";
 import BuddyAssignmentModal from "../../hrms/modal/BuddyAssignmentModal";
 import BuddyFeedbackModal from "../../hrms/modal/BuddyFeedbackModal";
@@ -17,11 +19,8 @@ import BuddyNewJoinerProfileModal from "../../hrms/modal/BuddyNewJoinerProfileMo
 const BuddyMentorAssignment = () => {
   const programTypes = [
     "New Hire Buddy Program",
-    "Leadership Mentorship",
-    "Cross-functional Buddy",
-    "Virtual Buddy Program",
-    "Technical Mentorship",
-    "Executive Coaching",
+    "Mentorship Program",
+    "Cross Functional Buddy",
   ];
 
   const departments = [
@@ -59,12 +58,207 @@ const BuddyMentorAssignment = () => {
     "other",
   ];
 
-  const initialBuddyPrograms = [];
-
-  const [buddyPrograms, setBuddyPrograms] = useState(initialBuddyPrograms);
-  const [buddies, setBuddies] = useState([]);
-  const [newJoiners, setNewJoiners] = useState([]);
+  // ==================== BACKEND DATA ====================
+  // `employees` is the real, single source of people (GET /employees) —
+  // the backend has no separate "buddy" vs "new joiner" table, any
+  // employee can be either, so both lists are derived from this one.
+  const [employees, setEmployees] = useState([]);
+  const [programsRaw, setProgramsRaw] = useState([]); // BuddyProgramListOut[] from GET /buddy-mentor/programs
+  const [selectedProgramDetail, setSelectedProgramDetail] = useState(null); // full program + pairings + analytics
   const [loading, setLoading] = useState(true);
+
+  const loadEmployees = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.EMPLOYEES.LIST}`);
+      if (!res.ok) throw new Error('Failed to load employees');
+      const data = await res.json();
+      setEmployees(data);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load employees from the server');
+    }
+  }, []);
+
+  const loadPrograms = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.PROGRAMS}`);
+      if (!res.ok) throw new Error('Failed to load buddy programs');
+      const data = await res.json();
+      setProgramsRaw(data);
+      return data;
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load buddy programs from the server');
+      return [];
+    }
+  }, []);
+
+  // Fetches the full detail (rules + pairings + analytics) for one program,
+  // and reshapes it into the {assignments, analytics, ...} structure the
+  // rest of this page and all 8 modals already expect.
+  const loadProgramDetail = useCallback(async (programId) => {
+    if (!programId) {
+      setSelectedProgramDetail(null);
+      return;
+    }
+    try {
+      const [programRes, pairingsRes, analyticsRes] = await Promise.all([
+        fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.PROGRAM(programId)}`),
+        fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.PROGRAM_PAIRINGS(programId)}`),
+        fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.PROGRAM_ANALYTICS(programId)}`),
+      ]);
+      if (!programRes.ok) throw new Error('Failed to load program details');
+      const program = await programRes.json();
+      const pairings = pairingsRes.ok ? await pairingsRes.json() : [];
+      const analytics = analyticsRes.ok ? await analyticsRes.json() : null;
+
+      setSelectedProgramDetail(mapProgramDetail(program, pairings, analytics));
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load program details from the server');
+    }
+  }, []);
+
+  // ---- mapping helpers: backend shape -> the shape this page/modals use ----
+  const mapProgramSummary = (p) => ({
+    id: p.id,
+    name: p.program_name,
+    programType: p.program_type,
+    status: (p.status || 'Active').toLowerCase(),
+    department: p.department || 'All',
+    location: p.location || 'All',
+    startDate: p.start_date,
+    endDate: p.end_date,
+    totalPairs: p.total_pairs || 0,
+    activePairs: p.active_pairs || 0,
+    overallRating: p.avg_rating || 0,
+  });
+
+  const mapProgramDetail = (program, pairings, analytics) => {
+    const assignments = pairings.map((pr) => ({
+      id: pr.id,
+      buddy: {
+        id: pr.buddy_id,
+        name: pr.buddy_name || `Employee #${pr.buddy_id}`,
+        department: pr.buddy_department || '',
+        officeLocation: pr.buddy_department || '',
+        tenure: '',
+        currentAssignments: 0,
+        maxAssignments: 3,
+        skills: [],
+      },
+      newJoiner: {
+        id: pr.new_joiner_id,
+        name: pr.new_joiner_name || `Employee #${pr.new_joiner_id}`,
+        department: pr.new_joiner_department || '',
+        location: pr.new_joiner_department || '',
+        assignedBuddy: true,
+        skills: [],
+      },
+      assignmentDate: pr.assignment_date,
+      status: (pr.status || 'Active').toLowerCase(),
+      matchScore: pr.match_score || 0,
+      pairingReason: '',
+      communicationRecords: [], // loaded lazily per-assignment, see loadCommunications()
+      lastCheckIn: pr.last_checkin || null,
+      nextCheckIn: null,
+      feedbackScore: pr.feedback_score || 0,
+      completionPercentage: pr.progress || 0,
+      milestones: [],
+    }));
+
+    return {
+      id: program.id,
+      name: program.program_name,
+      description: program.description || '',
+      programType: program.program_type,
+      department: program.department || 'All',
+      location: program.location || 'All',
+      startDate: program.start_date,
+      endDate: program.end_date,
+      status: (program.status || 'Active').toLowerCase(),
+      createdBy: program.created_by,
+      createdAt: program.created_on ? program.created_on.split('T')[0] : '',
+      assignmentRules: (program.assignment_rules || []).map((r) => ({
+        id: r.id,
+        rule: r.rule_text,
+        mandatory: r.is_mandatory,
+        weight: r.weight_score,
+      })),
+      assignments,
+      feedback: [], // loaded lazily when the Feedback tab / modal needs it
+      buddyResponsibilities: [], // NOTE: no backend table for onboarding-checklist tasks yet — see note below
+      totalPairs: analytics?.total_pairs ?? assignments.length,
+      activePairs: analytics?.active_pairs ?? assignments.filter(a => a.status === 'active').length,
+      completionRate: analytics?.completion_rate ?? 0,
+      overallRating: analytics?.avg_rating ?? 0,
+      analytics: analytics ? {
+        totalPairs: analytics.total_pairs,
+        activePairs: analytics.active_pairs,
+        completedPairs: analytics.completed_pairs,
+        averageRating: analytics.avg_rating || 0,
+        completionRate: analytics.completion_rate || 0,
+        feedbackCount: analytics.feedback_count || 0,
+        averageMatchScore: analytics.avg_match_score || 0,
+        departmentDistribution: Object.fromEntries((analytics.department_distribution || []).map(d => [d.department, d.count])),
+        locationDistribution: Object.fromEntries((analytics.location_distribution || []).map(l => [l.location, l.count])),
+        satisfactionScore: analytics.satisfaction_score || 0,
+        timeToProductivity: analytics.time_to_productivity_days ? `${analytics.time_to_productivity_days} days` : 'N/A',
+      } : {
+        totalPairs: 0, activePairs: 0, completedPairs: 0, averageRating: 0,
+        completionRate: 0, feedbackCount: 0, averageMatchScore: 0,
+        departmentDistribution: {}, locationDistribution: {}, satisfactionScore: 0, timeToProductivity: 'N/A',
+      },
+    };
+  };
+
+  // buddyPrograms: the list view uses summaries; once a program is selected
+  // its entry is swapped for the fully-loaded detail (with real assignments).
+  const buddyPrograms = useMemo(() => {
+    return programsRaw.map((p) =>
+      selectedProgramDetail && selectedProgramDetail.id === p.id
+        ? selectedProgramDetail
+        : mapProgramSummary(p)
+    );
+  }, [programsRaw, selectedProgramDetail]);
+
+  const employeeToTenure = (joiningDate) => {
+    if (!joiningDate) return '0 years';
+    const years = (Date.now() - new Date(joiningDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
+    return `${years.toFixed(1)} years`;
+  };
+
+  const employeeName = (e) => [e.first_name, e.middle_name, e.last_name].filter(Boolean).join(' ');
+
+  // Any employee can be a buddy; current/max assignment counts are computed
+  // against the SELECTED program's real pairings (maxAssignments has no
+  // backend field, defaulted to 3 — a business rule, not persisted data).
+  const buddies = useMemo(() => {
+    const pairings = selectedProgramDetail?.assignments || [];
+    return employees.map((e) => ({
+      id: e.id,
+      name: employeeName(e),
+      department: e.department || '',
+      officeLocation: e.location || '',
+      tenure: employeeToTenure(e.joining_date),
+      currentAssignments: pairings.filter((a) => a.buddy.id === e.id && a.status === 'active').length,
+      maxAssignments: 3,
+      totalMentees: pairings.filter((a) => a.buddy.id === e.id).length,
+      skills: [],
+    }));
+  }, [employees, selectedProgramDetail]);
+
+  const newJoiners = useMemo(() => {
+    const pairings = selectedProgramDetail?.assignments || [];
+    return employees.map((e) => ({
+      id: e.id,
+      name: employeeName(e),
+      department: e.department || '',
+      location: e.location || '',
+      assignedBuddy: pairings.some((a) => a.newJoiner.id === e.id),
+      skills: [],
+    }));
+  }, [employees, selectedProgramDetail]);
 
   const [showCreateProgram, setShowCreateProgram] = useState(false);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
@@ -149,107 +343,31 @@ const BuddyMentorAssignment = () => {
   const [viewMode, setViewMode] = useState("programs");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-  // Backend list shape (BuddyProgramListOut) -> local UI shape.
-  const mapProgramSummary = (p) => ({
-    id: p.id,
-    name: p.program_name,
-    programType: p.program_type,
-    description: '',
-    department: p.department || 'All',
-    location: p.location || 'All',
-    startDate: p.start_date,
-    endDate: p.end_date,
-    status: p.status,
-    assignmentRules: [],
-    assignments: [],
-    buddyResponsibilities: [],
-    feedback: [],
-    analytics: {
-      totalPairs: p.total_pairs || 0,
-      activePairs: p.active_pairs || 0,
-      completedPairs: 0,
-      averageRating: p.avg_rating || 0,
-      completionRate: 0,
-      feedbackCount: 0,
-      averageMatchScore: 0,
-      departmentDistribution: {},
-      locationDistribution: {},
-      satisfactionScore: 0,
-      timeToProductivity: "N/A",
-    },
-    totalPairs: p.total_pairs || 0,
-    activePairs: p.active_pairs || 0,
-    completionRate: 0,
-    overallRating: p.avg_rating || 0,
-  });
-
-  const [dashboard, setDashboard] = useState(null);
-
-  const loadBuddyMentorData = async () => {
-    setLoading(true);
-    try {
-      const [dashboardData, programsData] = await Promise.all([
-        buddyMentorAPI.getDashboard().catch((err) => {
-          console.error('Error loading buddy-mentor dashboard:', err);
-          return null;
-        }),
-        buddyMentorAPI.listPrograms().catch((err) => {
-          console.error('Error loading buddy-mentor programs:', err);
-          return [];
-        }),
-      ]);
-
-      setDashboard(dashboardData);
-      const mappedPrograms = Array.isArray(programsData) ? programsData.map(mapProgramSummary) : [];
-      setBuddyPrograms(mappedPrograms);
-      if (mappedPrograms.length > 0) {
-        setSelectedProgram(mappedPrograms[0]);
-      }
-
-      // NOTE: there is no backend endpoint for "available buddies" /
-      // "unassigned new joiners" as such — GET /buddy-mentor/dashboard
-      // only returns counts. As a stand-in real data source (rather than
-      // leaving the picker permanently empty) we pull the general
-      // employee list here. Fields the matching UI expects but the
-      // Employee record doesn't have (tenure, skills, maxAssignments,
-      // officeLocation) are defaulted, so those specific match rules
-      // will not score meaningfully until a real buddy-eligibility
-      // endpoint exists on the backend.
-      try {
-        const employees = await employeeAPI.list();
-        const employeeList = Array.isArray(employees) ? employees : [];
-        setBuddies(employeeList.map((emp) => ({
-          id: emp.id,
-          name: emp.name,
-          email: emp.email,
-          department: emp.department,
-          officeLocation: emp.location,
-          tenure: null,
-          skills: [],
-          currentAssignments: 0,
-          maxAssignments: 3,
-          totalMentees: 0,
-        })));
-        setNewJoiners(employeeList.map((emp) => ({
-          id: emp.id,
-          name: emp.name,
-          email: emp.email,
-          department: emp.department,
-          location: emp.location,
-          skills: [],
-          assignedBuddy: false,
-        })));
-      } catch (err) {
-        console.error('Error loading employees for buddy/new-joiner pool:', err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadBuddyMentorData();
-  }, []);
+    const init = async () => {
+      setLoading(true);
+      await loadEmployees();
+      const programs = await loadPrograms();
+      if (programs.length > 0) {
+        setSelectedProgram(mapProgramSummary(programs[0]));
+        await loadProgramDetail(programs[0].id);
+      }
+      setLoading(false);
+    };
+    init();
+  }, [loadEmployees, loadPrograms, loadProgramDetail]);
+
+  // Keep selectedProgram in sync with the fully-loaded detail once it arrives
+  useEffect(() => {
+    if (selectedProgramDetail) {
+      setSelectedProgram(selectedProgramDetail);
+    }
+  }, [selectedProgramDetail]);
+
+  const handleSelectProgram = async (program) => {
+    setSelectedProgram(program);
+    await loadProgramDetail(program.id);
+  };
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -357,61 +475,65 @@ const BuddyMentorAssignment = () => {
     return filtered;
   };
 
-  const handleCreateProgram = () => {
+  const handleCreateProgram = async () => {
     if (!programForm.name || !programForm.startDate) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
-    buddyMentorAPI.createProgram({
-      program_name: programForm.name,
-      program_type: programForm.programType,
-      description: programForm.description || undefined,
-      department: programForm.department,
-      location: programForm.location,
-      start_date: programForm.startDate,
-      end_date: programForm.endDate || undefined,
-      status: (programForm.status || 'active').toUpperCase(),
-      created_by: "Sarah Johnson",
-      assignment_rules: (programForm.assignmentRules || []).map((r) => ({
-        rule_text: r.rule,
-        is_mandatory: r.mandatory,
-        weight_score: r.weight,
-      })),
-    })
-      .then(() => loadBuddyMentorData())
-      .catch((err) => {
-        console.error('Error creating buddy program:', err);
-        alert('Failed to create program: ' + (err.message || 'Unknown error'));
+    try {
+      const payload = {
+        program_name: programForm.name,
+        program_type: programForm.programType,
+        description: programForm.description || null,
+        department: programForm.department,
+        location: programForm.location,
+        start_date: programForm.startDate,
+        end_date: programForm.endDate || null,
+        status: programForm.status.charAt(0).toUpperCase() + programForm.status.slice(1),
+        created_by: "Sarah Johnson", // TODO: replace with real logged-in admin name once available here
+        assignment_rules: programForm.assignmentRules.map((r) => ({
+          rule_text: r.rule,
+          is_mandatory: r.mandatory,
+          weight_score: r.weight,
+        })),
+      };
+
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.PROGRAMS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : 'Failed to create program');
+      }
+      const created = await res.json();
+
+      setShowCreateProgram(false);
+      setProgramForm({
+        name: "",
+        description: "",
+        programType: "New Hire Buddy Program",
+        department: "All",
+        location: "All",
+        startDate: "",
+        endDate: "",
+        status: "active",
+        assignmentRules: [
+          { id: 1, rule: "Buddies must have minimum 1 year tenure", mandatory: true, weight: 40 },
+          { id: 2, rule: "Same department pairing preferred", mandatory: false, weight: 30 },
+        ],
       });
 
-    setShowCreateProgram(false);
-    setProgramForm({
-      name: "",
-      description: "",
-      programType: "New Hire Buddy Program",
-      department: "All",
-      location: "All",
-      startDate: "",
-      endDate: "",
-      status: "active",
-      assignmentRules: [
-        {
-          id: 1,
-          rule: "Buddies must have minimum 1 year tenure",
-          mandatory: true,
-          weight: 40,
-        },
-        {
-          id: 2,
-          rule: "Same department pairing preferred",
-          mandatory: false,
-          weight: 30,
-        },
-      ],
-    });
-
-    alert("Buddy program created successfully!");
+      toast.success("Buddy program created successfully!");
+      const programs = await loadPrograms();
+      setSelectedProgram(mapProgramSummary(created));
+      await loadProgramDetail(created.id);
+      return programs;
+    } catch (err) {
+      toast.error(err.message || 'Failed to create program');
+    }
   };
 
   const handleAssignBuddy = async () => {
@@ -425,7 +547,7 @@ const BuddyMentorAssignment = () => {
     } = assignmentForm;
 
     if (!programId || !buddyId || !newJoinerId) {
-      alert("Please select program, buddy, and new joiner");
+      toast.error("Please select program, buddy, and new joiner");
       return;
     }
 
@@ -434,244 +556,124 @@ const BuddyMentorAssignment = () => {
     const newJoiner = newJoiners.find((n) => n.id === newJoinerId);
 
     if (!program || !buddy || !newJoiner) {
-      alert("Invalid selection");
+      toast.error("Invalid selection");
       return;
     }
 
     if (buddy.currentAssignments >= buddy.maxAssignments) {
-      alert("Selected buddy has reached maximum assignments");
+      toast.error("Selected buddy has reached maximum assignments");
       return;
     }
 
     if (newJoiner.assignedBuddy) {
-      alert("This new joiner already has a buddy assigned");
+      toast.error("This new joiner already has a buddy assigned");
       return;
     }
 
     const matchScore = calculateMatchScore(buddy, newJoiner, program);
-    const effectiveDate = assignmentDate || new Date().toISOString().split("T")[0];
 
-    let pairingId;
     try {
-      const created = await buddyMentorAPI.createPairing({
+      const payload = {
         program_id: programId,
         buddy_id: buddyId,
         new_joiner_id: newJoinerId,
-        assignment_date: effectiveDate,
+        assignment_date: assignmentDate || new Date().toISOString().split("T")[0],
         match_score: matchScore,
-        status: "ACTIVE",
+        status: 'Active',
+      };
+
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.PAIRINGS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      pairingId = created?.id;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : 'Failed to assign buddy');
+      }
+
+      setShowAssignmentModal(false);
+      setAssignmentForm({
+        programId: null,
+        buddyId: null,
+        newJoinerId: null,
+        assignmentDate: new Date().toISOString().split("T")[0],
+        notes: "",
+        pairingReason: "",
+      });
+      toast.success("Buddy assigned successfully!");
+      await loadProgramDetail(programId); // buddies/newJoiners recompute automatically from this
+      await loadPrograms();
     } catch (err) {
-      console.error('Error creating buddy pairing:', err);
-      alert('Failed to save the pairing to the server: ' + (err.message || 'Unknown error'));
-      return;
+      toast.error(err.message || 'Failed to assign buddy');
     }
-
-    const newAssignment = {
-      id: pairingId ?? Date.now(),
-      buddy: {
-        ...buddy,
-        currentAssignments: buddy.currentAssignments + 1,
-      },
-      newJoiner: {
-        ...newJoiner,
-        assignedBuddy: true,
-      },
-      assignmentDate: effectiveDate,
-      status: "active",
-      matchScore,
-      pairingReason: pairingReason || "Manual assignment",
-      communicationRecords: [],
-      lastCheckIn: null,
-      nextCheckIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-      feedbackScore: 0,
-      completionPercentage: 0,
-      milestones: [
-        { id: 1, name: "Initial onboarding", completed: false, date: null },
-        { id: 2, name: "First task completion", completed: false, date: null },
-        { id: 3, name: "Mid-program review", completed: false, date: null },
-      ],
-      notes,
-    };
-
-    setBuddyPrograms((prev) =>
-      prev.map((p) => {
-        if (p.id === programId) {
-          const updatedAssignments = [...p.assignments, newAssignment];
-          const activePairs = updatedAssignments.filter(
-            (a) => a.status === "active"
-          ).length;
-          const totalPairs = updatedAssignments.length;
-          const avgMatchScore =
-            updatedAssignments.reduce((sum, a) => sum + a.matchScore, 0) /
-            totalPairs;
-
-          return {
-            ...p,
-            assignments: updatedAssignments,
-            totalPairs,
-            activePairs,
-            analytics: {
-              ...p.analytics,
-              totalPairs,
-              activePairs,
-              averageMatchScore: avgMatchScore,
-              departmentDistribution: {
-                ...p.analytics.departmentDistribution,
-                [newJoiner.department]:
-                  (p.analytics.departmentDistribution[newJoiner.department] ||
-                    0) + 1,
-              },
-              locationDistribution: {
-                ...p.analytics.locationDistribution,
-                [newJoiner.location]:
-                  (p.analytics.locationDistribution[newJoiner.location] ||
-                    0) + 1,
-              },
-            },
-          };
-        }
-        return p;
-      })
-    );
-
-    setBuddies((prev) =>
-      prev.map((b) =>
-        b.id === buddyId
-          ? {
-            ...b,
-            currentAssignments: b.currentAssignments + 1,
-            totalMentees: b.totalMentees + 1,
-          }
-          : b
-      )
-    );
-
-    setNewJoiners((prev) =>
-      prev.map((n) =>
-        n.id === newJoinerId ? { ...n, assignedBuddy: true } : n
-      )
-    );
-
-    setShowAssignmentModal(false);
-    setAssignmentForm({
-      programId: null,
-      buddyId: null,
-      newJoinerId: null,
-      assignmentDate: new Date().toISOString().split("T")[0],
-      notes: "",
-      pairingReason: "",
-    });
-    alert("Buddy assigned successfully!");
   };
 
-  const handleSubmitFeedback = (formData) => {
+  const handleSubmitFeedback = async (formData) => {
     const {
       assignmentId,
       submittedBy,
-      role,
       overallRating,
       categories,
       overallComment,
-      improvementSuggestions,
-      wouldRecommend,
       anonymous,
     } = formData;
 
     if (!assignmentId || !submittedBy || !overallRating) {
-      alert("Please fill all required fields");
+      toast.error("Please fill all required fields");
       return;
     }
 
-    const findCategory = (name) =>
-      categories.find((cat) => cat.category === name);
-    const categoryRating = (name) => {
-      const cat = findCategory(name);
-      return cat && cat.rating ? parseFloat(cat.rating) : undefined;
-    };
-    const categoryComment = (name) => {
-      const cat = findCategory(name);
-      return cat && cat.comment ? cat.comment : undefined;
-    };
+    const catByName = (name) => categories.find((c) => c.category === name) || {};
 
-    buddyMentorAPI.submitFeedback({
-      pairing_id: Number(assignmentId),
-      submitted_by: submittedBy,
-      overall_rating: Math.round(parseFloat(overallRating)),
-      responsiveness: categoryRating("Responsiveness"),
-      knowledge_sharing: categoryRating("Knowledge Sharing"),
-      support: categoryRating("Support"),
-      communication: categoryRating("Communication"),
-      overall_comments: overallComment || undefined,
-      responsiveness_comments: categoryComment("Responsiveness"),
-      knowledge_sharing_comments: categoryComment("Knowledge Sharing"),
-      support_comments: categoryComment("Support"),
-      communication_comments: categoryComment("Communication"),
-    }).catch((err) => {
-      console.error('Error submitting buddy feedback:', err);
-      alert('Failed to save feedback to the server: ' + (err.message || 'Unknown error'));
-    });
+    try {
+      const payload = {
+        pairing_id: Number(assignmentId),
+        submitted_by: anonymous ? 'Anonymous' : submittedBy,
+        overall_rating: Math.round(parseFloat(overallRating)),
+        responsiveness: catByName('Responsiveness').rating ? Math.round(catByName('Responsiveness').rating) : null,
+        knowledge_sharing: catByName('Knowledge Sharing').rating ? Math.round(catByName('Knowledge Sharing').rating) : null,
+        support: catByName('Support').rating ? Math.round(catByName('Support').rating) : null,
+        communication: catByName('Communication').rating ? Math.round(catByName('Communication').rating) : null,
+        overall_comments: overallComment || null,
+        responsiveness_comments: catByName('Responsiveness').comment || null,
+        knowledge_sharing_comments: catByName('Knowledge Sharing').comment || null,
+        support_comments: catByName('Support').comment || null,
+        communication_comments: catByName('Communication').comment || null,
+      };
 
-    const newFeedback = {
-      id: Date.now(),
-      assignmentId,
-      submittedBy,
-      role,
-      date: new Date().toISOString().split("T")[0],
-      overallRating: parseFloat(overallRating),
-      categories: categories.map((cat) => ({
-        ...cat,
-        rating: parseFloat(cat.rating),
-      })),
-      overallComment,
-      improvementSuggestions,
-      wouldRecommend,
-      anonymous,
-    };
-
-    const updatedPrograms = buddyPrograms.map((program) => {
-      const assignment = program.assignments?.find(
-        (a) => a.id === Number(assignmentId)
-      );
-
-      if (assignment) {
-        const updatedAssignments = program.assignments.map((a) =>
-          a.id === Number(assignmentId)
-            ? { ...a, feedbackScore: parseFloat(overallRating) }
-            : a
-        );
-
-        const allFeedback = [...(program.feedback || []), newFeedback];
-
-        const averageRating =
-          allFeedback.reduce((sum, fb) => sum + fb.overallRating, 0) /
-          allFeedback.length;
-
-        return {
-          ...program,
-          assignments: updatedAssignments,
-          feedback: allFeedback,
-          overallRating: parseFloat(averageRating.toFixed(1)),
-          analytics: {
-            ...program.analytics,
-            averageRating: parseFloat(averageRating.toFixed(1)),
-            feedbackCount: allFeedback.length,
-          },
-        };
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.FEEDBACK}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : 'Failed to submit feedback');
       }
 
-      return program;
-    });
-
-    setBuddyPrograms(updatedPrograms);
-    setShowFeedbackModal(false);
-    alert("Feedback submitted successfully!");
+      setShowFeedbackModal(false);
+      toast.success("Feedback submitted successfully!");
+      if (selectedProgram) await loadProgramDetail(selectedProgram.id);
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit feedback');
+    }
   };
 
-  const handleRecordCommunication = (formData) => {
+  // Frontend offers more granular labels than the backend's 4-value enum —
+  // map each to the closest real CommunicationType.
+  const communicationTypeToBackend = {
+    welcome_call: 'Onboarding Session',
+    weekly_checkin: 'Weekly Checkin',
+    welcome_meeting: 'Onboarding Session',
+    strategy_session: 'Monthly Review',
+    training_session: 'Ad Hoc',
+    progress_review: 'Monthly Review',
+    feedback_session: 'Ad Hoc',
+    other: 'Ad Hoc',
+  };
+
+  const handleRecordCommunication = async (formData) => {
     const {
       assignmentId,
       type,
@@ -683,101 +685,47 @@ const BuddyMentorAssignment = () => {
     } = formData;
 
     if (!assignmentId || !date) {
-      alert("Please fill required fields");
+      toast.error("Please fill required fields");
       return;
     }
 
-    const nextCheckInDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
+    try {
+      const payload = {
+        pairing_id: Number(assignmentId),
+        communication_type: communicationTypeToBackend[type] || 'Ad Hoc',
+        date,
+        duration_minutes: duration ? parseInt(duration, 10) : null,
+        topics_discussed: topics || null,
+        follow_up_actions: followUp || null,
+        additional_notes: notes || null,
+      };
 
-    const parsedDuration = parseInt(duration, 10);
-
-    buddyMentorAPI.recordCommunication({
-      pairing_id: Number(assignmentId),
-      communication_type: type,
-      date,
-      duration_minutes: Number.isNaN(parsedDuration) ? undefined : parsedDuration,
-      next_checkin_date: nextCheckInDate,
-      topics_discussed: topics || undefined,
-      follow_up_actions: followUp || undefined,
-      additional_notes: notes || undefined,
-    }).catch((err) => {
-      console.error('Error recording buddy communication:', err);
-      alert('Failed to save communication log to the server: ' + (err.message || 'Unknown error'));
-    });
-
-    const newCommunication = {
-      id: Date.now(),
-      type,
-      date,
-      duration: duration || "N/A",
-      topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
-      followUp: followUp.split(",").map((f) => f.trim()).filter(Boolean),
-      notes,
-    };
-
-    const updatedPrograms = buddyPrograms.map((program) => {
-      const assignmentIndex = program.assignments?.findIndex(
-        (a) => a.id === Number(assignmentId)
-      );
-
-      if (assignmentIndex !== -1 && assignmentIndex !== undefined) {
-        const updatedAssignments = [...program.assignments];
-        const assignment = updatedAssignments[assignmentIndex];
-
-        const nextCheckIn = new Date(
-          Date.now() + 7 * 24 * 60 * 60 * 1000
-        )
-          .toISOString()
-          .split("T")[0];
-
-        updatedAssignments[assignmentIndex] = {
-          ...assignment,
-          communicationRecords: [
-            ...(assignment.communicationRecords || []),
-            newCommunication,
-          ],
-          lastCheckIn: date,
-          nextCheckIn,
-          completionPercentage: Math.min(
-            (assignment.completionPercentage || 0) + 5,
-            100
-          ),
-        };
-
-        return { ...program, assignments: updatedAssignments };
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.COMMUNICATIONS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : 'Failed to record communication');
       }
 
-      return program;
-    });
-
-    setBuddyPrograms(updatedPrograms);
-    setShowCommunicationModal(false);
-    alert("Communication recorded successfully!");
+      setShowCommunicationModal(false);
+      toast.success("Communication recorded successfully!");
+      if (selectedProgram) await loadProgramDetail(selectedProgram.id);
+    } catch (err) {
+      toast.error(err.message || 'Failed to record communication');
+    }
   };
 
+  // NOTE: there is no backend table for onboarding-checklist tasks (the
+  // buddy-mentor API covers programs/pairings/feedback/communications only)
+  // so this stays local-only and does not persist across a page reload.
+  // buddyResponsibilities is always [] from the backend (see
+  // mapProgramDetail above), so in practice this is currently a no-op;
+  // left in place rather than removed in case a checklist table gets added.
   const handleUpdateTaskStatus = (programId, taskId, newStatus) => {
-    setBuddyPrograms((prev) =>
-      prev.map((program) => {
-        if (program.id === programId) {
-          const updatedResponsibilities = program.buddyResponsibilities?.map(
-            (category) => ({
-              ...category,
-              tasks: category.tasks?.map((task) =>
-                task.id === taskId ? { ...task, status: newStatus } : task
-              ),
-            })
-          );
-
-          return {
-            ...program,
-            buddyResponsibilities: updatedResponsibilities,
-          };
-        }
-        return program;
-      })
-    );
+    toast.info("Checklist tasks aren't saved to the server yet — no backend table exists for them.");
   };
 
   const handleAutoMatch = async (programId) => {
@@ -790,166 +738,73 @@ const BuddyMentorAssignment = () => {
     );
 
     if (unassignedNewJoiners.length === 0) {
-      alert("No unassigned new joiners available");
+      toast.error("No unassigned new joiners available");
       return;
     }
 
     if (availableBuddies.length === 0) {
-      alert("No available buddies for assignment");
+      toast.error("No available buddies for assignment");
       return;
     }
 
-    // The backend's /pairings/auto-match endpoint scores ONE specific
-    // buddy/new-joiner pair (AutoMatchRequest -> AutoMatchOut), it doesn't
-    // do bulk matching across everyone unassigned. To reproduce the old
-    // "match everyone" behavior with a real, server-computed score
-    // (rather than the local calculateMatchScore heuristic, whose rule
-    // inputs like tenure/skills are currently empty defaults for every
-    // employee), we call it once per candidate buddy for each unassigned
-    // new joiner and keep the best result. This means this action makes
-    // (new joiners × available buddies) requests — fine for typical
-    // program sizes, but worth knowing if either list grows large.
+    // Client-side matching against the program's real assignment rules —
+    // the backend's /pairings/auto-match endpoint scores ONE candidate pair
+    // at a time rather than searching across all of them, so picking the
+    // best pairing still happens here; each chosen match is then persisted
+    // as a real pairing via POST /pairings, same as a manual assignment.
     const matches = [];
-    const buddyAssignmentCounts = new Map(
-      availableBuddies.map((b) => [b.id, b.currentAssignments])
-    );
+    const buddyLoad = {}; // local tracker so one buddy isn't over-assigned within this batch
 
-    for (const newJoiner of unassignedNewJoiners) {
+    unassignedNewJoiners.forEach((newJoiner) => {
       let bestMatch = null;
-      let bestScore = -1;
-      let bestReason = "";
+      let bestScore = 0;
 
-      for (const buddy of availableBuddies) {
-        const count = buddyAssignmentCounts.get(buddy.id) ?? buddy.currentAssignments;
-        if (count >= buddy.maxAssignments) continue;
+      availableBuddies.forEach((buddy) => {
+        const used = buddyLoad[buddy.id] || 0;
+        if (buddy.currentAssignments + used >= buddy.maxAssignments) return;
 
-        try {
-          const result = await buddyMentorAPI.autoMatch(programId, buddy.id, newJoiner.id);
-          if (result && result.match_score > bestScore) {
-            bestScore = result.match_score;
-            bestMatch = buddy;
-            bestReason = result.match_reason;
-          }
-        } catch (err) {
-          console.error(`Error scoring buddy ${buddy.id} for new joiner ${newJoiner.id}:`, err);
+        const score = calculateMatchScore(buddy, newJoiner, program);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = buddy;
         }
-      }
+      });
 
       if (bestMatch && bestScore >= 60) {
-        matches.push({ newJoiner, buddy: bestMatch, score: bestScore, reason: bestReason });
-        buddyAssignmentCounts.set(
-          bestMatch.id,
-          (buddyAssignmentCounts.get(bestMatch.id) ?? bestMatch.currentAssignments) + 1
-        );
+        matches.push({ newJoinerId: newJoiner.id, buddyId: bestMatch.id, score: bestScore });
+        buddyLoad[bestMatch.id] = (buddyLoad[bestMatch.id] || 0) + 1;
       }
-    }
+    });
 
     if (matches.length === 0) {
-      alert("No suitable matches found (minimum 60% match score required)");
+      toast.error("No suitable matches found (minimum 60% match score required)");
       return;
     }
 
-    for (const match of matches) {
-      const { buddy, newJoiner, score, reason } = match;
-      let pairingId;
-      try {
-        const created = await buddyMentorAPI.createPairing({
-          program_id: programId,
-          buddy_id: buddy.id,
-          new_joiner_id: newJoiner.id,
-          assignment_date: new Date().toISOString().split("T")[0],
-          match_score: score,
-          status: "ACTIVE",
-        });
-        pairingId = created?.id;
-      } catch (err) {
-        console.error('Error creating auto-matched pairing:', err);
-        continue;
-      }
-
-      const newAssignment = {
-        id: pairingId ?? Date.now(),
-        buddy: { ...buddy, currentAssignments: buddy.currentAssignments },
-        newJoiner: { ...newJoiner, assignedBuddy: true },
-        assignmentDate: new Date().toISOString().split("T")[0],
-        status: "active",
-        matchScore: score,
-        pairingReason: reason || `Auto-matched based on ${score}% compatibility`,
-        communicationRecords: [],
-        lastCheckIn: null,
-        nextCheckIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
-        feedbackScore: 0,
-        completionPercentage: 0,
-        milestones: [
-          { id: 1, name: "Initial onboarding", completed: false, date: null },
-          {
-            id: 2,
-            name: "First task completion",
-            completed: false,
-            date: null,
-          },
-          { id: 3, name: "Mid-program review", completed: false, date: null },
-        ],
-      };
-
-      setBuddyPrograms((prev) =>
-        prev.map((p) => {
-          if (p.id === programId) {
-            return {
-              ...p,
-              assignments: [...(p.assignments || []), newAssignment],
-              totalPairs: p.totalPairs + 1,
-              activePairs: p.activePairs + 1,
-              analytics: {
-                ...p.analytics,
-                totalPairs: p.analytics.totalPairs + 1,
-                activePairs: p.analytics.activePairs + 1,
-                averageMatchScore:
-                  (p.analytics.averageMatchScore * p.analytics.totalPairs +
-                    score) /
-                  (p.analytics.totalPairs + 1),
-                departmentDistribution: {
-                  ...p.analytics.departmentDistribution,
-                  [newJoiner.department]:
-                    (p.analytics.departmentDistribution[
-                      newJoiner.department
-                    ] || 0) + 1,
-                },
-                locationDistribution: {
-                  ...p.analytics.locationDistribution,
-                  [newJoiner.location]:
-                    (p.analytics.locationDistribution[newJoiner.location] ||
-                      0) + 1,
-                },
-              },
-            };
-          }
-          return p;
-        })
-      );
-
-      setBuddies((prev) =>
-        prev.map((b) =>
-          b.id === buddy.id
-            ? {
-              ...b,
-              currentAssignments: b.currentAssignments + 1,
-              totalMentees: b.totalMentees + 1,
-            }
-            : b
+    try {
+      await Promise.all(
+        matches.map((match) =>
+          fetch(`${BASE_URL}${API_ENDPOINTS.BUDDY_MENTOR.PAIRINGS}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              program_id: programId,
+              buddy_id: match.buddyId,
+              new_joiner_id: match.newJoinerId,
+              assignment_date: new Date().toISOString().split('T')[0],
+              match_score: match.score,
+              status: 'Active',
+            }),
+          })
         )
       );
 
-      setNewJoiners((prev) =>
-        prev.map((n) =>
-          n.id === newJoiner.id ? { ...n, assignedBuddy: true } : n
-        )
-      );
+      toast.success(`${matches.length} new joiners auto-matched with buddies!`);
+      await loadProgramDetail(programId);
+      await loadPrograms();
+    } catch (err) {
+      toast.error('Auto-match failed to save one or more pairings');
     }
-
-    alert(`${matches.length} new joiners auto-matched with buddies!`);
   };
 
   const handleSort = (key) => {
@@ -1055,6 +910,8 @@ const BuddyMentorAssignment = () => {
 
   return (
     <div className="w-full mx-auto max-w-7xl space-y-4 sm:space-y-6">
+      <ToastContainer position="top-right" autoClose={3000} />
+      {loading && <div className="text-sm text-slate-500">Loading buddy/mentor programs…</div>}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 border-b border-slate-100 pb-4 sm:pb-5">
         <div>
@@ -1361,7 +1218,7 @@ const BuddyMentorAssignment = () => {
                       key={program.id}
                       className={`hover:bg-slate-50/50 transition-colors cursor-pointer ${selectedProgram?.id === program.id ? "bg-blue-50/40" : ""
                         }`}
-                      onClick={() => setSelectedProgram(program)}
+                      onClick={() => handleSelectProgram(program)}
                     >
                       <td className="p-2 sm:p-3">
                         <div className="font-bold text-slate-800 text-[10px] sm:text-xs">{program.name}</div>
@@ -1392,7 +1249,7 @@ const BuddyMentorAssignment = () => {
                           <button
                             className="p-1 sm:p-1.5 hover:bg-slate-50 text-slate-600 border-r border-slate-150"
                             onClick={() => {
-                              setSelectedProgram(program);
+                              handleSelectProgram(program);
                               setShowAnalyticsModal(true);
                             }}
                             title="Analytics"
@@ -1402,7 +1259,7 @@ const BuddyMentorAssignment = () => {
                           <button
                             className="p-1 sm:p-1.5 hover:bg-slate-50 text-slate-600 border-r border-slate-150"
                             onClick={() => {
-                              setSelectedProgram(program);
+                              handleSelectProgram(program);
                               setAssignmentForm((prev) => ({
                                 ...prev,
                                 programId: program.id,

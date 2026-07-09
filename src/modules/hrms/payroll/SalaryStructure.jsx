@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { toast, ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 import StatCard from '../../../shared/components/StatCard';
+import { payrollAPI, employeeAPI } from '../../../shared/utils/api';
 import AssignmentModal from '../modal/AssignmentModal';
 import AssignmentViewModal from '../modal/AssignmentViewModal';
 import ChangeStructureModal from '../modal/ChangeStructureModal';
@@ -55,9 +56,110 @@ const SalaryStructure = () => {
     reimbursements: []
   });
 
-  const [structures, setStructures] = useState([]);
+  // Backend's list_assignments only returns bare StructureAssignmentResponse
+  // (employee_id, template_id, annual_ctc, take_home_monthly, dates) — no
+  // joined employee name/email/department or template name, and no computed
+  // salary breakdown/gross salary. AssignmentViewModal wants all of that, so
+  // we join it client-side against the employee directory and the templates
+  // already loaded, same stand-in pattern used elsewhere when the backend
+  // doesn't expose a purpose-built joined endpoint. `salaryBreakdown` /
+  // `grossSalary` stay unset — there's no formula for those on the backend,
+  // so we're not fabricating numbers.
+  const loadAssignments = async () => {
+    try {
+      const [assignmentsData, employeesData, templatesData] = await Promise.all([
+        payrollAPI.listAssignments(),
+        employeeAPI.list().catch((err) => { console.error('Failed to load employees for assignment join:', err); return []; }),
+        payrollAPI.getStructureTemplatesOverview().catch((err) => { console.error('Failed to load templates for assignment join:', err); return { templates: [] }; }),
+      ]);
+      const employeesById = new Map((employeesData || []).map((e) => [e.id, e]));
+      const templatesById = new Map((templatesData?.templates || []).map((t) => [t.id, t]));
+
+      setAssignments((assignmentsData || []).map((a) => {
+        const emp = employeesById.get(a.employee_id);
+        const tmpl = templatesById.get(a.template_id);
+        return {
+          id: a.id,
+          employeeId: a.employee_id,
+          name: emp?.name,
+          email: emp?.email,
+          department: emp?.department,
+          location: emp?.location,
+          grade: tmpl?.grade,
+          level: tmpl?.level,
+          structureId: a.template_id,
+          currentStructure: tmpl?.template_name,
+          ctc: a.annual_ctc,
+          takeHome: a.take_home_monthly,
+          effectiveDate: a.effective_from,
+          assignmentStatus: a.effective_to ? 'inactive' : 'active',
+          assignmentType: a.allocation_source,
+        };
+      }));
+    } catch (err) {
+      console.error('Failed to load salary structure assignments:', err);
+      toast.error(err.message || 'Failed to load assignments');
+    }
+  };
   const [assignments, setAssignments] = useState([]);
   const [versions, setVersions] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
+
+  // Backend SalaryComponentResponse -> local UI shape used throughout this
+  // file (name/category/type/taxable/statutory/calculation/value/base/
+  // proRata/rounding/isActive), matching ComponentModal/ComponentViewModal.
+  const mapComponent = (c) => ({
+    id: c.id,
+    name: c.component_name,
+    code: c.component_code,
+    category: c.category,
+    type: c.component_type,
+    taxable: c.is_taxable,
+    statutory: c.is_statutory,
+    calculation: c.calculation_method,
+    value: c.value,
+    base: c.base_component_id,
+    proRata: c.is_pro_rata,
+    rounding: c.rounding,
+    maxAmount: c.max_amount,
+    proofRequired: c.proof_required,
+    taxExemptUpto: c.tax_exempt_upto,
+    description: c.description,
+    isActive: c.is_active,
+    createdAt: c.created_at,
+  });
+
+  const loadComponents = () => {
+    setIsLoading(true);
+    payrollAPI.getComponentsMaster()
+      .then((data) => {
+        setComponents({
+          earnings: (data.earnings || []).map(mapComponent),
+          deductions: (data.deductions || []).map(mapComponent),
+          employerContributions: (data.employer_contributions || []).map(mapComponent),
+          reimbursements: (data.reimbursements || []).map(mapComponent),
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to load salary components:', err);
+        toast.error(err.message || 'Failed to load salary components');
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    loadComponents();
+    loadAssignments();
+    payrollAPI.getSalaryStructureDashboard()
+      .catch((err) => console.error('Failed to load salary structure dashboard:', err))
+      .then((data) => data && setDashboard(data));
+    // NOTE: Structure templates and assignments are NOT loaded here yet —
+    // StructureModal's form fields (minCTC/maxCTC/incrementRange/employeeType/
+    // standardDeductions) don't match the backend's SalaryStructureTemplateCreate
+    // schema (annual_ctc + component_lines), so wiring that tab needs a design
+    // decision first rather than a guessed mapping. See handleAddStructure etc.
+    // below, still stubbed.
+  }, []);
 
   const getStatusBadge = (status) => {
     const config = {
@@ -138,19 +240,69 @@ const SalaryStructure = () => {
   };
 
   const handleAddComponent = (data) => {
-    toast.success('Component added successfully');
+    payrollAPI.createComponent({
+      component_name: data.name,
+      component_code: data.code || data.name.replace(/\s+/g, '_').toUpperCase(),
+      description: data.description || undefined,
+      category: data.category,
+      component_type: data.type,
+      is_taxable: !!data.taxable,
+      is_statutory: !!data.statutory,
+      calculation_method: data.calculation,
+      value: data.value ? Number(data.value) : undefined,
+      base_component_id: data.base || undefined,
+      is_pro_rata: !!data.proRata,
+      rounding: data.rounding || 'nearest_1',
+      is_active: data.isActive !== false,
+    })
+      .then(() => {
+        toast.success('Component added successfully');
+        loadComponents();
+      })
+      .catch((err) => {
+        console.error('Failed to add component:', err);
+        toast.error(err.message || 'Failed to add component');
+      });
     setShowComponentModal(false);
   };
 
   const handleUpdateComponent = (data) => {
-    toast.success('Component updated successfully');
+    payrollAPI.updateComponent(data.id, {
+      component_name: data.name,
+      description: data.description || undefined,
+      component_type: data.type,
+      is_taxable: !!data.taxable,
+      is_statutory: !!data.statutory,
+      calculation_method: data.calculation,
+      value: data.value ? Number(data.value) : undefined,
+      base_component_id: data.base || undefined,
+      is_pro_rata: !!data.proRata,
+      rounding: data.rounding || undefined,
+      is_active: data.isActive,
+    })
+      .then(() => {
+        toast.success('Component updated successfully');
+        loadComponents();
+      })
+      .catch((err) => {
+        console.error('Failed to update component:', err);
+        toast.error(err.message || 'Failed to update component');
+      });
     setShowComponentModal(false);
     setSelectedComponent(null);
   };
 
   const handleDeleteComponent = (id) => {
     if (window.confirm('Are you sure you want to delete this component?')) {
-      toast.success('Component deleted successfully');
+      payrollAPI.deleteComponent(id)
+        .then(() => {
+          toast.success('Component deleted successfully');
+          loadComponents();
+        })
+        .catch((err) => {
+          console.error('Failed to delete component:', err);
+          toast.error(err.message || 'Failed to delete component');
+        });
       setShowViewComponentModal(false);
       setSelectedComponent(null);
     }
@@ -176,19 +328,61 @@ const SalaryStructure = () => {
   };
 
   const handleAddAssignment = (data) => {
-    toast.success('Assignment created successfully');
+    payrollAPI.createAssignment({
+      employee_id: Number(data.employeeId),
+      template_id: Number(data.structureId),
+      annual_ctc: Number(data.ctc),
+      effective_from: data.effectiveDate,
+      allocation_source: data.allocationRules?.type || 'auto',
+      is_individual_override: !!data.allocationRules?.hasCustomRules,
+    })
+      .then(() => {
+        toast.success('Assignment created successfully');
+        loadAssignments();
+      })
+      .catch((err) => {
+        console.error('Failed to create assignment:', err);
+        toast.error(err.message || 'Failed to create assignment');
+      });
     setShowAssignmentModal(false);
   };
 
+  // "Change structure" for an employee: the backend's create-assignment
+  // endpoint automatically closes out the employee's current active
+  // assignment (sets effective_to = today) before creating the new one, so
+  // this calls createAssignment rather than a PUT to the old record.
   const handleUpdateAssignment = (data) => {
-    toast.success('Assignment updated successfully');
+    payrollAPI.createAssignment({
+      employee_id: Number(data.employeeId),
+      template_id: Number(data.newStructureId),
+      annual_ctc: Number(data.ctc),
+      effective_from: data.newEffectiveDate || new Date().toISOString().split('T')[0],
+      allocation_source: 'custom',
+      is_individual_override: true,
+    })
+      .then(() => {
+        toast.success('Assignment updated successfully');
+        loadAssignments();
+      })
+      .catch((err) => {
+        console.error('Failed to update assignment:', err);
+        toast.error(err.message || 'Failed to update assignment');
+      });
     setShowChangeStructureModal(false);
     setEmployeeToChange(null);
   };
 
   const handleDeleteAssignment = (id) => {
     if (window.confirm('Are you sure you want to delete this assignment?')) {
-      toast.success('Assignment deleted successfully');
+      payrollAPI.deleteAssignment(id)
+        .then(() => {
+          toast.success('Assignment deleted successfully');
+          loadAssignments();
+        })
+        .catch((err) => {
+          console.error('Failed to delete assignment:', err);
+          toast.error(err.message || 'Failed to delete assignment');
+        });
     }
   };
 
