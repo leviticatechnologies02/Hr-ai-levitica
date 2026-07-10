@@ -3,7 +3,7 @@ import { Icon } from '@iconify/react';
 import StatCard from '../../../shared/components/StatCard';
 import EmployeeDetailModal from '../modal/EmployeeDetailModal';
 import AddEmployeeModal from '../modal/AddEmployeeMasterModal';
-import { employeeAPI } from "../../../shared/services/api";
+import { employeeAPI } from "../../../shared/utils/api";
 
 const EmployeeMasterData = () => {
   const [employees, setEmployees] = useState([]);
