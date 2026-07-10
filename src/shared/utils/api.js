@@ -35,7 +35,15 @@ export const apiCall = async (endpoint, options = {}) => {
           return null;
         }
       }
-      return null;
+      // Non-JSON success response (PDF/Excel/zip/CSV file downloads etc.) —
+      // return the actual blob rather than discarding it. Previously this
+      // branch returned null unconditionally, which silently broke every
+      // file-download endpoint in the app (bulk-download, exports, print
+      // reports, ...): the request succeeded but the caller got nothing.
+      if (contentType && contentType.includes('text/')) {
+        return await response.text();
+      }
+      return await response.blob();
     } else {
       // Handle error responses
       const errorData = await response.json().catch(() => ({}));

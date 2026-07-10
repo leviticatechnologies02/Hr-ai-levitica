@@ -8,6 +8,7 @@ import BulkDownloadModal from '../modal/BulkDownloadModal';
 import DeleteSlipModal from '../modal/DeleteSlipModal';
 import SettingsModal from '../modal/SettingsModal';
 import NotificationToast from '../../../shared/components/NotificationToast';
+import { payrollAPI, employeeAPI } from '../../../shared/utils/api';
 
 const Salaryslip = () => {
   const [activeTab, setActiveTab] = useState('generate');
@@ -65,6 +66,93 @@ const Salaryslip = () => {
 
   const itemsPerPage = 6;
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingSlips, setIsLoadingSlips] = useState(false);
+
+  // Backend's history endpoint returns SlipHistoryRow, not the full
+  // SalarySlipResponse — different shape: `pay_period` comes pre-formatted
+  // as a string, `date_generated` (not `generated_at`), and there's no
+  // `distribution_method` on this row at all (that only lives on the full
+  // slip record / distribution records). `password` is never returned in
+  // any list response — it only comes back once, from the generate-slip
+  // response right after creation — so it stays undefined here.
+  const mapSlip = (r) => ({
+    id: r.id,
+    employeeId: r.employee_id,
+    employeeName: r.employee_name,
+    month: r.pay_period,
+    period: r.pay_period,
+    dateGenerated: r.date_generated ? r.date_generated.split('T')[0] : '',
+    grossSalary: Number(r.gross_salary),
+    netSalary: Number(r.net_pay),
+    status: r.status,
+    distributionMethod: undefined,
+    password: undefined,
+    downloaded: false,
+    emailSent: r.status === 'distributed',
+    emailDate: r.distributed_at ? r.distributed_at.split('T')[0] : '',
+    smsSent: false,
+    smsDate: '',
+  });
+
+  const loadSalarySlipData = async () => {
+    setIsLoadingSlips(true);
+    try {
+      const [slipsData, employeesData] = await Promise.all([
+        payrollAPI.getSlipHistory().catch((err) => { console.error('Failed to load salary slip history:', err); return { slips: [] }; }),
+        employeeAPI.list().catch((err) => { console.error('Failed to load employees:', err); return []; }),
+      ]);
+      const rawSlips = Array.isArray(slipsData) ? slipsData : (slipsData?.slips || slipsData?.items || []);
+      setSalaryData({
+        employees: Array.isArray(employeesData) ? employeesData : [],
+        salarySlips: rawSlips.map(mapSlip),
+      });
+    } finally {
+      setIsLoadingSlips(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSalarySlipData();
+
+    payrollAPI.getSlipConfig()
+      .then((config) => {
+        if (!config) return;
+        setCompanySettings((prev) => ({
+          ...prev,
+          name: config.company_name || prev.name,
+          address: config.company_address || prev.address,
+          signatory: config.authorized_signatory || prev.signatory,
+          footerText: config.footer_text || prev.footerText,
+          confidentiality: config.confidentiality_text || prev.confidentiality,
+          defaultPassword: config.password_strength || prev.defaultPassword,
+          retentionPeriod: config.retention_period_months ?? prev.retentionPeriod,
+          allowRevisions: config.allow_salary_slip_revisions ?? prev.allowRevisions,
+          revisionDays: config.revision_allowed_days ?? prev.revisionDays,
+        }));
+      })
+      .catch((err) => console.error('Failed to load salary slip config:', err));
+
+    payrollAPI.getDistributionSettings()
+      .then((dist) => {
+        if (!dist) return;
+        setNotificationSettings((prev) => ({
+          ...prev,
+          email: dist.send_automatic_email ?? prev.email,
+          sms: dist.send_sms_notification ?? prev.sms,
+          portal: dist.enable_employee_portal_access ?? prev.portal,
+          autoSend: dist.send_automatic_email ?? prev.autoSend,
+          sendTime: dist.auto_send_time || prev.sendTime,
+          ccHR: dist.cc_hr_department ?? prev.ccHR,
+          bccAccounts: dist.bcc_accounts_department ?? prev.bccAccounts,
+        }));
+        setCompanySettings((prev) => ({
+          ...prev,
+          emailSubject: dist.email_subject || prev.emailSubject,
+          emailBody: dist.email_template || prev.emailBody,
+        }));
+      })
+      .catch((err) => console.error('Failed to load distribution settings:', err));
+  }, []);
 
   const openModal = (type, data = null) => {
     setModalState({ type, isOpen: true, data });
@@ -247,6 +335,13 @@ const Salaryslip = () => {
     );
   };
 
+  // NOTE: the backend's /salary-slips/generate does NOT compute pay itself —
+  // it converts an already-computed PayrollRunDetail into a slip. If no
+  // payroll run has been processed for this employee/period yet (and right
+  // now nothing in this backend actually computes those figures — see the
+  // Payroll Processing Engine notes), this will fail with a 404 explaining
+  // exactly that ("No payroll run found ... Run payroll processing first.").
+  // That's surfaced to the user rather than papered over with fake numbers.
   const handleGenerateSalarySlip = (data) => {
     if (!selectedEmployee) {
       showNotification('Please select an employee', 'error');
@@ -255,48 +350,29 @@ const Salaryslip = () => {
 
     setGenerationStatus('generating');
 
-    try {
-      const totals = calculateTotals(selectedEmployee);
-      const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-      const slipId = `SS${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(salaryData.salarySlips.length + 1).padStart(3, '0')}`;
-      const password = generatePassword(selectedEmployee);
+    const periodDate = new Date((selectedMonth || new Date().toISOString().slice(0, 7)) + '-01');
 
-      const newSlip = {
-        id: slipId,
-        employeeId: selectedEmployee.id,
-        employeeName: selectedEmployee.name,
-        month: month,
-        period: `${selectedMonth || new Date().toISOString().slice(0, 7)}-01 to ${selectedMonth || new Date().toISOString().slice(0, 7)}-${new Date(new Date(selectedMonth || new Date().toISOString().slice(0, 7) + '-01').getFullYear(), new Date(selectedMonth || new Date().toISOString().slice(0, 7) + '-01').getMonth() + 1, 0).getDate()}`,
-        dateGenerated: new Date().toISOString().split('T')[0],
-        grossSalary: totals.grossSalary,
-        netSalary: totals.netSalary,
-        status: 'generated',
-        distributionMethod: data.distributionMethod || 'none',
-        password: password,
-        downloaded: false,
-        emailSent: false,
-        emailDate: '',
-        smsSent: false,
-        smsDate: ''
-      };
-
-      setSalaryData(prev => ({
-        ...prev,
-        salarySlips: [newSlip, ...prev.salarySlips]
-      }));
-
-      setGenerationStatus('completed');
-      closeModal();
-      showNotification(`Salary slip generated for ${selectedEmployee.name}`, 'success');
-
-    } catch (error) {
-      console.error('Error generating salary slip:', error);
-      showNotification('Error generating salary slip. Please try again.', 'error');
-      setGenerationStatus('error');
-    }
+    payrollAPI.generateSlip({
+      employee_id: selectedEmployee.id,
+      pay_period_month: periodDate.getMonth() + 1,
+      pay_period_year: periodDate.getFullYear(),
+      distribution_method: data.distributionMethod || 'email',
+      protect_with_dob: true,
+    })
+      .then(() => {
+        setGenerationStatus('completed');
+        closeModal();
+        showNotification(`Salary slip generated for ${selectedEmployee.name}`, 'success');
+        loadSalarySlipData();
+      })
+      .catch((error) => {
+        console.error('Error generating salary slip:', error);
+        showNotification(error.message || 'Error generating salary slip. Please try again.', 'error');
+        setGenerationStatus('error');
+      });
   };
 
-  const handleDownloadPDF = (employee, slipId) => {
+  const handleDownloadPDF = async (employee, slipId) => {
     if (!employee) {
       showNotification('Employee not found', 'error');
       return;
@@ -305,11 +381,28 @@ const Salaryslip = () => {
     setGenerationStatus('downloading');
 
     try {
-      const totals = calculateTotals(employee);
+      // The real computed figures live on the slip record itself
+      // (gross_salary/total_deductions/net_pay/earnings_json/
+      // deductions_json), not on the plain Employee record — Employee
+      // has no salaryStructure/deductions/attendance/reimbursements
+      // fields. Fetch the actual slip rather than guessing from fields
+      // that don't exist.
+      const fullSlip = await payrollAPI.getSlip(slipId);
+      const earnings = fullSlip.earnings_json ? JSON.parse(fullSlip.earnings_json) : null;
+      const deductions = fullSlip.deductions_json ? JSON.parse(fullSlip.deductions_json) : null;
+
       const slip = salaryData.salarySlips.find(s => s.id === slipId);
-      const month = slip?.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-      const period = slip?.period || `${selectedMonth || new Date().toISOString().slice(0, 7)}-01 to ${selectedMonth || new Date().toISOString().slice(0, 7)}-${new Date(new Date(selectedMonth || new Date().toISOString().slice(0, 7) + '-01').getFullYear(), new Date(selectedMonth || new Date().toISOString().slice(0, 7) + '-01').getMonth() + 1, 0).getDate()}`;
+      const month = slip?.month || `${fullSlip.slip_month}/${fullSlip.slip_year}`;
+      const period = slip?.period || month;
       const password = slip?.password || generatePassword(employee);
+
+      const totals = {
+        earnings: Number(fullSlip.gross_salary) || 0,
+        deductions: Number(fullSlip.total_deductions) || 0,
+        grossSalary: Number(fullSlip.gross_salary) || 0,
+        netSalary: Number(fullSlip.net_pay) || 0,
+        words: '',
+      };
 
       const printWindow = window.open('', '_blank');
       
@@ -359,16 +452,14 @@ const Salaryslip = () => {
             <table>
               <tr>
                 <td style="width: 50%;">
-                  <strong>Employee Name:</strong> ${employee.name || 'N/A'}<br>
-                  <strong>Employee ID:</strong> ${employee.id || 'N/A'}<br>
-                  <strong>Designation:</strong> ${employee.designation || 'N/A'}<br>
-                  <strong>Department:</strong> ${employee.department || 'N/A'}
+                  <strong>Employee Name:</strong> ${fullSlip.employee_name || employee.name || 'N/A'}<br>
+                  <strong>Employee ID:</strong> ${fullSlip.employee_code || employee.id || 'N/A'}<br>
+                  <strong>Designation:</strong> ${fullSlip.designation || employee.designation || 'N/A'}<br>
+                  <strong>Department:</strong> ${fullSlip.department || employee.department || 'N/A'}
                 </td>
                 <td style="width: 50%;">
-                  <strong>Bank Name:</strong> ${employee.bankDetails?.bankName || 'N/A'}<br>
-                  <strong>Account No:</strong> ${employee.bankDetails?.accountNumber || 'N/A'}<br>
-                  <strong>IFSC Code:</strong> ${employee.bankDetails?.ifscCode || 'N/A'}<br>
-                  <strong>PAN Number:</strong> ${employee.panNumber || 'N/A'}
+                  <strong>Bank Name:</strong> ${fullSlip.bank_name || 'N/A'}<br>
+                  <strong>Account No:</strong> ${fullSlip.bank_account || 'N/A'}<br>
                 </td>
               </tr>
             </table>
@@ -376,12 +467,12 @@ const Salaryslip = () => {
           <div class="section">
             <div class="section-title">EARNINGS</div>
             <table>
-              ${employee.salaryStructure ? Object.entries(employee.salaryStructure).map(([key, value]) => `
+              ${earnings ? Object.entries(earnings).map(([key, value]) => `
                 <tr>
                   <td>${key.replace(/([A-Z])/g, ' $1').toUpperCase()}</td>
                   <td class="text-right">${formatCurrency(value)}</td>
                 </tr>
-              `).join('') : '<tr><td>No earnings data available</td><td class="text-right">-</td></tr>'}
+              `).join('') : '<tr><td>No earnings breakdown stored for this slip</td><td class="text-right">-</td></tr>'}
               <tr class="total-row">
                 <td>TOTAL EARNINGS</td>
                 <td class="text-right">${formatCurrency(totals.earnings)}</td>
@@ -391,12 +482,12 @@ const Salaryslip = () => {
           <div class="section">
             <div class="section-title">DEDUCTIONS</div>
             <table>
-              ${employee.deductions ? Object.entries(employee.deductions).map(([key, value]) => `
+              ${deductions ? Object.entries(deductions).map(([key, value]) => `
                 <tr>
                   <td>${key.toUpperCase()}</td>
                   <td class="text-right">${formatCurrency(value)}</td>
                 </tr>
-              `).join('') : '<tr><td>No deductions data available</td><td class="text-right">-</td></tr>'}
+              `).join('') : '<tr><td>No deductions breakdown stored for this slip</td><td class="text-right">-</td></tr>'}
               <tr class="total-row">
                 <td>TOTAL DEDUCTIONS</td>
                 <td class="text-right">${formatCurrency(totals.deductions)}</td>
@@ -417,59 +508,8 @@ const Salaryslip = () => {
                 <td><strong>NET SALARY PAYABLE</strong></td>
                 <td class="text-right"><strong>${formatCurrency(totals.netSalary)}</strong></td>
               </tr>
-              <tr>
-                <td colspan="2">
-                  <strong>In Words:</strong> ${totals.words}
-                </td>
-              </tr>
             </table>
           </div>
-          ${employee.attendance ? `
-          <div class="section">
-            <div class="section-title">ATTENDANCE SUMMARY</div>
-            <table>
-              <tr>
-                <td>Present Days</td>
-                <td>${employee.attendance.present || 0}</td>
-                <td>Casual Leave</td>
-                <td>${employee.attendance.casualLeave || 0}</td>
-              </tr>
-              <tr>
-                <td>Sick Leave</td>
-                <td>${employee.attendance.sickLeave || 0}</td>
-                <td>Overtime Hours</td>
-                <td>${employee.attendance.overtimeHours || 0}</td>
-              </tr>
-              <tr>
-                <td>Weekly Off</td>
-                <td>${employee.attendance.weeklyOff || 0}</td>
-                <td>Holidays</td>
-                <td>${employee.attendance.holidays || 0}</td>
-              </tr>
-            </table>
-          </div>
-          ` : ''}
-          ${employee.reimbursements && employee.reimbursements.total > 0 ? `
-          <div class="section">
-            <div class="section-title">REIMBURSEMENT DETAILS</div>
-            <table>
-              <tr>
-                <th>Type</th>
-                <th class="text-right">Amount</th>
-              </tr>
-              ${Object.entries(employee.reimbursements).filter(([key]) => key !== 'total').map(([key, value]) => `
-                <tr>
-                  <td>${key.replace(/([A-Z])/g, ' $1').toUpperCase()}</td>
-                  <td class="text-right">${formatCurrency(value)}</td>
-                </tr>
-              `).join('')}
-              <tr class="total-row">
-                <td>TOTAL REIMBURSEMENT</td>
-                <td class="text-right">${formatCurrency(employee.reimbursements.total)}</td>
-              </tr>
-            </table>
-          </div>
-          ` : ''}
           ${slip && passwordProtect ? `
             <div class="section">
               <div class="section-title">SECURITY INFORMATION</div>
@@ -521,7 +561,7 @@ const Salaryslip = () => {
 
     } catch (error) {
       console.error('Error downloading PDF:', error);
-      showNotification('Error downloading PDF. Please try again.', 'error');
+      showNotification(error.message || 'Error downloading PDF. Please try again.', 'error');
       setGenerationStatus('error');
     }
   };
@@ -534,43 +574,28 @@ const Salaryslip = () => {
 
     setGenerationStatus('sending');
 
-    try {
-      const slip = salaryData.salarySlips.find(s => s.id === slipId);
+    const slip = salaryData.salarySlips.find(s => s.id === slipId);
 
-      if (!slip) {
-        showNotification('No salary slip found for this employee.', 'error');
-        setGenerationStatus('error');
-        return;
-      }
-
-      const emailBody = companySettings.emailBody
-        .replace('[Employee Name]', employee.name || 'N/A')
-        .replace('[Month Year]', slip.month || 'N/A')
-        .replace('[Net Amount]', formatCurrency(slip.netSalary))
-        .replace('[Payment Date]', formatDate(slip.dateGenerated))
-        .replace('[Password]', slip.password || 'N/A');
-
-      setSalaryData(prev => ({
-        ...prev,
-        salarySlips: prev.salarySlips.map(s =>
-          s.id === slip.id ? {
-            ...s,
-            emailSent: true,
-            emailDate: new Date().toISOString().split('T')[0],
-            status: 'distributed',
-            distributionMethod: 'email'
-          } : s
-        )
-      }));
-
-      setGenerationStatus('completed');
-      showNotification(`Salary slip sent via email to ${employee.email || 'employee'}`, 'success');
-
-    } catch (error) {
-      console.error('Error sending email:', error);
-      showNotification('Error sending email. Please try again.', 'error');
+    if (!slip) {
+      showNotification('No salary slip found for this employee.', 'error');
       setGenerationStatus('error');
+      return;
     }
+
+    payrollAPI.sendSlip(slipId, {
+      method: 'email',
+      recipient_email: employee.email,
+    })
+      .then(() => {
+        setGenerationStatus('completed');
+        showNotification(`Salary slip sent via email to ${employee.email || 'employee'}`, 'success');
+        loadSalarySlipData();
+      })
+      .catch((error) => {
+        console.error('Error sending email:', error);
+        showNotification(error.message || 'Error sending email. Please try again.', 'error');
+        setGenerationStatus('error');
+      });
   };
 
   const handleDeleteSlip = (slip) => {
@@ -578,13 +603,20 @@ const Salaryslip = () => {
   };
 
   const confirmDeleteSlip = (slip) => {
-    setSalaryData(prev => ({
-      ...prev,
-      salarySlips: prev.salarySlips.filter(s => s.id !== slip.id)
-    }));
-    setSelectedSlips(prev => prev.filter(id => id !== slip.id));
-    closeModal();
-    showNotification(`Salary slip for ${slip.employeeName} deleted successfully.`, 'success');
+    payrollAPI.deleteSlip(slip.id)
+      .then(() => {
+        setSalaryData(prev => ({
+          ...prev,
+          salarySlips: prev.salarySlips.filter(s => s.id !== slip.id)
+        }));
+        setSelectedSlips(prev => prev.filter(id => id !== slip.id));
+        closeModal();
+        showNotification(`Salary slip for ${slip.employeeName} deleted successfully.`, 'success');
+      })
+      .catch((error) => {
+        console.error('Error deleting salary slip:', error);
+        showNotification(error.message || 'Error deleting salary slip.', 'error');
+      });
   };
 
   const handleBulkDownload = (data) => {
@@ -636,19 +668,27 @@ const Salaryslip = () => {
 
         showNotification(`Excel export completed. ${slipsToDownload.length} records exported.`, 'success');
       } else {
-        setTimeout(() => {
-          const blob = new Blob(['Salary slips data'], { type: 'application/octet-stream' });
-          saveAs(blob, `salary_slips_${new Date().toISOString().split('T')[0]}.${data.format === 'zip' ? 'zip' : 'pdf'}`);
+        payrollAPI.bulkDownloadSlips(slipsToDownload.map(s => s.id))
+          .then((blob) => {
+            saveAs(blob, `salary_slips_${new Date().toISOString().split('T')[0]}.${data.format === 'zip' ? 'zip' : 'pdf'}`);
 
-          setSalaryData(prev => ({
-            ...prev,
-            salarySlips: prev.salarySlips.map(slip =>
-              slipsToDownload.some(s => s.id === slip.id) ? { ...slip, downloaded: true } : slip
-            )
-          }));
+            setSalaryData(prev => ({
+              ...prev,
+              salarySlips: prev.salarySlips.map(slip =>
+                slipsToDownload.some(s => s.id === slip.id) ? { ...slip, downloaded: true } : slip
+              )
+            }));
 
-          showNotification(`Download completed. ${slipsToDownload.length} files processed.`, 'success');
-        }, 2000);
+            showNotification(`Download completed. ${slipsToDownload.length} files processed.`, 'success');
+            closeModal();
+            setGenerationStatus('completed');
+          })
+          .catch((error) => {
+            console.error('Error in bulk download:', error);
+            showNotification(error.message || 'Error processing bulk download. Please try again.', 'error');
+            setGenerationStatus('error');
+          });
+        return;
       }
 
       closeModal();
@@ -662,10 +702,42 @@ const Salaryslip = () => {
   };
 
   const handleSaveSettings = (settings, notifications) => {
-    setCompanySettings(settings);
-    setNotificationSettings(notifications);
-    closeModal();
-    showNotification('Settings saved successfully!', 'success');
+    Promise.all([
+      payrollAPI.updateSlipConfig({
+        company_name: settings.name || undefined,
+        company_address: settings.address || undefined,
+        authorized_signatory: settings.signatory || undefined,
+        footer_text: settings.footerText || undefined,
+        confidentiality_text: settings.confidentiality || undefined,
+        retention_period_months: settings.retentionPeriod || undefined,
+        password_strength: settings.defaultPassword || undefined,
+        auto_send_on_generation: notifications.autoSend,
+        auto_send_time: notifications.sendTime || undefined,
+        allow_salary_slip_revisions: settings.allowRevisions,
+        revision_allowed_days: settings.revisionDays || undefined,
+      }),
+      payrollAPI.updateDistributionSettings({
+        send_automatic_email: notifications.email,
+        cc_hr_department: notifications.ccHR,
+        bcc_accounts_department: notifications.bccAccounts,
+        email_subject: settings.emailSubject || undefined,
+        email_template: settings.emailBody || undefined,
+        default_password_type: settings.defaultPassword || undefined,
+        send_sms_notification: notifications.sms,
+        enable_employee_portal_access: notifications.portal,
+        auto_send_time: notifications.sendTime || undefined,
+      }),
+    ])
+      .then(() => {
+        setCompanySettings(settings);
+        setNotificationSettings(notifications);
+        closeModal();
+        showNotification('Settings saved successfully!', 'success');
+      })
+      .catch((error) => {
+        console.error('Error saving settings:', error);
+        showNotification(error.message || 'Error saving settings.', 'error');
+      });
   };
 
   const toggleSelectSlip = (slipId) => {

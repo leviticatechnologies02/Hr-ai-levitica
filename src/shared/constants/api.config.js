@@ -46,7 +46,9 @@ export const API_ENDPOINTS = {
     STAGES: '/api/pipeline/stages',
     STAGE: (id) => `/api/pipeline/stages/${id}`,
     CANDIDATES: '/api/pipeline/candidates',
+    CANDIDATE: (id) => `/api/pipeline/candidates/${id}`,
     MOVE_CANDIDATE: (id) => `/api/pipeline/candidates/${id}/move`,
+    CANDIDATE_COMMENTS: (id) => `/api/pipeline/candidates/${id}/comments`,
   },
   
   // Analytics
@@ -54,6 +56,8 @@ export const API_ENDPOINTS = {
   HIRING_FUNNEL: '/api/hiring_funnel/',
   TIME_TO_HIRE: '/api/hiring_funnel/time-to-hire',
   TIME_TO_HIRE_DETAIL: '/analytics/time-to-hire-detail',
+  CANDIDATE_SOURCING: '/analytics/candidate-sourcing',
+  JOB_PERFORMANCE: '/analytics/job-performance',
     RECRUITER_STATS: '/api/recruiter_dashboard/analytics',
     APPLICATIONS_OVER_TIME: '/api/recruiter_dashboard/analytics/applications-over-time',
   },

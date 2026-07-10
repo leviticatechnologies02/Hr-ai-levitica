@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Icon } from "@iconify/react";
+import { attendanceAPI } from "../../../shared/utils/api";
 
 import SelfiePunchModal from "../modal/SelfiePunchModal";
 import PunchLocationModal from "../modal/PunchLocationModal";
@@ -9,25 +10,13 @@ import AddPunchModal from "../modal/AddPunchModal";
 import AllPunchesModal from "../modal/AllPunchesModal";
 
 function DailyPunches() {
-  const businessUnit = ["All Units", "Default Business Units"];
-  const locations = [
-    "All Locations",
-    "Hyderabad",
-    "Chennai",
-    "Mumbai",
-    "Kerala",
-  ];
-  const costCenters = [
-    "All Cost Centers",
-    "Associate Software Engineer",
-    "Hr Executive",
-  ];
-  const departments = [
-    "All Departments",
-    "OD Team",
-    "Product Development Team",
-    "Technical Support",
-  ];
+  const [filterOptionsData, setFilterOptionsData] = useState({
+    business_units: ["All Units"], locations: ["All Locations"], cost_centers: ["All Cost Centers"], departments: ["All Departments"],
+  });
+  const businessUnit = filterOptionsData.business_units;
+  const locations = filterOptionsData.locations;
+  const costCenters = filterOptionsData.cost_centers;
+  const departments = filterOptionsData.departments;
 
   const [showModal, setShowModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -63,7 +52,82 @@ function DailyPunches() {
 
   const onPunchFilterChange = (value) => setSelectedPunchFilter(value);
 
+  const toIsoDate = (displayDate) => {
+    const [day, month, year] = displayDate.split("-");
+    return `${year}-${month}-${day}`;
+  };
+
+  const mapPunchRowToLocal = (row) => ({
+    id: row.id,
+    name: row.employee_name || "",
+    code: row.employee_code || "",
+    designation: row.designation || "",
+    department: row.department || "",
+    businessUnit: row.business_unit || "",
+    location: row.location_name || "",
+    start: row.start?.time || "",
+    end: row.end?.time || "",
+    duration: row.worked_hours ? `${row.worked_hours}h` : "",
+    attendance: row.attendance_mark === "Present" ? "P" : row.attendance_mark === "Absent" ? "A" : row.attendance_mark === "Late" ? "L" : row.attendance_mark,
+    attendanceColor: "info",
+    registeredFace: "/assets/img/users/user-01.jpg",
+    punchImage: "/assets/img/users/user-01.jpg",
+    locationUrl: "",
+    employeeId: row.employee_id,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  const loadFilterOptions = async () => {
+    try {
+      const opts = await attendanceAPI.getPunchFilterOptions();
+      setFilterOptionsData({
+        business_units: ["All Units", ...(opts.business_units || [])],
+        locations: ["All Locations", ...(opts.locations || [])],
+        cost_centers: ["All Cost Centers", ...(opts.cost_centers || [])],
+        departments: ["All Departments", ...(opts.departments || [])],
+      });
+    } catch (err) {
+      console.error("Failed to load punch filter options:", err.message);
+    }
+  };
+
+  const loadPunches = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const params = { punch_date: toIsoDate(selectedDate), page: 1, page_size: 200 };
+      if (filter.businessUnit !== "All Units") params.business_unit = filter.businessUnit;
+      if (filter.location !== "All Locations") params.location = filter.location;
+      if (filter.costCenter !== "All Cost Centers") params.cost_center = filter.costCenter;
+      if (filter.department !== "All Departments") params.department = filter.department;
+      if (selectedPunchFilter === "late") params.late_only = true;
+      if (selectedPunchFilter === "absent") params.absent_only = true;
+      if (selectedPunchFilter === "nopunch") params.no_punches = true;
+
+      const result = await attendanceAPI.listDailyPunches(params);
+      setPunchesData((result.items || []).map(mapPunchRowToLocal));
+    } catch (err) {
+      setLoadError(err.message);
+      setPunchesData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFilterOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadPunches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, filter.businessUnit, filter.location, filter.costCenter, filter.department, selectedPunchFilter]);
+
   const handleView = () => {
+    loadPunches();
     toast.info(`👀 Viewing punches for ${selectedDate}`);
   };
 
@@ -120,6 +184,10 @@ function DailyPunches() {
     }
   };
 
+  // NOTE: same gap as DailyAttendance.jsx — daily-punches has no bulk CSV
+  // import endpoint (only daily_attendance.py does, with a different,
+  // incompatible contract). Left as a local-only preview; imported rows
+  // display in the table but are not sent to or persisted by the backend.
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -155,37 +223,23 @@ function DailyPunches() {
       });
 
       setPunchesData((prev) => [...prev, ...importedData]);
-      toast.success("CSV imported successfully!");
+      toast.success("CSV imported successfully! (preview only — not saved to backend, no matching bulk-import endpoint exists on this router)");
     };
     reader.readAsText(file);
   };
 
   const handleExport = () => {
-    if (!filteredPunches.length) {
-      toast.error("No data to export!");
-      return;
-    }
-
-    const headers = ["id", "name", "code", "designation", "start", "end", "duration", "attendance", "location", "department"];
-    const csvRows = [headers.join(",")];
-
-    filteredPunches.forEach((row) => {
-      const values = headers.map((header) => {
-        const val = row[header] ? row[header].toString() : "";
-        return `"${val.replace(/"/g, '""')}"`;
-      });
-      csvRows.push(values.join(","));
-    });
-
-    const csvString = csvRows.join("\n");
-    const blob = new Blob([csvString], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `daily_punches_${selectedDate.replace(/-/g, "_")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV exported successfully!");
+    window.open(
+      attendanceAPI.exportDailyPunchesUrl({
+        punch_date: toIsoDate(selectedDate),
+        ...(filter.businessUnit !== "All Units" && { business_unit: filter.businessUnit }),
+        ...(filter.location !== "All Locations" && { location: filter.location }),
+        ...(filter.costCenter !== "All Cost Centers" && { cost_center: filter.costCenter }),
+        ...(filter.department !== "All Departments" && { department: filter.department }),
+      }),
+      "_blank"
+    );
+    toast.success("Export started");
   };
 
   const formatDate = (date) => {
@@ -216,21 +270,29 @@ function DailyPunches() {
   };
 
   useEffect(() => {
-    setEmployeePunches((prev) => {
-      const updated = { ...prev };
-      punchesData.forEach((emp) => {
-        if (!updated[emp.id]) {
-          updated[emp.id] = [
-            { time: emp.start, type: "Remote Punch", direction: "IN", id: `${emp.id}-in` },
-            ...(emp.end ? [{ time: emp.end, type: "Remote Punch", direction: "OUT", id: `${emp.id}-out` }] : []),
-          ];
-        }
-      });
-      return updated;
+    punchesData.forEach((emp) => {
+      if (!employeePunches[emp.id] && emp.employeeId) {
+        attendanceAPI.getEmployeePunches(emp.employeeId, toIsoDate(selectedDate))
+          .then((punches) => {
+            setEmployeePunches((prev) => ({
+              ...prev,
+              [emp.id]: (punches || []).map((p) => ({
+                time: p.punch_time,
+                type: `${p.punch_type} Punch`,
+                direction: p.punch_type,
+                id: p.id,
+              })),
+            }));
+          })
+          .catch((err) => console.error(`Failed to load punches for employee ${emp.employeeId}:`, err.message));
+      }
     });
-  }, [punchesData.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [punchesData]);
 
-  const handleAddPunchSubmit = (formData) => {
+  const [addingPunch, setAddingPunch] = useState(false);
+
+  const handleAddPunchSubmit = async (formData) => {
     const { date, time, remarks, type } = formData;
     if (!date) {
       toast.error("Please select a punch date");
@@ -240,40 +302,57 @@ function DailyPunches() {
       toast.error("Please enter complete punch time (HH:MM:SS)");
       return;
     }
+    if (!selectedPunchForModal?.employeeId) {
+      toast.error("This row has no linked employee record to punch against");
+      return;
+    }
 
     const finalTime = `${String(time.hh).padStart(2, "0")}:${String(time.mm).padStart(2, "0")}:${String(time.ss).padStart(2, "0")}`;
     const punchTypeLabel = type.charAt(0).toUpperCase() + type.slice(1);
 
-    const newPunch = {
-      time: finalTime,
-      type: `${punchTypeLabel} Punch`,
-      direction: "IN",
-      id: `${selectedPunchForModal.id}-${Date.now()}`,
-    };
-
-    setEmployeePunches((prev) => ({
-      ...prev,
-      [selectedPunchForModal.id]: [
-        ...(prev[selectedPunchForModal.id] || []),
-        newPunch,
-      ],
-    }));
-
-    toast.success(`Punch added: ${date} ${finalTime} (${punchTypeLabel})`);
-    setShowAddPunchModal(false);
-    setSelectedPunchForModal(null);
+    setAddingPunch(true);
+    try {
+      // NOTE: same gap as DailyAttendance.jsx — the backend's manual-punch
+      // endpoint takes a single in_time/out_time pair, not a directional
+      // punch type; punchTypeLabel folded into the reason text instead.
+      await attendanceAPI.addManualPunch({
+        employee_id: selectedPunchForModal.employeeId,
+        punch_date: toIsoDate(date),
+        in_time: finalTime,
+        reason: `${punchTypeLabel} punch${remarks ? `: ${remarks}` : ''}`,
+      });
+      await loadPunches();
+      setEmployeePunches((prev) => {
+        const next = { ...prev };
+        delete next[selectedPunchForModal.id];
+        return next;
+      });
+      toast.success(`Punch added: ${date} ${finalTime} (${punchTypeLabel})`);
+      setShowAddPunchModal(false);
+      setSelectedPunchForModal(null);
+    } catch (err) {
+      toast.error(`Failed to add punch: ${err.message}`);
+    } finally {
+      setAddingPunch(false);
+    }
   };
 
-  const handleDeletePunch = (punchId) => {
+  const handleDeletePunch = async (punchId) => {
     if (!selectedPunchForModal) return;
-    const updatedPunches = employeePunches[selectedPunchForModal.id].filter(
-      (p) => p.id !== punchId
-    );
-    setEmployeePunches((prev) => ({
-      ...prev,
-      [selectedPunchForModal.id]: updatedPunches,
-    }));
-    toast.success("Punch deleted successfully");
+    try {
+      await attendanceAPI.deletePunch(punchId);
+      const updatedPunches = employeePunches[selectedPunchForModal.id].filter(
+        (p) => p.id !== punchId
+      );
+      setEmployeePunches((prev) => ({
+        ...prev,
+        [selectedPunchForModal.id]: updatedPunches,
+      }));
+      await loadPunches();
+      toast.success("Punch deleted successfully");
+    } catch (err) {
+      toast.error(`Failed to delete punch: ${err.message}`);
+    }
   };
 
   const getAttendanceBadge = (status) => {

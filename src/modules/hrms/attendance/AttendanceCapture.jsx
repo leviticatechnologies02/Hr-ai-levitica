@@ -329,6 +329,22 @@ const AttendanceCapture = () => {
   // call sites already in this file, and added `.numericId` (the real FK)
   // for actual GPS/web/biometric check-in API calls, which need a true
   // integer employee_id.
+  useEffect(() => {
+    attendanceAPI.getAttendanceSettings()
+      .then((s) => {
+        dispatch({
+          type: "UPDATE_SETTING",
+          payload: {
+            lateThreshold: s.grace_minutes,
+            halfDayThreshold: s.half_day_hours,
+            geoFencing: s.geo_fence_restriction,
+          },
+        });
+      })
+      .catch((err) => console.error("Failed to load attendance settings:", err.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadEmployees = async () => {
     try {
       const list = await employeeAPI.list();
@@ -378,6 +394,43 @@ const AttendanceCapture = () => {
     loadGeoFences();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [addingIp, setAddingIp] = useState(false);
+
+  const loadIpWhitelist = async () => {
+    try {
+      const ips = await attendanceAPI.listIpWhitelist();
+      dispatch({ type: "SET_WHITELIST_IPS", payload: (ips || []).map((i) => i.ip_address) });
+    } catch (err) {
+      console.error("Failed to load IP whitelist:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadIpWhitelist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAddWhitelistIP = async () => {
+    if (!newIP || !/^(\d{1,3}\.){3}\d{1,3}$/.test(newIP)) {
+      alert("Please enter a valid IP address (format: xxx.xxx.xxx.xxx)");
+      return;
+    }
+
+    setAddingIp(true);
+    try {
+      await attendanceAPI.addIpWhitelist({ ip_address: newIP, is_active: true });
+      dispatch({ type: "ADD_WHITELIST_IP", payload: newIP });
+      setNewIP("");
+      addSyncLog("ip_whitelist", "Success", `Added IP ${newIP} to whitelist`);
+      alert(`IP ${newIP} added to whitelist`);
+    } catch (err) {
+      alert(`Failed to add IP: ${err.message}`);
+      addSyncLog("ip_whitelist", "Failed", err.message);
+    } finally {
+      setAddingIp(false);
+    }
+  };
 
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [devicesLoadError, setDevicesLoadError] = useState(null);
@@ -1442,6 +1495,7 @@ const AttendanceCapture = () => {
             verified: result.is_within_fence,
           };
           dispatch({ type: "ADD_PUNCH", payload: punch });
+          loadDashboardSummary();
 
           alert(
             result.is_within_fence
@@ -1564,7 +1618,9 @@ const AttendanceCapture = () => {
     setWebState((prev) => ({ ...prev, [actionKey]: true }));
 
     try {
-      // Check IP whitelisting
+      // Client-side whitelist pre-check for fast UX feedback — the
+      // backend re-validates the caller's actual IP server-side too (it
+      // doesn't trust a client-reported IP for the real decision).
       const ipAllowed = whitelistIPs.includes(webState.currentIP);
       if (!ipAllowed) {
         alert(`IP ${webState.currentIP} is not whitelisted. Access denied.`);
@@ -1589,39 +1645,56 @@ const AttendanceCapture = () => {
       const selectedEmp = employees.find((e) => e.id === selectedEmployee);
       const now = new Date();
 
-      const attendanceRecord = {
-        id: Date.now(),
-        employeeId: selectedEmployee,
-        employeeName: selectedEmp?.name || "Unknown",
-        date: now.toISOString().split("T")[0],
-        timestamp: now.toISOString(),
-        type: type,
-        method: "web",
-        ipAddress: webState.currentIP,
-        webcamImage: webState.webcamImage,
-        status: type === "checkin" ? "Present" : "Checked Out",
-        syncStatus: isOnline ? "synced" : "pending",
-        location: "Web Portal",
-        isWFH: false,
-        isField: false,
-      };
+      if (!selectedEmp?.numericId) {
+        alert("Selected employee record is missing a linked employee ID — cannot submit web check-in.");
+        setWebState((prev) => ({ ...prev, [actionKey]: false }));
+        return;
+      }
 
-      dispatch({ type: "ADD_ATTENDANCE", payload: attendanceRecord });
+      try {
+        const result = await attendanceAPI.webCheckIn({
+          employee_id: selectedEmp.numericId,
+          punch_type: type === "checkin" ? "IN" : "OUT",
+        });
 
-      // Add punch record
-      const punch = {
-        id: Date.now(),
-        employeeId: selectedEmployee,
-        employeeName: selectedEmp?.name,
-        timestamp: now.toISOString(),
-        type: type,
-        method: "web",
-        ipAddress: webState.currentIP,
-        verified: true,
-      };
-      dispatch({ type: "ADD_PUNCH", payload: punch });
+        const attendanceRecord = {
+          id: result.id,
+          employeeId: selectedEmployee,
+          employeeName: selectedEmp?.name || "Unknown",
+          date: now.toISOString().split("T")[0],
+          timestamp: now.toISOString(),
+          type: type,
+          method: "web",
+          ipAddress: webState.currentIP,
+          webcamImage: webState.webcamImage,
+          status: type === "checkin" ? "Present" : "Checked Out",
+          syncStatus: "synced",
+          location: "Web Portal",
+          isWFH: false,
+          isField: false,
+        };
 
-      alert(`✅ Web ${type} successful from IP: ${webState.currentIP}`);
+        dispatch({ type: "ADD_ATTENDANCE", payload: attendanceRecord });
+
+        const punch = {
+          id: result.id,
+          employeeId: selectedEmployee,
+          employeeName: selectedEmp?.name,
+          timestamp: now.toISOString(),
+          type: type,
+          method: "web",
+          ipAddress: webState.currentIP,
+          verified: true,
+        };
+        dispatch({ type: "ADD_PUNCH", payload: punch });
+        loadDashboardSummary();
+
+        alert(`✅ Web ${type} successful from IP: ${webState.currentIP}`);
+      } catch (err) {
+        alert(`Web ${type} failed: ${err.message}`);
+        setWebState((prev) => ({ ...prev, [actionKey]: false }));
+        return;
+      }
 
       // Clear webcam image after use
       if (settings.requireSelfie) {
@@ -1635,48 +1708,72 @@ const AttendanceCapture = () => {
   };
 
   // Add this function for WFH attendance
-  const markWFHAttendance = () => {
+  const [markingWfh, setMarkingWfh] = useState(false);
+
+  const markWFHAttendance = async () => {
     const selectedEmp = employees.find((e) => e.id === selectedEmployee);
     const now = new Date();
+    const workDate = now.toISOString().split("T")[0];
 
-    const attendanceRecord = {
-      id: Date.now(),
-      employeeId: selectedEmployee,
-      employeeName: selectedEmp?.name || "Unknown",
-      date: now.toISOString().split("T")[0],
-      timestamp: now.toISOString(),
-      type: "checkin",
-      method: "web",
-      status: "WFH",
-      syncStatus: isOnline ? "synced" : "pending",
-      location: "Work From Home",
-      isWFH: true,
-      isField: false,
-      notes: "Working from home",
-    };
+    if (!selectedEmp?.numericId) {
+      alert("Selected employee record is missing a linked employee ID — cannot mark WFH.");
+      return;
+    }
 
-    dispatch({ type: "ADD_ATTENDANCE", payload: attendanceRecord });
+    setMarkingWfh(true);
+    try {
+      const result = await attendanceAPI.markWfh(selectedEmp.numericId, workDate);
 
-    // Add to WFH requests
-    const wfhRequest = {
-      id: Date.now(),
-      employeeId: selectedEmployee,
-      employeeName: selectedEmp?.name,
-      date: now.toISOString().split("T")[0],
-      timestamp: now.toISOString(),
-      status: "Approved",
-      type: "WFH",
-    };
+      const attendanceRecord = {
+        id: result.id,
+        employeeId: selectedEmployee,
+        employeeName: selectedEmp?.name || "Unknown",
+        date: workDate,
+        timestamp: now.toISOString(),
+        type: "checkin",
+        method: "web",
+        status: "WFH",
+        syncStatus: "synced",
+        location: "Work From Home",
+        isWFH: true,
+        isField: false,
+        notes: "Working from home",
+      };
 
-    setWebState((prev) => ({
-      ...prev,
-      wfhRequests: [wfhRequest, ...prev.wfhRequests],
-    }));
+      dispatch({ type: "ADD_ATTENDANCE", payload: attendanceRecord });
 
-    alert("✅ Work From Home attendance marked!");
+      // NOTE: the backend's mark-wfh endpoint just records the attendance
+      // row — it has no separate "WFH request/approval" model. This
+      // request-tracking list stays local-only (already-approved UI state,
+      // there's nothing to actually approve against on the server).
+      const wfhRequest = {
+        id: result.id,
+        employeeId: selectedEmployee,
+        employeeName: selectedEmp?.name,
+        date: workDate,
+        timestamp: now.toISOString(),
+        status: "Approved",
+        type: "WFH",
+      };
+
+      setWebState((prev) => ({
+        ...prev,
+        wfhRequests: [wfhRequest, ...prev.wfhRequests],
+      }));
+
+      alert("✅ Work From Home attendance marked!");
+    } catch (err) {
+      alert(`Failed to mark WFH: ${err.message}`);
+    } finally {
+      setMarkingWfh(false);
+    }
   };
 
   // Add this function for field employee attendance
+  // NOTE: attendance_capture.py has no "field employee" concept or
+  // endpoint at all — only biometric/GPS/web check-in exist. This stays
+  // local-only; flagging as a needed backend addition rather than
+  // fabricating an endpoint.
   const markFieldAttendance = (fieldEmpId) => {
     const fieldEmp = webState.fieldEmployees.find((e) => e.id === fieldEmpId);
     if (!fieldEmp) return;
@@ -2202,92 +2299,82 @@ const AttendanceCapture = () => {
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadProgress(10);
     setBulkUploadFile(file);
-
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          processBulkFile(file);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
+    processBulkFile(file);
   };
 
-  // Function to process bulk file
+  // Parses a simple CSV with header row: employee_code,att_date,check_in,check_out
+  const parseAttendanceCsv = (text) => {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+    return lines.slice(1).map((line) => {
+      const cells = line.split(",").map((c) => c.trim());
+      const row = {};
+      headers.forEach((h, i) => { row[h] = cells[i]; });
+      return {
+        employee_code: row.employee_code || row.employeeid || row.employee_id,
+        att_date: row.att_date || row.date,
+        check_in: row.check_in || row.checkin || null,
+        check_out: row.check_out || row.checkout || null,
+        check_in_source: "Manual",
+        check_out_source: "Manual",
+      };
+    }).filter((r) => r.employee_code && r.att_date);
+  };
+
+  // Function to process bulk file — reads the real file content (CSV:
+  // employee_code,att_date,check_in,check_out) and submits real rows to
+  // the backend, instead of inserting the same 2 hardcoded records
+  // regardless of what was uploaded.
   const processBulkFile = (file) => {
-    // Simulate processing
-    setTimeout(() => {
-      const records = [
-        {
-          id: Date.now() + 1,
-          employeeId: "EMP001",
-          employeeName: "Khuswanth Rao",
-          date: new Date().toISOString().split("T")[0],
-          status: "Present",
-          method: "manual",
-          approvedBy: "Admin",
-          importedFrom: file.name,
-          importType: "bulk_upload",
-        },
-        {
-          id: Date.now() + 2,
-          employeeId: "EMP002",
-          employeeName: "John Smith",
-          date: new Date().toISOString().split("T")[0],
-          status: "Present",
-          method: "manual",
-          approvedBy: "Admin",
-          importedFrom: file.name,
-          importType: "bulk_upload",
-        },
-      ];
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const rows = parseAttendanceCsv(e.target.result);
+        if (rows.length === 0) {
+          throw new Error("No valid rows found. Expected columns: employee_code, att_date, check_in, check_out");
+        }
 
-      // Add records
-      records.forEach((record) => {
-        dispatch({ type: "ADD_ATTENDANCE", payload: record });
-      });
+        setUploadProgress(60);
+        const result = await attendanceAPI.bulkUploadAttendance(rows);
+        setUploadProgress(100);
 
-      // Add to import history
-      const importRecord = {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        recordsImported: records.length,
-        status: "Success",
-        importedBy: "Admin",
-        source: "bulk_upload",
-      };
+        const importRecord = {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          recordsImported: (result.created || 0) + (result.updated || 0),
+          status: (result.errors || []).length > 0 ? "Partial" : "Success",
+          importedBy: "Admin",
+          source: "bulk_upload",
+        };
 
-      setImportHistory((prev) => [importRecord, ...prev]);
-      localStorage.setItem(
-        "importHistory",
-        JSON.stringify([importRecord, ...importHistory])
-      );
+        setImportHistory((prev) => [importRecord, ...prev]);
+        localStorage.setItem("importHistory", JSON.stringify([importRecord, ...importHistory]));
 
-      // Add audit log
-      const auditLog = {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        action: "BULK_UPLOAD",
-        user: "Admin",
-        fileName: file.name,
-        recordsCount: records.length,
-        details: `Bulk upload completed: ${records.length} records imported`,
-        ipAddress: "192.168.1.100",
-      };
-
+        setIsUploading(false);
+        setUploadProgress(0);
+        setBulkUploadFile(null);
+        alert(
+          `Bulk upload completed! ${result.created || 0} created, ${result.updated || 0} updated` +
+          ((result.errors || []).length > 0 ? `, ${result.errors.length} failed: ${result.errors.join('; ')}` : ".")
+        );
+      } catch (err) {
+        setIsUploading(false);
+        setUploadProgress(0);
+        alert(`Bulk upload failed: ${err.message}`);
+      }
+    };
+    reader.onerror = () => {
       setIsUploading(false);
       setUploadProgress(0);
-      setBulkUploadFile(null);
-      alert(`Bulk upload completed! ${records.length} records imported.`);
-    }, 1000);
+      alert("Failed to read file");
+    };
+    reader.readAsText(file);
   };
 
   // Function to download template
@@ -2724,7 +2811,43 @@ const AttendanceCapture = () => {
   };
 
   // ==================== STATS CALCULATION ====================
-  const stats = {
+  // Previously computed only from `attendanceRecords` — a purely local
+  // array populated by manual entries and this session's own check-ins,
+  // never reflecting real organization-wide numbers. Replaced with the
+  // backend's real dashboard summary (GET /dashboard/summary), which
+  // aggregates actual attendance across all employees/methods from the
+  // database.
+  const [dashboardSummary, setDashboardSummary] = useState(null);
+
+  const loadDashboardSummary = async () => {
+    try {
+      const summary = await attendanceAPI.getDashboardSummary();
+      setDashboardSummary(summary);
+    } catch (err) {
+      console.error("Failed to load attendance dashboard summary:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const stats = dashboardSummary ? {
+    totalRecords: dashboardSummary.total_employees,
+    present: dashboardSummary.present_today,
+    absent: dashboardSummary.absent_today,
+    halfDay: attendanceRecords.filter((r) => r.status === "Half Day").length, // no backend equivalent
+    onLeave: attendanceRecords.filter((r) => r.status === "On Leave").length, // no backend equivalent
+    late: dashboardSummary.late_today,
+    totalOvertime: attendanceRecords
+      .reduce((sum, r) => sum + (parseFloat(r.overtime) || 0), 0)
+      .toFixed(1), // no backend overtime aggregate — stays session-local
+    wfhToday: dashboardSummary.wfh_today,
+    biometricPunches: dashboardSummary.biometric_punches,
+    gpsCheckins: dashboardSummary.gps_checkins,
+    webCheckins: dashboardSummary.web_checkins,
+  } : {
     totalRecords: attendanceRecords.length,
     present: attendanceRecords.filter((r) => r.status === "Present").length,
     absent: attendanceRecords.filter((r) => r.status === "Absent").length,
@@ -7578,28 +7701,7 @@ const AttendanceCapture = () => {
                               />
                               <button
                                 className="btn btn-primary"
-                                onClick={() => {
-                                  if (
-                                    newIP &&
-                                    /^(\d{1,3}\.){3}\d{1,3}$/.test(newIP)
-                                  ) {
-                                    dispatch({
-                                      type: "ADD_WHITELIST_IP",
-                                      payload: newIP,
-                                    });
-                                    setNewIP("");
-                                    addSyncLog(
-                                      "ip_whitelist",
-                                      "Success",
-                                      `Added IP ${newIP} to whitelist`
-                                    );
-                                    alert(`IP ${newIP} added to whitelist`);
-                                  } else {
-                                    alert(
-                                      "Please enter a valid IP address (format: xxx.xxx.xxx.xxx)"
-                                    );
-                                  }
-                                }}
+                                onClick={handleAddWhitelistIP}
                               >
                                 <Plus size={14} />
                               </button>
@@ -8302,6 +8404,9 @@ const AttendanceCapture = () => {
                               type: "SET_SETTINGS",
                               payload: defaultSettings,
                             });
+                            attendanceAPI.resetAttendanceSettings().catch((err) =>
+                              console.error("Failed to reset backend attendance settings:", err.message)
+                            );
                             alert("Settings reset to defaults!");
                           }}
                         >
@@ -8309,12 +8414,28 @@ const AttendanceCapture = () => {
                         </button>
                         <button
                           className="btn btn-primary"
-                          onClick={() => {
-                            localStorage.setItem(
-                              "settings",
-                              JSON.stringify(settings)
-                            );
-                            alert("Settings saved successfully!");
+                          onClick={async () => {
+                            // NOTE: the backend's AttendanceSettingsUpdate
+                            // only has 8 fields (grace_minutes,
+                            // half_day_hours, full_day_hours, allow_gps,
+                            // allow_web, allow_biometric, ip_restriction,
+                            // geo_fence_restriction) — everything else in
+                            // this large local settings object (night
+                            // shift, field tracking, duplicate-punch
+                            // window, etc.) has no backend column and
+                            // stays local-only in localStorage.
+                            try {
+                              await attendanceAPI.updateAttendanceSettings({
+                                grace_minutes: settings.lateThreshold,
+                                half_day_hours: settings.halfDayThreshold,
+                                geo_fence_restriction: settings.geoFencing,
+                              });
+                              localStorage.setItem("settings", JSON.stringify(settings));
+                              alert("Settings saved successfully!");
+                            } catch (err) {
+                              alert(`Failed to save settings to backend (local settings still saved): ${err.message}`);
+                              localStorage.setItem("settings", JSON.stringify(settings));
+                            }
                           }}
                         >
                           Save Settings
