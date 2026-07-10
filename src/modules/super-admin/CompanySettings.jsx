@@ -1,11 +1,265 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { BASE_URL } from '../../shared/constants/api.config';
+
+const authHeader = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// The company-settings/profile/ backend endpoint takes multipart/form-data
+// (it also accepts an optional logo file upload), not JSON — this builds
+// the FormData payload from our camelCase UI state.
+const buildProfileFormData = (profile) => {
+  const fd = new FormData();
+  const map = {
+    company_name: profile.name,
+    company_type: profile.companyType,
+    company_website: profile.website,
+    email: profile.email,
+    phone: profile.phone,
+    address: profile.address,
+    about_company: profile.about,
+    registration_number: profile.registrationNumber,
+    tax_id: profile.taxId,
+    vat_gst_number: profile.vatNumber,
+    industry: profile.industry,
+    legal_entity_name: profile.legalEntity,
+    year_founded: profile.foundedYear,
+    registration_date: profile.registrationDate,
+    registration_authority: profile.registrationAuthority,
+    incorporation_number: profile.incorporationNumber,
+  };
+  Object.entries(map).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') fd.append(key, value);
+  });
+  return fd;
+};
+
+const fromBackendProfile = (p) => ({
+  name: p.company_name || '',
+  registrationNumber: p.registration_number || '',
+  taxId: p.tax_id || '',
+  vatNumber: p.vat_gst_number || '',
+  companyType: p.company_type || '',
+  industry: p.industry || '',
+  foundedYear: p.year_founded ? String(p.year_founded) : '',
+  legalEntity: p.legal_entity_name || '',
+  registrationDate: p.registration_date || '',
+  registrationAuthority: p.registration_authority || '',
+  incorporationNumber: p.incorporation_number || '',
+  website: p.company_website || '',
+  email: p.email || '',
+  phone: p.phone || '',
+  address: p.address || '',
+  about: p.about_company || '',
+});
+
+const CURRENCY_LABELS = {
+  USD: 'USD - US Dollar',
+  EUR: 'EUR - Euro',
+  GBP: 'GBP - British Pound',
+  INR: 'INR - Indian Rupee',
+  JPY: 'JPY - Japanese Yen',
+};
+
+const fromBackendCurrencySettings = (c) => ({
+  primaryCurrency: CURRENCY_LABELS[c.primary_currency] || c.primary_currency || 'USD - US Dollar',
+  secondaryCurrency: c.secondary_currency ? (CURRENCY_LABELS[c.secondary_currency] || c.secondary_currency) : '',
+  multiCurrencyEnabled: !!c.multi_currency_enabled,
+  autoUpdateRates: !!c.auto_update,
+  updateFrequency: (c.update_frequency || 'Daily').toLowerCase(),
+  lastUpdated: c.last_updated || '',
+});
+
+// The UI's currency dropdowns use full labels like "USD - US Dollar" as
+// the value, but the backend's primary_currency/secondary_currency
+// columns are VARCHAR(10) — only enough room for the code. Extract just
+// the code portion before sending.
+const currencyCode = (value) => (value || '').split(' - ')[0].trim();
+
+const toBackendCurrencySettings = (c) => ({
+  primary_currency: currencyCode(c.primaryCurrency),
+  secondary_currency: c.secondaryCurrency ? currencyCode(c.secondaryCurrency) : null,
+  multi_currency_enabled: c.multiCurrencyEnabled,
+  auto_update: c.autoUpdateRates,
+  // backend only accepts "Daily" | "Weekly" | "Monthly" (capitalized)
+  update_frequency: c.updateFrequency
+    ? c.updateFrequency.charAt(0).toUpperCase() + c.updateFrequency.slice(1).toLowerCase()
+    : 'Daily',
+});
+
+const PERIOD_TYPE_MAP = { fiscal: 'Fiscal Year', calendar: 'Calendar Year', custom: 'Fiscal Year' };
+const PERIOD_TYPE_MAP_REVERSE = { 'Fiscal Year': 'fiscal', 'Calendar Year': 'calendar', '52-Week Year': 'custom' };
+const TAX_ALIGN_MAP = { calendar: 'Calendar Year', fiscal: 'Fiscal Year', different: 'Custom' };
+const TAX_ALIGN_MAP_REVERSE = { 'Calendar Year': 'calendar', 'Fiscal Year': 'fiscal', Custom: 'different' };
+
+const fromBackendFinancialYear = (f) => ({
+  startMonth: f.start_month,
+  startDay: f.start_day,
+  endMonth: f.end_month,
+  endDay: f.end_day,
+  currentYear: f.current_year,
+  previousYear: f.previous_year,
+  nextYear: f.next_year,
+  periodType: PERIOD_TYPE_MAP_REVERSE[f.period_type] || 'fiscal',
+  taxYear: TAX_ALIGN_MAP_REVERSE[f.tax_year_alignment] || 'calendar',
+});
+
+const toBackendFinancialYear = (f) => ({
+  start_month: f.startMonth,
+  start_day: f.startDay,
+  end_month: f.endMonth,
+  end_day: f.endDay,
+  // backend has no "Custom Period" equivalent — "custom" UI selection
+  // falls back to Fiscal Year rather than being rejected outright.
+  period_type: PERIOD_TYPE_MAP[f.periodType] || 'Fiscal Year',
+  tax_year_alignment: TAX_ALIGN_MAP[f.taxYear] || 'Calendar Year',
+});
+
+const TIME_FORMAT_MAP = { '12h': '12-hour', '24h': '24-hour' };
+const TIME_FORMAT_MAP_REVERSE = {
+  '12-hour (hh:mm AM/PM)': '12h', '12-hour': '12h',
+  '24-hour (HH:mm)': '24h', '24-hour': '24h',
+};
+
+const fromBackendLocalization = (l) => ({
+  defaultLanguage: l.default_language,
+  dateFormat: l.date_format,
+  timeFormat: TIME_FORMAT_MAP_REVERSE[l.time_format] || '12h',
+  numberFormat: l.number_format,
+  decimalPlaces: l.decimal_places,
+  currencyFormat: l.currency_format,
+  firstDayOfWeek: l.first_day_of_week,
+  timezone: l.default_timezone,
+});
+
+const toBackendLocalization = (l) => ({
+  default_language: l.defaultLanguage,
+  default_timezone: l.timezone,
+  date_format: l.dateFormat,
+  time_format: TIME_FORMAT_MAP[l.timeFormat] || '12-hour',
+  number_format: l.numberFormat,
+  decimal_places: l.decimalPlaces,
+  currency_format: l.currencyFormat,
+  first_day_of_week: l.firstDayOfWeek,
+});
+
+const POLICY_STATUS_TO_BACKEND = { active: 'Active', draft: 'Draft', archived: 'Archived', expired: 'Expired' };
+const POLICY_STATUS_FROM_BACKEND = { Active: 'active', Draft: 'draft', Archived: 'archived', Expired: 'expired' };
+
+const fromBackendPolicy = (p) => ({
+  id: p.id,
+  title: p.title,
+  category: p.category,
+  version: p.version,
+  effectiveDate: p.effective_date,
+  status: POLICY_STATUS_FROM_BACKEND[p.status] || p.status.toLowerCase(),
+  fileSize: p.document_size_bytes ? `${(p.document_size_bytes / (1024 * 1024)).toFixed(2)} MB` : 'N/A',
+  lastUpdated: p.updated_at ? p.updated_at.split('T')[0] : '',
+  description: p.description || '',
+});
+
+const buildPolicyFormData = (policy, isUpdate = false) => {
+  const fd = new FormData();
+  if (policy.title !== undefined) fd.append('title', policy.title);
+  if (policy.category !== undefined) fd.append('category', policy.category);
+  if (policy.version !== undefined) fd.append('version', policy.version);
+  if (policy.effectiveDate !== undefined) fd.append('effective_date', policy.effectiveDate);
+  if (policy.description) fd.append('description', policy.description);
+  if (isUpdate && policy.status) fd.append('status', POLICY_STATUS_TO_BACKEND[policy.status] || policy.status);
+  if (policy.file) fd.append('document', policy.file);
+  return fd;
+};
+
+const fromBackendNotifications = (n) => ({
+  emailNotifications: {
+    systemAlerts: n.email_system_alerts,
+    payrollUpdates: n.email_payroll_updates,
+    leaveApprovals: n.email_leave_approvals,
+    attendanceReminders: n.email_attendance_reminders,
+    policyUpdates: n.email_policy_updates,
+    securityAlerts: n.email_security_alerts,
+    weeklyReports: n.email_weekly_reports,
+    monthlySummaries: n.email_monthly_summaries,
+  },
+  pushNotifications: {
+    mobileAlerts: n.push_mobile_alerts,
+    desktopAlerts: n.push_desktop_alerts,
+    instantUpdates: n.push_instant_updates,
+    scheduledSummary: n.push_scheduled_summary,
+  },
+  smsNotifications: {
+    urgentAlerts: n.sms_urgent_alerts,
+    otpVerification: n.sms_otp_verification,
+    payrollCredits: n.sms_payroll_credits,
+    attendanceReminders: n.sms_attendance_reminders,
+  },
+});
+
+const toBackendNotifications = (n) => ({
+  email: {
+    system_alerts: n.emailNotifications.systemAlerts,
+    payroll_updates: n.emailNotifications.payrollUpdates,
+    leave_approvals: n.emailNotifications.leaveApprovals,
+    attendance_reminders: n.emailNotifications.attendanceReminders,
+    policy_updates: n.emailNotifications.policyUpdates,
+    security_alerts: n.emailNotifications.securityAlerts,
+    weekly_reports: n.emailNotifications.weeklyReports,
+    monthly_summaries: n.emailNotifications.monthlySummaries,
+  },
+  push: {
+    mobile_alerts: n.pushNotifications.mobileAlerts,
+    desktop_alerts: n.pushNotifications.desktopAlerts,
+    instant_updates: n.pushNotifications.instantUpdates,
+    scheduled_summary: n.pushNotifications.scheduledSummary,
+  },
+  sms: {
+    urgent_alerts: n.smsNotifications.urgentAlerts,
+    otp_verification: n.smsNotifications.otpVerification,
+    payroll_credits: n.smsNotifications.payrollCredits,
+    attendance_reminders: n.smsNotifications.attendanceReminders,
+  },
+});
+
+const fromBackendLocation = (l) => ({
+  id: l.id,
+  name: l.name,
+  address: l.address || '',
+  timezone: l.timezone,
+  weekendDays: l.weekend_days ? l.weekend_days.split(',').map(d => d.trim()).filter(Boolean) : [],
+  workingHours: { start: l.working_hours_start || '09:00', end: l.working_hours_end || '18:00' },
+  isDefault: !!l.is_default,
+  status: l.is_active ? 'active' : 'inactive',
+});
+
+const toBackendLocation = (loc) => ({
+  name: loc.name,
+  address: loc.address,
+  timezone: loc.timezone,
+  working_hours_start: loc.workingHours?.start,
+  working_hours_end: loc.workingHours?.end,
+  weekend_days: (loc.weekendDays || []).join(','),
+  is_default: !!loc.isDefault,
+  is_active: loc.status ? loc.status === 'active' : true,
+});
+
+const fromBackendRate = (r) => ({
+  id: r.id,
+  from: r.from_currency,
+  to: r.to_currency,
+  rate: r.rate,
+  lastUpdated: r.last_updated ? r.last_updated.split('T')[0] : '',
+  status: r.status,
+});
 
 const CompanySettings = () => {
   // ---------------- INITIAL STATES ----------------
   const [activeTab, setActiveTab] = useState('company-profile');
-  
+  const [profileExists, setProfileExists] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+
   // ---------------- COMPANY PROFILE ----------------
   const [companyProfile, setCompanyProfile] = useState({
     name: 'TechCorp Solutions',
@@ -278,7 +532,7 @@ const CompanySettings = () => {
   const [newLocation, setNewLocation] = useState({
     name: '',
     address: '',
-   
+    timezone: '',
     weekendDays: ['Saturday', 'Sunday'],
     workingHours: { start: '09:00', end: '18:00' }
   });
@@ -320,59 +574,253 @@ const CompanySettings = () => {
     setShowLogoUpload(false);
   };
 
-  const handleCompanyProfileUpdate = (e) => {
+  const handleCompanyProfileUpdate = async (e) => {
     e.preventDefault();
-    if (logo.preview) {
-      localStorage.setItem('companyLogo', JSON.stringify(logo));
-      window.dispatchEvent(new Event('companyLogoUpdated'));
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/profile/`, {
+        method: profileExists ? 'PUT' : 'POST',
+        headers: authHeader(),
+        body: buildProfileFormData(companyProfile),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to save company profile');
+      }
+      const saved = await res.json();
+      setCompanyProfile(fromBackendProfile(saved));
+      setProfileExists(true);
+
+      if (logo.preview) {
+        localStorage.setItem('companyLogo', JSON.stringify(logo));
+        window.dispatchEvent(new Event('companyLogoUpdated'));
+      }
+      alert('Company profile updated successfully!');
+    } catch (err) {
+      alert(`Failed to save company profile: ${err.message}`);
     }
-    console.log('Company profile updated:', companyProfile);
-    alert('Company profile updated successfully!');
   };
 
-  const handleCurrencySettingsUpdate = (e) => {
-    e.preventDefault();
-    console.log('Currency settings updated:', currencySettings);
-    alert('Currency settings updated successfully!');
-  };
-
-  const handleAddLocation = (e) => {
-    e.preventDefault();
-    const newLoc = {
-      id: locations.length + 1,
-      ...newLocation,
-      isDefault: false,
-      status: 'active'
+  // Load the real company profile on mount (falls back to the placeholder
+  // defaults above if none has been created yet for this tenant).
+  useEffect(() => {
+    const loadProfile = async () => {
+      setProfileLoading(true);
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/profile/`, {
+          headers: authHeader(),
+        });
+        if (res.status === 404) {
+          setProfileExists(false);
+          return;
+        }
+        if (!res.ok) throw new Error('Failed to load company profile');
+        const data = await res.json();
+        setCompanyProfile(fromBackendProfile(data));
+        setProfileExists(true);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setProfileLoading(false);
+      }
     };
-    setLocations([...locations, newLoc]);
-    setShowAddLocation(false);
-    setNewLocation({
-      name: '',
-      address: '',
-      
-      weekendDays: ['Saturday', 'Sunday'],
-      workingHours: { start: '09:00', end: '18:00' }
-    });
+    loadProfile();
+  }, []);
+
+  // Load real currency settings + exchange rates on mount.
+  useEffect(() => {
+    const loadCurrency = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/currency/settings`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          setCurrencySettings(fromBackendCurrencySettings(await res.json()));
+        }
+        // 404 (not configured yet) is fine — keep the placeholder defaults.
+      } catch (err) {
+        console.error(err);
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/currency/rates`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setExchangeRates(data.map(fromBackendRate));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadCurrency();
+  }, []);
+
+  // Load real financial year on mount.
+  useEffect(() => {
+    const loadFinancialYear = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/financial-year/current`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          setFinancialYear(fromBackendFinancialYear(await res.json()));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadFinancialYear();
+  }, []);
+
+  // Load real localization settings on mount.
+  useEffect(() => {
+    const loadLocalization = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/localization/`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          setLocalization(fromBackendLocalization(await res.json()));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadLocalization();
+  }, []);
+
+  // Load real policies list on mount.
+  useEffect(() => {
+    const loadPolicies = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/policies/`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPolicies(data.policies.map(fromBackendPolicy));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadPolicies();
+  }, []);
+
+  // Load real notification preferences on mount.
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/notifications/`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          setNotificationPrefs(fromBackendNotifications(await res.json()));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadNotifications();
+  }, []);
+
+  // Load real locations list on mount.
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/locations/`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLocations(data.locations.map(fromBackendLocation));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadLocations();
+  }, []);
+
+  const handleCurrencySettingsUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/currency/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify(toBackendCurrencySettings(currencySettings)),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to save currency settings');
+      }
+      const saved = await res.json();
+      setCurrencySettings(fromBackendCurrencySettings(saved));
+      alert('Currency settings updated successfully!');
+    } catch (err) {
+      alert(`Failed to save currency settings: ${err.message}`);
+    }
   };
 
-  const handleAddExchangeRate = (e) => {
+  const handleAddLocation = async (e) => {
     e.preventDefault();
-    const newRate = {
-      id: exchangeRates.length + 1,
-      from: newExchangeRate.from,
-      to: newExchangeRate.to,
-      rate: parseFloat(newExchangeRate.rate),
-      lastUpdated: new Date().toISOString().split('T')[0],
-      status: 'active'
-    };
-    setExchangeRates([...exchangeRates, newRate]);
-    setShowAddExchangeRate(false);
-    setNewExchangeRate({
-      from: 'USD',
-      to: '',
-      rate: '',
-      effectiveDate: new Date().toISOString().split('T')[0]
-    });
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/locations/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify(toBackendLocation({ ...newLocation, isDefault: false, status: 'active' })),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to add location');
+      }
+      const created = await res.json();
+      setLocations([...locations, fromBackendLocation(created)]);
+      setShowAddLocation(false);
+      setNewLocation({
+        name: '',
+        address: '',
+        timezone: '',
+        weekendDays: ['Saturday', 'Sunday'],
+        workingHours: { start: '09:00', end: '18:00' }
+      });
+    } catch (err) {
+      alert(`Failed to add location: ${err.message}`);
+    }
+  };
+
+  const handleAddExchangeRate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/currency/rates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({
+          from_currency: newExchangeRate.from,
+          to_currency: newExchangeRate.to,
+          rate: parseFloat(newExchangeRate.rate),
+          effective_date: newExchangeRate.effectiveDate
+            ? new Date(newExchangeRate.effectiveDate).toISOString()
+            : new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to add exchange rate');
+      }
+      const created = await res.json();
+      setExchangeRates([...exchangeRates, fromBackendRate(created)]);
+      setShowAddExchangeRate(false);
+      setNewExchangeRate({
+        from: 'USD',
+        to: '',
+        rate: '',
+        effectiveDate: new Date().toISOString().split('T')[0]
+      });
+    } catch (err) {
+      alert(`Failed to add exchange rate: ${err.message}`);
+    }
   };
 
   const handleEditExchangeRate = (rate) => {
@@ -380,41 +828,60 @@ const CompanySettings = () => {
     setShowEditExchangeRate(true);
   };
 
-  const handleUpdateExchangeRate = (e) => {
+  const handleUpdateExchangeRate = async (e) => {
     e.preventDefault();
-    if (editingExchangeRate) {
-      setExchangeRates(exchangeRates.map(rate => 
-        rate.id === editingExchangeRate.id ? editingExchangeRate : rate
+    if (!editingExchangeRate) return;
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/currency/rates/${editingExchangeRate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({
+          rate: parseFloat(editingExchangeRate.rate),
+          status: editingExchangeRate.status,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to update exchange rate');
+      }
+      const updated = await res.json();
+      setExchangeRates(exchangeRates.map(rate =>
+        rate.id === updated.id ? fromBackendRate(updated) : rate
       ));
       setShowEditExchangeRate(false);
       setEditingExchangeRate(null);
       alert('Exchange rate updated successfully!');
+    } catch (err) {
+      alert(`Failed to update exchange rate: ${err.message}`);
     }
   };
 
-  const handleAddPolicy = (e) => {
+  const handleAddPolicy = async (e) => {
     e.preventDefault();
-    const policy = {
-      id: policies.length + 1,
-      title: newPolicy.title,
-      category: newPolicy.category,
-      version: newPolicy.version,
-      effectiveDate: newPolicy.effectiveDate,
-      status: 'draft',
-      fileSize: newPolicy.file ? `${(newPolicy.file.size / (1024 * 1024)).toFixed(2)} MB` : 'N/A',
-      lastUpdated: new Date().toISOString().split('T')[0],
-      description: newPolicy.description
-    };
-    setPolicies([...policies, policy]);
-    setShowAddPolicy(false);
-    setNewPolicy({
-      title: '',
-      category: 'HR Policies',
-      version: '1.0',
-      effectiveDate: new Date().toISOString().split('T')[0],
-      description: '',
-      file: null
-    });
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/policies/`, {
+        method: 'POST',
+        headers: authHeader(),
+        body: buildPolicyFormData(newPolicy, false),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to add policy');
+      }
+      const created = await res.json();
+      setPolicies([...policies, fromBackendPolicy(created)]);
+      setShowAddPolicy(false);
+      setNewPolicy({
+        title: '',
+        category: 'HR Policies',
+        version: '1.0',
+        effectiveDate: new Date().toISOString().split('T')[0],
+        description: '',
+        file: null
+      });
+    } catch (err) {
+      alert(`Failed to add policy: ${err.message}`);
+    }
   };
 
   const handleViewPolicy = (policy) => {
@@ -427,22 +894,49 @@ const CompanySettings = () => {
     setShowEditPolicyModal(true);
   };
 
-  const handleUpdatePolicy = (e) => {
+  const handleUpdatePolicy = async (e) => {
     e.preventDefault();
-    if (editingPolicy) {
-      setPolicies(policies.map(policy => 
-        policy.id === editingPolicy.id ? editingPolicy : policy
+    if (!editingPolicy) return;
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/policies/${editingPolicy.id}`, {
+        method: 'PUT',
+        headers: authHeader(),
+        body: buildPolicyFormData(editingPolicy, true),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to update policy');
+      }
+      const updated = await res.json();
+      setPolicies(policies.map(policy =>
+        policy.id === updated.id ? fromBackendPolicy(updated) : policy
       ));
       setShowEditPolicyModal(false);
       setEditingPolicy(null);
       alert('Policy updated successfully!');
+    } catch (err) {
+      alert(`Failed to update policy: ${err.message}`);
     }
   };
 
-  const handleNotificationPrefsUpdate = (e) => {
+  const handleNotificationPrefsUpdate = async (e) => {
     e.preventDefault();
-    console.log('Notification preferences updated:', notificationPrefs);
-    alert('Notification preferences updated successfully!');
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/notifications/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify(toBackendNotifications(notificationPrefs)),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to save notification preferences');
+      }
+      const saved = await res.json();
+      setNotificationPrefs(fromBackendNotifications(saved));
+      alert('Notification preferences updated successfully!');
+    } catch (err) {
+      alert(`Failed to save notification preferences: ${err.message}`);
+    }
   };
 
   const handleDataPrivacyUpdate = (e) => {
@@ -451,16 +945,44 @@ const CompanySettings = () => {
     alert('Data privacy settings updated successfully!');
   };
 
-  const handleLocalizationUpdate = (e) => {
+  const handleLocalizationUpdate = async (e) => {
     e.preventDefault();
-    console.log('Localization settings updated:', localization);
-    alert('Localization settings updated successfully!');
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/localization/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify(toBackendLocalization(localization)),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to save localization settings');
+      }
+      const saved = await res.json();
+      setLocalization(fromBackendLocalization(saved));
+      alert('Localization settings updated successfully!');
+    } catch (err) {
+      alert(`Failed to save localization settings: ${err.message}`);
+    }
   };
 
-  const handleFinancialYearUpdate = (e) => {
+  const handleFinancialYearUpdate = async (e) => {
     e.preventDefault();
-    console.log('Financial year settings updated:', financialYear);
-    alert('Financial year settings updated successfully!');
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/financial-year/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify(toBackendFinancialYear(financialYear)),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to save financial year settings');
+      }
+      const saved = await res.json();
+      setFinancialYear(fromBackendFinancialYear(saved));
+      alert('Financial year settings updated successfully!');
+    } catch (err) {
+      alert(`Failed to save financial year settings: ${err.message}`);
+    }
   };
 
   const handleViewMap = (address) => {
@@ -473,23 +995,71 @@ const CompanySettings = () => {
     setShowMapModal(true);
   };
 
-  const removeLocation = (id) => {
-    setLocations(locations.filter(loc => loc.id !== id));
+  const removeLocation = async (id) => {
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/locations/${id}`, {
+        method: 'DELETE',
+        headers: authHeader(),
+      });
+      if (!res.ok && res.status !== 204) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to delete location');
+      }
+      setLocations(locations.filter(loc => loc.id !== id));
+    } catch (err) {
+      alert(`Failed to delete location: ${err.message}`);
+    }
   };
 
-  const removeExchangeRate = (id) => {
-    setExchangeRates(exchangeRates.filter(rate => rate.id !== id));
+  const removeExchangeRate = async (id) => {
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/currency/rates/${id}`, {
+        method: 'DELETE',
+        headers: authHeader(),
+      });
+      if (!res.ok && res.status !== 204) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to delete exchange rate');
+      }
+      setExchangeRates(exchangeRates.filter(rate => rate.id !== id));
+    } catch (err) {
+      alert(`Failed to delete exchange rate: ${err.message}`);
+    }
   };
 
-  const removePolicy = (id) => {
-    setPolicies(policies.filter(policy => policy.id !== id));
+  const removePolicy = async (id) => {
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/policies/${id}`, {
+        method: 'DELETE',
+        headers: authHeader(),
+      });
+      if (!res.ok && res.status !== 204) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to delete policy');
+      }
+      setPolicies(policies.filter(policy => policy.id !== id));
+    } catch (err) {
+      alert(`Failed to delete policy: ${err.message}`);
+    }
   };
 
-  const setDefaultLocation = (id) => {
-    setLocations(locations.map(loc => ({
-      ...loc,
-      isDefault: loc.id === id
-    })));
+  const setDefaultLocation = async (id) => {
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/locations/${id}/set-default`, {
+        method: 'PATCH',
+        headers: authHeader(),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to set default location');
+      }
+      setLocations(locations.map(loc => ({
+        ...loc,
+        isDefault: loc.id === id
+      })));
+    } catch (err) {
+      alert(`Failed to set default location: ${err.message}`);
+    }
   };
 
   return (
