@@ -245,6 +245,36 @@ const toBackendLocation = (loc) => ({
   is_active: loc.status ? loc.status === 'active' : true,
 });
 
+const CONSENT_KEYS = ['marketing', 'data_sharing', 'analytics', 'third_party', 'profiling', 'automated_decisions'];
+
+const fromBackendDataPrivacy = (d) => ({
+  dataRetentionPeriod: d.data_retention_period_years,
+  autoDeleteInactiveAccounts: d.auto_delete_inactive_accounts,
+  inactiveAccountPeriod: d.inactive_account_period_days,
+  gdprCompliance: d.gdpr_compliance_enabled,
+  dataProcessingConsent: d.require_data_processing_consent,
+  dataExportEnabled: d.allow_data_export,
+  dataAnonymization: d.enable_data_anonymization,
+  consentRequiredFor: CONSENT_KEYS.filter(key => d[`consent_${key}`]),
+  privacyPolicyVersion: d.privacy_policy_version,
+  lastConsentUpdate: d.last_consent_update || '',
+});
+
+const toBackendDataPrivacy = (d) => ({
+  data_retention_period_years: d.dataRetentionPeriod,
+  inactive_account_period_days: d.inactiveAccountPeriod,
+  auto_delete_inactive_accounts: d.autoDeleteInactiveAccounts,
+  gdpr_compliance_enabled: d.gdprCompliance,
+  require_data_processing_consent: d.dataProcessingConsent,
+  allow_data_export: d.dataExportEnabled,
+  enable_data_anonymization: d.dataAnonymization,
+  consent: Object.fromEntries(
+    CONSENT_KEYS.map(key => [key, (d.consentRequiredFor || []).includes(key)])
+  ),
+  privacy_policy_version: d.privacyPolicyVersion,
+  last_consent_update: d.lastConsentUpdate || null,
+});
+
 const fromBackendRate = (r) => ({
   id: r.id,
   from: r.from_currency,
@@ -743,6 +773,23 @@ const CompanySettings = () => {
     loadLocations();
   }, []);
 
+  // Load real data privacy settings on mount.
+  useEffect(() => {
+    const loadDataPrivacy = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/company-settings/data-privacy/`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          setDataPrivacy(fromBackendDataPrivacy(await res.json()));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadDataPrivacy();
+  }, []);
+
   const handleCurrencySettingsUpdate = async (e) => {
     e.preventDefault();
     try {
@@ -939,10 +986,24 @@ const CompanySettings = () => {
     }
   };
 
-  const handleDataPrivacyUpdate = (e) => {
+  const handleDataPrivacyUpdate = async (e) => {
     e.preventDefault();
-    console.log('Data privacy settings updated:', dataPrivacy);
-    alert('Data privacy settings updated successfully!');
+    try {
+      const res = await fetch(`${BASE_URL}/company-settings/data-privacy/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify(toBackendDataPrivacy(dataPrivacy)),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to save data privacy settings');
+      }
+      const saved = await res.json();
+      setDataPrivacy(fromBackendDataPrivacy(saved));
+      alert('Data privacy settings updated successfully!');
+    } catch (err) {
+      alert(`Failed to save data privacy settings: ${err.message}`);
+    }
   };
 
   const handleLocalizationUpdate = async (e) => {

@@ -212,6 +212,21 @@ export const API_ENDPOINTS = {
     COMPANY_SETTINGS_ITEM: (id) => `/api/super-admin/company-settings/${id}`,
   },
 
+  // Integrations (toggle-state only — NOT real OAuth connections, see backend note)
+  INTEGRATIONS: {
+    LIST: '/integrations/',
+    CONNECT: (id) => `/integrations/${id}/connect`,
+    DISCONNECT: (id) => `/integrations/${id}/disconnect`,
+  },
+
+  // Company Settings — Profile (requires admin/hr_admin auth; current_user.tenant_id, added to User model, scopes the record)
+  COMPANY_PROFILE: {
+    GET: '/company-settings/profile/',
+    CREATE: '/company-settings/profile/',
+    UPDATE: '/company-settings/profile/',
+    DELETE: '/company-settings/profile/',
+  },
+
   // Billing / Subscriptions (records plan choice only — no payment gateway wired up)
   BILLING: {
     SUBSCRIBE: '/subscriptions/',

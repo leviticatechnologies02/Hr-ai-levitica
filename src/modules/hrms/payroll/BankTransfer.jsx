@@ -8,6 +8,7 @@ import PaymentDetailsModal from '../modal/PaymentDetailsModal';
 import UploadAcknowledgementModal from '../modal/UploadAcknowledgementModal';
 import AnalyticsModal from '../modal/AnalyticsModal';
 import SettingsModal from '../modal/SettingsModal';
+import { payrollAPI, employeeAPI } from '../../../shared/utils/api';
 import ReconciliationModal from '../modal/ReconciliationModal';
 import ConfirmModal from '../modal/ConfirmModal';
 
@@ -68,6 +69,84 @@ const BankTransfer = () => {
   const [payments, setPayments] = useState([]);
   const [pendingPayments, setPendingPayments] = useState([]);
   const [reconciliationData, setReconciliationData] = useState([]);
+
+  // Backend PaymentFileResponse -> local UI shape used throughout this file.
+  const mapPaymentFile = (f) => ({
+    id: f.id,
+    fileName: f.file_name,
+    bank: f.bank_name,
+    paymentType: f.payment_type,
+    status: f.status,
+    totalAmount: Number(f.total_amount) || 0,
+    totalEmployees: f.total_employees,
+    generatedDate: f.generated_date ? f.generated_date.split('T')[0] : '',
+    processedDate: f.processed_date ? f.processed_date.split('T')[0] : '',
+    referenceNumber: f.reference_number,
+    retryCount: f.failed_count || 0,
+  });
+
+  // Backend PendingPaymentResponse -> local UI shape. NOTE: there is no
+  // ifsc_code field on PendingPaymentResponse at all — that only lives on
+  // BankTransferResponse — so it stays blank here rather than guessed.
+  const mapPendingPayment = (p) => ({
+    id: p.id,
+    employeeName: p.employee_name,
+    employeeCode: p.employee_code,
+    bank: p.bank_name,
+    accountNumber: p.bank_account,
+    ifscCode: '',
+    amount: Number(p.amount) || 0,
+    reason: p.failure_reason,
+    daysPending: p.days_pending,
+    retryCount: p.retry_count,
+    status: p.is_resolved ? 'Resolved' : 'Pending',
+  });
+
+  const mapReconciliation = (r) => ({
+    id: r.id,
+    bank: r.bank_name,
+    totalAmount: Number(r.total_amount) || 0,
+    matchedCount: r.matched_count,
+    unmatchedCount: r.unmatched_count,
+    pendingCount: r.pending_count,
+    successRate: r.success_rate,
+    isVerified: r.is_verified,
+    statementFileName: r.statement_file_name,
+    runAt: r.run_at ? r.run_at.split('T')[0] : '',
+  });
+
+  const loadBankTransferData = () => {
+    Promise.all([
+      payrollAPI.listPaymentFiles().catch((err) => { console.error('Failed to load payment files:', err); return []; }),
+      payrollAPI.listPendingPayments().catch((err) => { console.error('Failed to load pending payments:', err); return []; }),
+      payrollAPI.listReconciliations().catch((err) => { console.error('Failed to load reconciliations:', err); return []; }),
+      employeeAPI.list().catch((err) => { console.error('Failed to load employees:', err); return []; }),
+    ]).then(([filesData, pendingData, reconData, employeesData]) => {
+      setPayments((Array.isArray(filesData) ? filesData : []).map(mapPaymentFile));
+      setPendingPayments((Array.isArray(pendingData) ? pendingData : []).map(mapPendingPayment));
+      setReconciliationData((Array.isArray(reconData) ? reconData : []).map(mapReconciliation));
+      setEmployees(Array.isArray(employeesData) ? employeesData : []);
+    });
+
+    payrollAPI.getBankTransferSettings()
+      .then((s) => {
+        if (!s) return;
+        setSettings((prev) => ({
+          ...prev,
+          autoEncryption: s.auto_file_encryption ?? prev.autoEncryption,
+          notificationEnabled: s.payment_notifications ?? prev.notificationEnabled,
+          autoReconciliation: s.auto_reconciliation ?? prev.autoReconciliation,
+          backupEnabled: s.auto_backup ?? prev.backupEnabled,
+          retentionPeriod: s.data_retention_period != null ? String(s.data_retention_period) : prev.retentionPeriod,
+          defaultPaymentType: s.default_payment_type || prev.defaultPaymentType,
+        }));
+      })
+      .catch((err) => console.error('Failed to load bank transfer settings:', err));
+  };
+
+  useEffect(() => {
+    loadBankTransferData();
+  }, []);
 
   const openModal = (type, data = null) => {
     setModalState({ type, isOpen: true, data });
@@ -262,18 +341,34 @@ const BankTransfer = () => {
       showNotification(`Exported ${selected.length} payment files`, 'success');
     } else if (action === 'delete') {
       if (window.confirm(`Delete ${selectedPayments.size} selected payment file(s)?`)) {
-        setPayments(payments.filter(p => !selectedPayments.has(p.id)));
-        setSelectedPayments(new Set());
-        showNotification(`Deleted ${selectedPayments.size} payment file(s)`, 'success');
+        const idsToDelete = [...selectedPayments];
+        Promise.all(idsToDelete.map(id => payrollAPI.deletePaymentFile(id)))
+          .then(() => {
+            setPayments(payments.filter(p => !selectedPayments.has(p.id)));
+            setSelectedPayments(new Set());
+            showNotification(`Deleted ${selectedPayments.size} payment file(s)`, 'success');
+          })
+          .catch((err) => {
+            console.error('Error deleting payment files:', err);
+            showNotification(err.message || 'Error deleting payment file(s)', 'error');
+          });
       }
     } else if (action === 'mark_processed') {
-      setPayments(payments.map(p =>
-        selectedPayments.has(p.id)
-          ? { ...p, status: 'Processed', processedDate: new Date().toISOString().split('T')[0] }
-          : p
-      ));
-      setSelectedPayments(new Set());
-      showNotification('Marked selected payments as processed', 'success');
+      const idsToUpdate = [...selectedPayments];
+      Promise.all(idsToUpdate.map(id => payrollAPI.updatePaymentFile(id, { status: 'Processed', processed_date: new Date().toISOString() })))
+        .then(() => {
+          setPayments(payments.map(p =>
+            selectedPayments.has(p.id)
+              ? { ...p, status: 'Processed', processedDate: new Date().toISOString().split('T')[0] }
+              : p
+          ));
+          setSelectedPayments(new Set());
+          showNotification('Marked selected payments as processed', 'success');
+        })
+        .catch((err) => {
+          console.error('Error marking payments processed:', err);
+          showNotification(err.message || 'Error updating payment file(s)', 'error');
+        });
     }
 
     setBulkAction('');
@@ -332,7 +427,17 @@ const BankTransfer = () => {
   };
 
   const handleReconcile = () => {
-    showNotification('Reconciliation completed successfully!', 'success');
+    payrollAPI.runReconciliation({})
+      .then((result) => {
+        if (result) {
+          setReconciliationData((prev) => [mapReconciliation(result), ...prev]);
+        }
+        showNotification('Reconciliation completed successfully!', 'success');
+      })
+      .catch((err) => {
+        console.error('Error running reconciliation:', err);
+        showNotification(err.message || 'Error running reconciliation', 'error');
+      });
   };
 
   const renderStats = () => (
@@ -718,10 +823,18 @@ const BankTransfer = () => {
                           setPendingPayments(pendingPayments.map(p =>
                             p.id === payment.id ? { ...p, status: 'Retrying', retryCount: p.retryCount + 1 } : p
                           ));
-                          setTimeout(() => {
-                            setPendingPayments(pendingPayments.filter(p => p.id !== payment.id));
-                            showNotification(`Payment for ${payment.employeeName} processed successfully`, 'success');
-                          }, 2000);
+                          payrollAPI.retryPendingPayment(payment.id)
+                            .then(() => {
+                              setPendingPayments(prev => prev.filter(p => p.id !== payment.id));
+                              showNotification(`Payment for ${payment.employeeName} processed successfully`, 'success');
+                            })
+                            .catch((err) => {
+                              console.error('Error retrying pending payment:', err);
+                              setPendingPayments(prev => prev.map(p =>
+                                p.id === payment.id ? { ...p, status: 'Pending' } : p
+                              ));
+                              showNotification(err.message || 'Error retrying payment', 'error');
+                            });
                         }}
                         title="Retry"
                       >

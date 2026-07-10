@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../../shared/constants/api.config';
 
 const Billing = () => {
   const [selectedPlan, setSelectedPlan] = useState('pro');
@@ -7,6 +10,38 @@ const Billing = () => {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState(null);
+  const userEmail = localStorage.getItem('userEmail');
+
+  const loadSubscription = useCallback(async () => {
+    if (!userEmail) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.BILLING.BY_EMAIL(userEmail)}`);
+      if (!res.ok) throw new Error('Failed to load subscription');
+      const data = await res.json();
+      if (data.length > 0) {
+        // Most recent subscription record
+        const latest = data[0];
+        setSubscription(latest);
+        const planKey = latest.plan_name?.toLowerCase();
+        if (planKey && plans[planKey]) setSelectedPlan(planKey);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load your subscription from the server');
+    } finally {
+      setLoading(false);
+    }
+  }, [userEmail]);
+
+  useEffect(() => {
+    loadSubscription();
+  }, [loadSubscription]);
 
   const plans = {
     free: { name: 'Free', price: 0, users: 1, jobs: 3 },
@@ -15,13 +50,10 @@ const Billing = () => {
     enterprise: { name: 'Enterprise', price: 9999, users: 'Unlimited', jobs: 'Unlimited' }
   };
 
-  const invoices = [
-    { id: 1, date: '10 Sep 2025', amount: 2499, status: 'paid' },
-    { id: 2, date: '10 Aug 2025', amount: 2499, status: 'paid' },
-    { id: 3, date: '10 Jul 2025', amount: 2499, status: 'failed' },
-    { id: 4, date: '10 Jun 2025', amount: 2499, status: 'paid' },
-    { id: 5, date: '10 May 2025', amount: 2499, status: 'pending' }
-  ];
+  // NOTE: there is no invoicing/billing-history table in the backend —
+  // this used to be hardcoded fake data. Rather than fake it, the table
+  // below just shows an honest "not available yet" state.
+  const invoices = [];
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -42,13 +74,43 @@ const Billing = () => {
   };
 
   const handleDownloadInvoice = (id) => {
-    alert(`Downloading invoice #${id}`);
+    toast.info('Invoice download is not available yet — no invoice records exist in the backend.');
   };
 
-  const handlePlanChange = (newPlan) => {
-    if (window.confirm(`Are you sure you want to change to ${plans[newPlan].name} Plan?`)) {
+  const handlePlanChange = async (newPlan) => {
+    if (!window.confirm(`Are you sure you want to change to ${plans[newPlan].name} Plan?`)) return;
+    if (!userEmail) {
+      toast.error('No logged-in user found — please log in again.');
+      return;
+    }
+
+    try {
+      const plan = plans[newPlan];
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.BILLING.SUBSCRIBE}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail,
+          plan_name: plan.name,
+          billing_cycle: 'monthly',
+          subtotal: plan.price,
+          tax_rate: 0,
+          tax_amount: 0,
+          total_amount: plan.price,
+          currency: 'INR',
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : 'Failed to change plan');
+      }
+
       setSelectedPlan(newPlan);
       setShowPlanModal(false);
+      toast.success(`Plan change to ${plan.name} recorded. NOTE: no payment gateway is wired up yet — this does not actually charge anything.`);
+      await loadSubscription();
+    } catch (err) {
+      toast.error(err.message || 'Failed to change plan');
     }
   };
 
@@ -63,6 +125,8 @@ const Billing = () => {
 
   return (
     <div className="container-fluid">
+      <ToastContainer position="top-right" autoClose={3000} />
+      {loading && <div className="text-muted small mb-3">Loading subscription…</div>}
       <div className="row">
         <div className="col-12">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
@@ -232,6 +296,13 @@ const Billing = () => {
                     </tr>
                   </thead>
                   <tbody>
+                    {invoices.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-3 text-center text-muted small">
+                          No billing history yet — invoicing isn't wired up on the backend.
+                        </td>
+                      </tr>
+                    )}
                     {invoices.map((invoice) => (
                       <tr key={invoice.id}>
                         <td className="py-3 small text-dark">{invoice.date}</td>
@@ -281,8 +352,8 @@ const Billing = () => {
                         <Icon icon="heroicons:credit-card" className="text-white" style={{ fontSize: '1.5rem' }} />
                       </div>
                       <div>
-                        <p className="fw-medium text-dark mb-0">Visa ending in 7624</p>
-                        <p className="small text-muted mb-0">Expires: 12/26</p>
+                        <p className="fw-medium text-dark mb-0">No payment method on file</p>
+                        <p className="small text-muted mb-0">No payment gateway is connected yet — cards aren't actually stored or charged.</p>
                       </div>
                     </div>
                     <div className="d-flex gap-2">
@@ -290,10 +361,7 @@ const Billing = () => {
                         onClick={() => setShowCardForm(true)}
                         className="btn btn-outline-primary btn-sm"
                       >
-                        Update Card
-                      </button>
-                      <button className="btn btn-outline-danger btn-sm">
-                        Remove
+                        Add Card
                       </button>
                     </div>
                   </div>
@@ -373,7 +441,13 @@ const Billing = () => {
                   </div>
                   <div className="col-12 pt-3">
                     <div className="d-flex gap-3">
-                      <button className="btn btn-primary">
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          toast.info('No payment gateway is connected yet — nothing was actually saved.');
+                          setShowCardForm(false);
+                        }}
+                      >
                         Save Payment Method
                       </button>
                       <button
@@ -395,4 +469,3 @@ const Billing = () => {
 };
 
 export default Billing;
-

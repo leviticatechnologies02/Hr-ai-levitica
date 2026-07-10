@@ -1,83 +1,61 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL, API_ENDPOINTS } from '../../shared/constants/api.config';
 
-const fromBackend = (t) => ({
-  id: t.id,
-  name: t.tenant_name,
-  domain: t.domain || '',
-  companySize: t.company_size || 'Small',
-  employeeCount: t.max_employees ?? 0,
-  subscriptionPlan: t.plan || 'Starter',
-  status: t.status || (t.is_active ? 'active' : 'inactive'),
-  primaryColor: t.primary_color || '#1890ff',
-  logoUrl: t.logo_url || 'https://via.placeholder.com/40',
-  contactEmail: t.contact_email,
-  contactPhone: t.contact_phone || '',
-  createdAt: t.created_at ? t.created_at.split('T')[0] : '',
-  trialEndsAt: t.trial_ends_at ? t.trial_ends_at.split('T')[0] : '',
-  dataUsage: t.data_usage || '0%',
-  lastActive: t.last_active || '',
-  tenantContext: t.tenant_context || '',
-  schemaType: t.schema_type || 'shared',
-  dataRetentionPeriod: t.data_retention_period ?? 7,
-  performanceTier: t.performance_tier || 'standard',
-  billingEnabled: !!t.billing_enabled,
-  ssoEnabled: !!t.sso_enabled,
-});
-
-const toBackend = (t) => ({
-  tenant_name: t.name,
-  domain: t.domain,
-  contact_email: t.contactEmail,
-  contact_phone: t.contactPhone,
-  plan: t.subscriptionPlan,
-  max_employees: t.employeeCount,
-  status: t.status,
-  company_size: t.companySize,
-  primary_color: t.primaryColor,
-  logo_url: t.logoUrl,
-  trial_ends_at: t.trialEndsAt || null,
-  data_usage: t.dataUsage,
-  last_active: t.lastActive || null,
-  tenant_context: t.tenantContext,
-  schema_type: t.schemaType,
-  data_retention_period: t.dataRetentionPeriod,
-  performance_tier: t.performanceTier,
-  billing_enabled: t.billingEnabled,
-  sso_enabled: t.ssoEnabled,
-});
-
-const authHeaders = () => {
-  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
-
 const MultiTenantSetup = () => {
-  // ---------------- TENANTS DATA ----------------
+  // ---------------- TENANTS DATA (loaded from the real backend) ----------------
+  // The backend's Tenant row only has tenant_name/domain/contact_*/plan/
+  // max_employees/is_active — everything else here (companySize, colors,
+  // logoUrl, ssoEnabled, dataRetentionPeriod, trialEndsAt, etc.) is stored
+  // inside its `extra_settings` JSON column and unpacked back out below.
   const [tenants, setTenants] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [tenantsLoading, setTenantsLoading] = useState(true);
+  const [tenantsError, setTenantsError] = useState(null);
+
+  const mapBackendTenant = (row) => {
+    const extra = row.extra_settings || {};
+    return {
+      id: row.id,
+      name: row.tenant_name,
+      domain: row.domain || '',
+      companySize: extra.companySize || 'Small',
+      employeeCount: row.max_employees, // NOTE: this is the configured plan cap, not a live headcount — no per-tenant employee table exists yet to count from
+      subscriptionPlan: row.plan,
+      status: row.is_active ? (extra.status || 'active') : 'inactive',
+      primaryColor: extra.primaryColor || '#1890ff',
+      logoUrl: extra.logoUrl || 'https://via.placeholder.com/40',
+      contactEmail: row.contact_email,
+      contactPhone: row.contact_phone || '',
+      createdAt: row.created_at ? row.created_at.split('T')[0] : '',
+      trialEndsAt: extra.trialEndsAt || '',
+      dataUsage: extra.dataUsage || '0%',
+      lastActive: extra.lastActive || '',
+      tenantContext: extra.tenantContext || `tenant_${(row.domain || row.tenant_name).replace(/[^a-zA-Z0-9]/g, '_')}`,
+      schemaType: extra.schemaType || 'shared',
+      dataRetentionPeriod: extra.dataRetentionPeriod ?? 7,
+      performanceTier: extra.performanceTier || 'standard',
+      billingEnabled: !!extra.billingEnabled,
+      ssoEnabled: !!extra.ssoEnabled,
+    };
+  };
 
   const loadTenants = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
+    setTenantsLoading(true);
+    setTenantsError(null);
     try {
-      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.TENANTS}`, {
-        headers: authHeaders(),
-      });
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.TENANTS}`);
       if (!res.ok) throw new Error('Failed to load tenants');
       const data = await res.json();
-      setTenants(data.map(fromBackend));
+      setTenants(data.map(mapBackendTenant));
     } catch (err) {
       console.error(err);
-      setLoadError(err.message);
+      setTenantsError(err.message || 'Failed to load tenants');
+      toast.error('Failed to load tenants from the server');
     } finally {
-      setLoading(false);
+      setTenantsLoading(false);
     }
   }, []);
 
@@ -187,24 +165,34 @@ const MultiTenantSetup = () => {
   const handleProvisionTenant = async (e) => {
     e.preventDefault();
 
-    const payload = toBackend({
-      ...newTenant,
-      status: 'pending',
-      dataUsage: '0%',
-      trialEndsAt: '2025-03-31',
-      logoUrl: 'https://via.placeholder.com/40',
-      schemaType: provisioningConfig.setupType === 'custom' ? 'separate' : 'shared',
-      dataRetentionPeriod: provisioningConfig.dataRetentionYears,
-      performanceTier: provisioningConfig.performanceTier,
-      billingEnabled: provisioningConfig.enableBilling,
-      ssoEnabled: provisioningConfig.enableSSO,
-      tenantContext: `tenant_${newTenant.domain.replace(/[^a-zA-Z0-9]/g, '_')}`,
-    });
-
     try {
+      const payload = {
+        tenant_name: newTenant.name,
+        domain: newTenant.domain || null,
+        contact_email: newTenant.contactEmail,
+        contact_phone: newTenant.contactPhone || null,
+        plan: newTenant.subscriptionPlan,
+        max_employees: 50,
+        extra_settings: {
+          companySize: newTenant.companySize,
+          primaryColor: newTenant.primaryColor,
+          logoUrl: 'https://via.placeholder.com/40',
+          status: 'pending',
+          dataUsage: '0%',
+          lastActive: new Date().toISOString(),
+          trialEndsAt: '2025-03-31',
+          schemaType: provisioningConfig.setupType === 'custom' ? 'separate' : 'shared',
+          dataRetentionPeriod: provisioningConfig.dataRetentionYears,
+          performanceTier: provisioningConfig.performanceTier,
+          billingEnabled: provisioningConfig.enableBilling,
+          ssoEnabled: provisioningConfig.enableSSO,
+          tenantContext: `tenant_${(newTenant.domain || newTenant.name).replace(/[^a-zA-Z0-9]/g, '_')}`,
+        },
+      };
+
       const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.TENANTS}`, {
         method: 'POST',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -215,8 +203,8 @@ const MultiTenantSetup = () => {
 
       setShowAddModal(false);
       setShowProvisioningModal(false);
-      loadTenants();
 
+      // Reset forms
       setNewTenant({
         name: "",
         domain: "",
@@ -240,9 +228,10 @@ const MultiTenantSetup = () => {
         customSettings: {}
       });
 
-      alert(`Tenant "${created.tenant_name}" provisioned successfully! Tenant context: ${created.tenant_context}`);
+      toast.success(`Tenant "${created.tenant_name}" provisioned successfully!`);
+      loadTenants();
     } catch (err) {
-      alert(`Failed to provision tenant: ${err.message}`);
+      toast.error(err.message || 'Failed to provision tenant');
     }
   };
 
@@ -257,10 +246,9 @@ const MultiTenantSetup = () => {
     if (!selectedTenant) return;
 
     try {
-      const res = await fetch(
-        `${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.TENANT(selectedTenant.id)}`,
-        { method: 'DELETE', headers: authHeaders() }
-      );
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.TENANT(selectedTenant.id)}`, {
+        method: 'DELETE',
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Failed to de-provision tenant');
@@ -268,35 +256,59 @@ const MultiTenantSetup = () => {
 
       setShowDeprovisioningModal(false);
       setShowDeleteModal(false);
-      loadTenants();
 
-      alert(`Tenant "${selectedTenant.name}" has been de-provisioned. Data will be retained for ${selectedTenant.dataRetentionPeriod || 7} years per retention policy.`);
+      toast.success(
+        `Tenant "${selectedTenant.name}" has been de-provisioned. Data will be retained for ${selectedTenant.dataRetentionPeriod || 7} years per retention policy.`
+      );
+      loadTenants();
     } catch (err) {
-      alert(`Failed to de-provision tenant: ${err.message}`);
+      toast.error(err.message || 'Failed to de-provision tenant');
     }
   };
 
   const handleUpdateTenant = async (e) => {
     e.preventDefault();
+    if (!selectedTenant) return;
 
     try {
-      const res = await fetch(
-        `${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.TENANT(selectedTenant.id)}`,
-        {
-          method: 'PATCH',
-          headers: authHeaders(),
-          body: JSON.stringify(toBackend(selectedTenant)),
-        }
-      );
+      const payload = {
+        tenant_name: selectedTenant.name,
+        domain: selectedTenant.domain || null,
+        contact_email: selectedTenant.contactEmail,
+        contact_phone: selectedTenant.contactPhone || null,
+        plan: selectedTenant.subscriptionPlan,
+        extra_settings: {
+          companySize: selectedTenant.companySize,
+          primaryColor: selectedTenant.primaryColor,
+          logoUrl: selectedTenant.logoUrl,
+          status: selectedTenant.status,
+          dataUsage: selectedTenant.dataUsage,
+          lastActive: selectedTenant.lastActive,
+          trialEndsAt: selectedTenant.trialEndsAt,
+          schemaType: selectedTenant.schemaType,
+          dataRetentionPeriod: selectedTenant.dataRetentionPeriod,
+          performanceTier: selectedTenant.performanceTier,
+          billingEnabled: selectedTenant.billingEnabled,
+          ssoEnabled: selectedTenant.ssoEnabled,
+          tenantContext: selectedTenant.tenantContext,
+        },
+      };
+
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.SUPER_ADMIN.TENANT(selectedTenant.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Failed to update tenant');
       }
 
+      toast.success(`Tenant "${selectedTenant.name}" updated`);
       setShowEditModal(false);
       loadTenants();
     } catch (err) {
-      alert(`Failed to update tenant: ${err.message}`);
+      toast.error(err.message || 'Failed to update tenant');
     }
   };
 
@@ -394,6 +406,16 @@ const MultiTenantSetup = () => {
   return (
     
       <div className="container-fluid p-4">
+        <ToastContainer position="top-right" autoClose={3000} />
+
+        {tenantsError && (
+          <div className="alert alert-danger" role="alert">
+            {tenantsError}
+          </div>
+        )}
+        {tenantsLoading && (
+          <div className="text-muted small mb-3">Loading tenants…</div>
+        )}
 
         {/* ---------------- HEADER ---------------- */}
         <div className="d-flex justify-content-between align-items-center mb-4">

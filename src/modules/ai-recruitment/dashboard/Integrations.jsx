@@ -1,44 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../../shared/constants/api.config';
 
 const Integrations = () => {
-  
+  const [integrations, setIntegrations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showSettings, setShowSettings] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleConnect = (id, name) => {
-    setIntegrations(integrations.map(int =>
-      int.id === id
-        ? { ...int, status: 'connected', lastSync: 'Just now', settings: { default: true } }
-        : int
-    ));
-    setNotification({
-      type: 'success',
-      message: `You have successfully connected your ${name} workspace.`
-    });
-    setTimeout(() => setNotification(null), 3000);
+  const loadIntegrations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.INTEGRATIONS.LIST}`);
+      if (!res.ok) throw new Error('Failed to load integrations');
+      const data = await res.json();
+      setIntegrations(data.map((i) => ({
+        id: i.id,
+        name: i.name,
+        description: i.description,
+        status: i.status,
+        lastSync: i.connected_at ? new Date(i.connected_at).toLocaleString() : null,
+      })));
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load integrations from the server');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadIntegrations();
+  }, [loadIntegrations]);
+
+  const handleConnect = async (id, name) => {
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.INTEGRATIONS.CONNECT(id)}`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to connect');
+      await loadIntegrations();
+      setNotification({
+        type: 'success',
+        message: `${name} marked as connected. NOTE: this is a toggle only — no real OAuth handshake happens yet, so it won't actually send/receive anything from ${name}.`
+      });
+      setTimeout(() => setNotification(null), 5000);
+    } catch (err) {
+      toast.error(err.message || 'Failed to connect');
+    }
   };
 
-  const handleDisconnect = (id, name) => {
-    setIntegrations(integrations.map(int =>
-      int.id === id
-        ? { ...int, status: 'disconnected', lastSync: null, settings: null }
-        : int
-    ));
-    setNotification({
-      type: 'info',
-      message: `${name} disconnected successfully.`
-    });
-    setTimeout(() => setNotification(null), 3000);
+  const handleDisconnect = async (id, name) => {
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.INTEGRATIONS.DISCONNECT(id)}`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to disconnect');
+      await loadIntegrations();
+      setNotification({ type: 'info', message: `${name} disconnected.` });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err) {
+      toast.error(err.message || 'Failed to disconnect');
+    }
   };
 
   const handleTestConnection = (id, name) => {
-    setNotification({
-      type: 'success',
-      message: `${name} connection test successful! ✓`
-    });
-    setTimeout(() => setNotification(null), 3000);
+    toast.info(`${name} isn't really connected via OAuth yet, so there's nothing to test against — see the note on Connect.`);
   };
 
   const getStatusBadge = (status) => {
@@ -91,6 +117,8 @@ const Integrations = () => {
 
   return (
     <div className="container-fluid">
+      <ToastContainer position="top-right" autoClose={3000} />
+      {loading && <div className="text-muted small mb-3">Loading integrations…</div>}
       <div className="row">
         <div className="col-12">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
@@ -143,7 +171,7 @@ const Integrations = () => {
                         </div>
                         <div>
                           <h5 className="fw-semibold text-dark mb-0">{integration.name}</h5>
-                          {integration.status === 'connected' && integration.settings && (
+                          {integration.status === 'connected' && (
                             <button
                               onClick={() => setShowSettings(showSettings === integration.id ? null : integration.id)}
                               className="btn p-0 text-primary small d-flex align-items-center gap-1"
@@ -164,23 +192,16 @@ const Integrations = () => {
                     {integration.status === 'connected' && integration.lastSync && (
                       <div className="d-flex align-items-center gap-2 text-muted small mb-3">
                         <Icon icon="heroicons:clock" className="fs-5" />
-                        Last synced: {integration.lastSync}
+                        Connected: {integration.lastSync}
                       </div>
                     )}
 
-                    {showSettings === integration.id && integration.settings && (
+                    {showSettings === integration.id && integration.status === 'connected' && (
                       <div className="mb-3 p-3 bg-light rounded border">
-                        <h5 className="small fw-medium text-dark mb-2">Integration Settings</h5>
+                        <h5 className="small fw-medium text-dark mb-2">Integration Status</h5>
                         <div className="small text-muted">
-                          {Object.entries(integration.settings).map(([key, value]) => (
-                            <div key={key} className="d-flex justify-content-between mb-1">
-                              <span className="text-capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                              <span className="fw-medium">
-                                {typeof value === 'boolean' ? (value ? 'Enabled' : 'Disabled') :
-                                 Array.isArray(value) ? value.join(', ') : value}
-                              </span>
-                            </div>
-                          ))}
+                          No real OAuth connection or configurable settings exist for this integration yet — this
+                          only tracks whether it's toggled on.
                         </div>
                       </div>
                     )}
@@ -224,9 +245,11 @@ const Integrations = () => {
                 <div className="d-flex align-items-start gap-3">
                   <Icon icon="heroicons:exclamation-triangle" className="text-primary mt-1 fs-5" />
                   <div>
-                    <h6 className="fw-semibold text-primary mb-1">Need Help?</h6>
+                    <h6 className="fw-semibold text-primary mb-1">Not real OAuth yet</h6>
                     <p className="small text-primary mb-0">
-                      Integrations help automate your recruitment workflow. For detailed setup guides, visit our documentation or contact support.
+                      These toggles are saved on the server, but no actual Slack/Gmail/Google Calendar app
+                      registration exists — connecting here won't send or receive anything from those services
+                      until a real OAuth integration is built.
                     </p>
                   </div>
                 </div>
@@ -240,4 +263,3 @@ const Integrations = () => {
 };
 
 export default Integrations;
-

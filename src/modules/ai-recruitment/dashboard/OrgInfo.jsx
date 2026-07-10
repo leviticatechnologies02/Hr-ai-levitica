@@ -1,26 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../../shared/constants/api.config';
+
+const emptyFormData = {
+  companyName: '',
+  website: '',
+  email: '',
+  phone: '',
+  address: '',
+  about: '',
+};
+
+const authHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const OrgInfo = () => {
-  const [formData, setFormData] = useState({
-    companyName: 'Veritech Software Web Development Services',
-    website: 'https://veritechsoft.com',
-    email: 'hr@veritechsoft.com',
-    phone: '+91 98765 43210',
-    address: 'Plot 45, Tech Park Road, Hyderabad, Telangana',
-    about: 'We specialize in modern web solutions using React, Node, and Python to deliver scalable applications.'
-  });
-
-  const [logo, setLogo] = useState({
-    file: null,
-    preview: 'https://via.placeholder.com/200x200/3b82f6/ffffff?text=Veritech',
-    name: 'veritech_logo.png'
-  });
+  const [formData, setFormData] = useState(emptyFormData);
+  const [logo, setLogo] = useState({ file: null, preview: null, name: null });
+  const [profileExists, setProfileExists] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState('Nagendra Uggirala on 08 Oct 2025');
+  const [lastUpdated, setLastUpdated] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.COMPANY_PROFILE.GET}`, {
+        headers: authHeaders(),
+      });
+      if (res.status === 404) {
+        setProfileExists(false);
+        return;
+      }
+      if (res.status === 401 || res.status === 403) {
+        toast.error('You need to be logged in as an admin to view company settings.');
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to load company profile');
+      const data = await res.json();
+      setProfileExists(true);
+      setFormData({
+        companyName: data.company_name || '',
+        website: data.company_website || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        address: data.address || '',
+        about: data.about_company || '',
+      });
+      if (data.logo_path) {
+        setLogo({ file: null, preview: `${BASE_URL}/${data.logo_path}`, name: data.logo_original_name });
+      }
+      if (data.updated_at) {
+        setLastUpdated(new Date(data.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load company profile from the server');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -86,31 +137,45 @@ const OrgInfo = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
-    if (validateForm()) {
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    setSaving(true);
+    try {
+      const body = new FormData();
+      body.append('company_name', formData.companyName);
+      body.append('company_website', formData.website);
+      body.append('email', formData.email);
+      body.append('phone', formData.phone);
+      body.append('address', formData.address);
+      body.append('about_company', formData.about);
+      if (logo.file) body.append('logo', logo.file);
+
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.COMPANY_PROFILE.CREATE}`, {
+        method: profileExists ? 'PUT' : 'POST',
+        headers: authHeaders(), // no Content-Type — browser sets the multipart boundary
+        body,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : 'Failed to save company profile');
+      }
+
+      setProfileExists(true);
       setShowSuccess(true);
-      setLastUpdated(`Nagendra Uggirala on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`);
+      setLastUpdated(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
       setTimeout(() => setShowSuccess(false), 3000);
+      await loadProfile();
+    } catch (err) {
+      toast.error(err.message || 'Failed to save company profile');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleReset = () => {
-    if (window.confirm('Are you sure you want to reset all changes? This will restore the form to its original values.')) {
-      setFormData({
-        companyName: 'Veritech Software Web Development Services',
-        website: 'https://veritechsoft.com',
-        email: 'hr@veritechsoft.com',
-        phone: '+91 98765 43210',
-        address: 'Plot 45, Tech Park Road, Hyderabad, Telangana',
-        about: 'We specialize in modern web solutions using React, Node, and Python to deliver scalable applications.'
-      });
-     
-      setLogo({
-        file: null,
-        preview: 'https://via.placeholder.com/200x200/3b82f6/ffffff?text=Veritech',
-        name: 'veritech_logo.png'
-      });
-     
+    if (window.confirm('Are you sure you want to reset all changes? This will re-load the saved values from the server.')) {
       setErrors({});
       setShowSuccess(false);
       setIsDragging(false);
@@ -118,8 +183,7 @@ const OrgInfo = () => {
       if (fileInput) {
         fileInput.value = '';
       }
-     
-      console.log('Form reset successfully');
+      loadProfile();
     }
   };
 
@@ -134,6 +198,8 @@ const OrgInfo = () => {
 
   return (
     <div className="container-fluid">
+        <ToastContainer position="top-right" autoClose={3000} />
+        {loading && <div className="text-muted small mb-3">Loading company profile…</div>}
         <div className="row">
           <div className="col-12">
             <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
@@ -298,12 +364,21 @@ const OrgInfo = () => {
                       </label>
                      
                       <div className="mb-3 text-center">
-                        <img
-                          src={logo.preview}
-                          alt="Company Logo"
-                          className="img-fluid  border-2 rounded shadow-sm"
-                          style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }}
-                        />
+                        {logo.preview ? (
+                          <img
+                            src={logo.preview}
+                            alt="Company Logo"
+                            className="img-fluid  border-2 rounded shadow-sm"
+                            style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <div
+                            className="d-flex align-items-center justify-content-center border rounded shadow-sm mx-auto text-muted"
+                            style={{ width: '200px', height: '200px' }}
+                          >
+                            No logo uploaded
+                          </div>
+                        )}
                       </div>
 
                       <label className="w-100">
@@ -348,7 +423,7 @@ const OrgInfo = () => {
 
               <div className="card-footer bg-light d-flex justify-content-between align-items-center">
                 <div className="small text-muted">
-                  Last updated by <span className="fw-medium text-dark">{lastUpdated}</span>
+                  {lastUpdated ? <>Last updated <span className="fw-medium text-dark">{lastUpdated}</span></> : 'Not saved yet'}
                 </div>
                 <div className="d-flex gap-2">
                   <button
@@ -360,10 +435,11 @@ const OrgInfo = () => {
                   </button>
                   <button
                     onClick={handleSave}
+                    disabled={saving}
                     className="btn btn-primary d-flex align-items-center"
                   >
                     <Icon icon="heroicons:check" className="me-2" />
-                    Save Changes
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </div>
@@ -404,4 +480,3 @@ const OrgInfo = () => {
 };
 
 export default OrgInfo;
-

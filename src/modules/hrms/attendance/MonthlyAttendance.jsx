@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Icon } from "@iconify/react";
+import { attendanceAPI, employeeAPI } from "../../../shared/utils/api";
 
 const MonthlyAttendance = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -19,6 +20,26 @@ const MonthlyAttendance = () => {
   });
 
   const [attendanceData, setAttendanceData] = useState([]);
+  const [employeeDirectory, setEmployeeDirectory] = useState([]);
+  const [resolvedEmployeeId, setResolvedEmployeeId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [filterOptionsData, setFilterOptionsData] = useState({
+    business_units: ["All Units"], locations: ["All Locations"], cost_centers: ["All Cost Centers"], departments: ["All Departments"],
+  });
+
+  useEffect(() => {
+    employeeAPI.list()
+      .then((list) => setEmployeeDirectory(list || []))
+      .catch((err) => console.error("Failed to load employee directory:", err.message));
+    attendanceAPI.getMonthlyFilterOptions()
+      .then((opts) => setFilterOptionsData({
+        business_units: ["All Units", ...(opts.business_units || [])],
+        locations: ["All Locations", ...(opts.locations || [])],
+        cost_centers: ["All Cost Centers", ...(opts.cost_centers || [])],
+        departments: ["All Departments", ...(opts.departments || [])],
+      }))
+      .catch((err) => console.error("Failed to load monthly filter options:", err.message));
+  }, []);
 
   const getDaysForMonth = () => {
     const year = currentDate.getFullYear();
@@ -90,20 +111,89 @@ const MonthlyAttendance = () => {
   };
 
   const handleExport = () => {
-    if (!attendanceData.length) {
-      toast.error("No attendance data to export!");
+    if (!resolvedEmployeeId) {
+      toast.error("Please view an employee's calendar first!");
       return;
     }
-    toast.success("Attendance exported successfully!");
+    window.open(
+      attendanceAPI.downloadMonthlyCsvUrl({
+        month: currentDate.getMonth() + 1,
+        year: currentDate.getFullYear(),
+        employee_id: resolvedEmployeeId,
+      }),
+      "_blank"
+    );
+    toast.success("Attendance export started!");
   };
 
-  const handleView = () => {
+  const loadCalendar = async (employeeId) => {
+    setLoading(true);
+    try {
+      const calendar = await attendanceAPI.getMonthlyCalendar(
+        employeeId,
+        currentDate.getMonth() + 1,
+        currentDate.getFullYear()
+      );
+      setEmployee({
+        name: calendar.employee.employee_name,
+        code: calendar.employee.employee_code,
+        joinDate: calendar.employee.date_of_joining || "",
+        exitDate: calendar.employee.date_of_exit || "-",
+        location: calendar.employee.location || "",
+        department: calendar.employee.department || "",
+        designation: calendar.employee.designation || "",
+        shift: calendar.employee.default_shift || "",
+      });
+      setAttendanceData(
+        calendar.days.map((d) => ({
+          date: d.date,
+          status: d.day_code,
+          hasPunch: d.has_punch,
+        }))
+      );
+    } catch (err) {
+      toast.error(`Failed to load calendar: ${err.message}`);
+      setAttendanceData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = async () => {
     if (!selectedEmployee) {
       toast.warning("Please select an employee");
       return;
     }
-    toast.info("Viewing attendance for selected employee");
+
+    // Employee field is free text — resolve it against the real directory
+    // by name or employee code (case-insensitive substring match), since
+    // the backend's calendar endpoint needs a real numeric employee_id.
+    const search = selectedEmployee.toLowerCase();
+    const matches = employeeDirectory.filter(
+      (e) => e.name?.toLowerCase().includes(search) || e.employeeId?.toLowerCase().includes(search)
+    );
+
+    if (matches.length === 0) {
+      toast.error(`No employee found matching "${selectedEmployee}"`);
+      return;
+    }
+    if (matches.length > 1) {
+      toast.warning(`${matches.length} employees match "${selectedEmployee}" — please narrow your search (e.g. use their employee code)`);
+      return;
+    }
+
+    setResolvedEmployeeId(matches[0].id);
+    await loadCalendar(matches[0].id);
+    toast.info(`Viewing attendance for ${matches[0].name}`);
   };
+
+  // Re-fetch the currently viewed employee's calendar when navigating months
+  useEffect(() => {
+    if (resolvedEmployeeId) {
+      loadCalendar(resolvedEmployeeId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate]);
 
   const getCalendarStyle = (status) => {
     switch (status) {
@@ -170,28 +260,28 @@ const MonthlyAttendance = () => {
           <div className="space-y-1">
             <label className="block text-[11px] font-semibold text-slate-500">Business Unit</label>
             <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
-              <option>All Units</option>
+              {filterOptionsData.business_units.map((u) => <option key={u}>{u}</option>)}
             </select>
           </div>
 
           <div className="space-y-1">
             <label className="block text-[11px] font-semibold text-slate-500">Location</label>
             <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
-              <option>All Locations</option>
+              {filterOptionsData.locations.map((l) => <option key={l}>{l}</option>)}
             </select>
           </div>
 
           <div className="space-y-1">
             <label className="block text-[11px] font-semibold text-slate-500">Cost Center</label>
             <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
-              <option>All Cost Centers</option>
+              {filterOptionsData.cost_centers.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
 
           <div className="space-y-1">
             <label className="block text-[11px] font-semibold text-slate-500">Department</label>
             <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs text-slate-700">
-              <option>All Departments</option>
+              {filterOptionsData.departments.map((d) => <option key={d}>{d}</option>)}
             </select>
           </div>
         </div>
