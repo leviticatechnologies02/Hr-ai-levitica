@@ -353,7 +353,7 @@ const EmployeeMasterData = () => {
     setShowDetailModal(true);
   };
 
-  const handleDeleteEmployee = (id) => {
+  const handleDeleteEmployee = async (id) => {
     if (window.confirm('Are you sure you want to delete this employee?')) {
       try {
         await employeeAPI.deleteMaster(id);
