@@ -1349,6 +1349,13 @@ export const attendanceAPI = {
 export const employeeAPI = {
   list: () => apiCall('/api/employees/'),
   getById: (id) => apiCall(`/api/employees/${id}`),
+  // NOTE: restored from an earlier version of this file — verify these three
+  // still exist on the backend before relying on them; the master-record
+  // create/update flow below (createMaster/updateMaster) may be the one
+  // actually wired up server-side instead.
+  create: (data) => apiCall('/api/employees/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  update: (id, data) => apiCall(`/api/employees/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  remove: (id, hard = false) => apiCall(`/api/employees/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
   deactivate: (id) => apiCall(`/api/employees/${id}/deactivate`, { method: 'PATCH' }),
   activate: (id) => apiCall(`/api/employees/${id}/activate`, { method: 'PATCH' }),
   createMaster: (data) => apiCall('/api/employees/master/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
@@ -1505,8 +1512,55 @@ export const payrollAPI = {
   listLoans: () => apiCall('/api/payroll/loans/'),
   createLoan: (data) => apiCall('/api/payroll/loans/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   getEmployeeLoans: (employeeId) => apiCall(`/api/payroll/loans/employee/${employeeId}`),
-  listTransfers: () => apiCall('/api/payroll/bank-transfers/'),
-  createTransfer: (data) => apiCall('/api/payroll/bank-transfers/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listTransfers: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.status) q.append('status', params.status);
+    if (params.employeeId) q.append('employee_id', params.employeeId);
+    if (params.paymentFileId) q.append('payment_file_id', params.paymentFileId);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/bank-transfer/transfers/${qs ? `?${qs}` : ''}`);
+  },
+  createTransfer: (data) => apiCall('/api/payroll/bank-transfer/transfers/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getTransfer: (id) => apiCall(`/api/payroll/bank-transfer/transfers/${id}`),
+  updateTransfer: (id, data) => apiCall(`/api/payroll/bank-transfer/transfers/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  markTransferSuccess: (id, data) => apiCall(`/api/payroll/bank-transfer/transfers/${id}/mark-success`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  markTransferFailed: (id, data) => apiCall(`/api/payroll/bank-transfer/transfers/${id}/mark-failed`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  retryTransfer: (id) => apiCall(`/api/payroll/bank-transfer/transfers/${id}/retry`, { method: 'PATCH' }),
+  deleteTransfer: (id) => apiCall(`/api/payroll/bank-transfer/transfers/${id}`, { method: 'DELETE' }),
+
+  listPendingPayments: () => apiCall('/api/payroll/bank-transfer/pending-payments/'),
+  createPendingPayment: (data) => apiCall('/api/payroll/bank-transfer/pending-payments/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  resolvePendingPayment: (id, data) => apiCall(`/api/payroll/bank-transfer/pending-payments/${id}/resolve`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  retryPendingPayment: (id) => apiCall(`/api/payroll/bank-transfer/pending-payments/${id}/retry`, { method: 'PATCH' }),
+  downloadPendingPaymentsReport: () => apiCall('/api/payroll/bank-transfer/pending-payments/download-report'),
+
+  getBankTransferSettings: () => apiCall('/api/payroll/bank-transfer/settings/'),
+  updateBankTransferSettings: (data) => apiCall('/api/payroll/bank-transfer/settings/', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+
+  runReconciliation: (data) => apiCall('/api/payroll/bank-transfer/reconciliation/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  listReconciliations: () => apiCall('/api/payroll/bank-transfer/reconciliation/'),
+  getReconciliation: (id) => apiCall(`/api/payroll/bank-transfer/reconciliation/${id}`),
+  verifyReconciliation: (id, data) => apiCall(`/api/payroll/bank-transfer/reconciliation/${id}/verify`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  markAllReconciliationEntriesVerified: (id) => apiCall(`/api/payroll/bank-transfer/reconciliation/${id}/mark-all-verified`, { method: 'PATCH' }),
+  listReconciliationEntries: (id) => apiCall(`/api/payroll/bank-transfer/reconciliation/${id}/entries/`),
+  updateReconciliationEntry: (entryId, data) => apiCall(`/api/payroll/bank-transfer/reconciliation/entries/${entryId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  exportReconciliation: (id) => apiCall(`/api/payroll/bank-transfer/reconciliation/${id}/export`),
+
+  getBankTransferAnalyticsSummary: () => apiCall('/api/payroll/bank-transfer/analytics/summary'),
+  getBankTransferAnalytics: () => apiCall('/api/payroll/bank-transfer/analytics/'),
+
+  listPaymentFiles: () => apiCall('/api/payroll/bank-transfer/payment-files/'),
+  createPaymentFile: (data) => apiCall('/api/payroll/bank-transfer/payment-files/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  generatePaymentFile: (data) => apiCall('/api/payroll/bank-transfer/payment-files/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getPaymentFile: (id) => apiCall(`/api/payroll/bank-transfer/payment-files/${id}`),
+  updatePaymentFile: (id, data) => apiCall(`/api/payroll/bank-transfer/payment-files/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  approvePaymentFile: (id) => apiCall(`/api/payroll/bank-transfer/payment-files/${id}/approve`, { method: 'PATCH' }),
+  deletePaymentFile: (id) => apiCall(`/api/payroll/bank-transfer/payment-files/${id}`, { method: 'DELETE' }),
+  exportPaymentFileCsv: (id) => apiCall(`/api/payroll/bank-transfer/payment-files/${id}/export/csv`),
+  listPaymentFileEntries: (id) => apiCall(`/api/payroll/bank-transfer/payment-files/${id}/entries/`),
+  updatePaymentFileEntry: (entryId, data) => apiCall(`/api/payroll/bank-transfer/payment-files/entries/${entryId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  bulkUpdatePaymentFileEntries: (data) => apiCall('/api/payroll/bank-transfer/payment-files/entries/bulk-update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  retryPaymentFileEntry: (entryId) => apiCall(`/api/payroll/bank-transfer/payment-files/entries/${entryId}/retry`, { method: 'PATCH' }),
   listReimbursements: () => apiCall('/api/payroll/reimbursements/'),
   createReimbursement: (data) => apiCall('/api/payroll/reimbursements/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   listSettlements: () => apiCall('/api/payroll/final-settlements/'),
@@ -1869,6 +1923,7 @@ const apiServices = {
   crmPipelinesAPI,
   adminAPI,
   employeeAPI,
+  attendanceAPI,
   payrollAPI,
   hrOpsAPI,
   reportsAPI,
