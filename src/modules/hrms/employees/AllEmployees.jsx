@@ -485,7 +485,7 @@ const AllEmployees = () => {
     }
   };
 
-  const handleAddEmployee = () => {
+  const handleAddEmployee = async () => {
     if (!newEmployee.name || !newEmployee.email || !newEmployee.employmentInfo.designation) {
       alert('Please fill in all required fields (Name, Email, and Designation)');
       return;
