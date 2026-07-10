@@ -1293,6 +1293,57 @@ export const adminAPI = {
 };
 
 // ==========================================
+// ATTENDANCE APIs
+// ==========================================
+
+export const attendanceAPI = {
+  list: () => apiCall("/api/attendance/"),
+
+  getById: (id) => apiCall(`/api/attendance/${id}`),
+
+  create: (data) =>
+    apiCall("/api/attendance/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }),
+
+  update: (id, data) =>
+    apiCall(`/api/attendance/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id) =>
+    apiCall(`/api/attendance/${id}`, {
+      method: "DELETE",
+    }),
+
+  checkIn: (data) =>
+    apiCall("/api/attendance/check-in", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }),
+
+  checkOut: (data) =>
+    apiCall("/api/attendance/check-out", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }),
+};
+
+// ==========================================
 // EMPLOYEE MANAGEMENT APIs
 // ==========================================
 export const employeeAPI = {
