@@ -1509,9 +1509,82 @@ export const payrollAPI = {
   updatePayrollConfig: (data) => apiCall('/api/payroll/processing/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   lockPayroll: (reason, actionedBy) => apiCall('/api/payroll/processing/config/lock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, actioned_by: actionedBy }) }),
   unlockPayroll: (reason, actionedBy) => apiCall('/api/payroll/processing/config/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, actioned_by: actionedBy }) }),
-  listLoans: () => apiCall('/api/payroll/loans/'),
-  createLoan: (data) => apiCall('/api/payroll/loans/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  getEmployeeLoans: (employeeId) => apiCall(`/api/payroll/loans/employee/${employeeId}`),
+  getLoanDashboardStats: () => apiCall('/api/payroll/loans/dashboard/stats'),
+
+// { employee_id, loan_type, amount, reason?, interest_rate?, interest_method?, repayment_mode?, requested_tenure_months? }
+applyForLoan: (data) => apiCall('/api/payroll/loans/apply', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data)
+}),
+
+listLoans: (params = {}) => {
+  const q = new URLSearchParams();
+
+  if (params.search) q.append('search', params.search);
+  if (params.loanType) q.append('loan_type', params.loanType);
+  if (params.status) q.append('status', params.status);
+  if (params.tab) q.append('tab', params.tab);
+  if (params.skip != null) q.append('skip', params.skip);
+  if (params.limit != null) q.append('limit', params.limit);
+
+  const qs = q.toString();
+
+  return apiCall(`/api/payroll/loans/${qs ? `?${qs}` : ''}`);
+},
+
+getEmployeeLoans: (employeeId) =>
+  apiCall(`/api/payroll/loans/employee/${employeeId}`),
+
+getLoan: (loanId) =>
+  apiCall(`/api/payroll/loans/${loanId}`),
+
+updateLoan: (loanId, data) =>
+  apiCall(`/api/payroll/loans/${loanId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+
+deleteLoan: (loanId) =>
+  apiCall(`/api/payroll/loans/${loanId}`, {
+    method: 'DELETE'
+  }),
+
+// { approved_by, approved_amount, interest_rate?, interest_method?, total_installments, issue_date }
+approveLoan: (loanId, data) =>
+  apiCall(`/api/payroll/loans/${loanId}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+
+// { approved_by, rejection_reason }
+rejectLoan: (loanId, data) =>
+  apiCall(`/api/payroll/loans/${loanId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+
+// { installment_number?, paid_amount, paid_date?, payment_reference? }
+recordLoanRepayment: (loanId, data) =>
+  apiCall(`/api/payroll/loans/${loanId}/repayments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+
+getLoanRepayments: (loanId) =>
+  apiCall(`/api/payroll/loans/${loanId}/repayments`),
+
+syncOverdueRepayments: () =>
+  apiCall('/api/payroll/loans/repayments/sync-overdue', {
+    method: 'POST'
+  }),
+
+exportLoans: () =>
+  apiCall('/api/payroll/loans/export'),
   listTransfers: (params = {}) => {
     const q = new URLSearchParams();
     if (params.status) q.append('status', params.status);

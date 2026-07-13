@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,9 +12,79 @@ import PrepaymentModal from '../modal/PrepaymentModal';
 import ForeclosureModal from '../modal/ForeclosureModal';
 import CertificateModal from '../modal/CertificateModal';
 import DeleteConfirmationModal from '../modal/DeleteConfirmationModal';
+import { payrollAPI } from '../../../shared/utils/api';
 
 const LoansAdvances = () => {
   const [loans, setLoans] = useState([]);
+
+  // Backend LoanAdvanceResponse -> local UI shape. NOTE: eligibilityChecks,
+  // documents, disbursement tracking, autoDeduction, prepaymentRules,
+  // foreclosureOptions, and the 3-level (supervisor/hr/finance) approval
+  // workflow have NO backend model at all — LoanAdvanceResponse is a single
+  // flat record with one status field and one approve/reject action. Those
+  // fields are kept as sensible empty/local-only defaults so the UI doesn't
+  // crash, not because the backend provides them.
+  const statusMap = {
+    PENDING: 'Pending', APPROVED: 'Active', ACTIVE: 'Active',
+    COMPLETED: 'Completed', REJECTED: 'Rejected', DEFAULTED: 'Overdue',
+  };
+  const mapLoan = (l) => ({
+    id: l.id,
+    loanId: l.loan_code,
+    employeeId: l.employee_id,
+    employeeName: l.employee_name,
+    department: l.department || 'N/A',
+    designation: l.designation || 'N/A',
+    loanType: l.loan_type,
+    amount: Number(l.amount) || 0,
+    reason: l.reason,
+    interestRate: Number(l.interest_rate) || 0,
+    interestMethod: l.interest_method,
+    repaymentMode: l.repayment_mode,
+    tenureMonths: l.total_installments,
+    startDate: l.issue_date,
+    endDate: l.end_date,
+    monthlyEMI: Number(l.emi_amount) || 0,
+    amountPaid: Number(l.total_paid) || 0,
+    amountPending: Number(l.total_pending) || 0,
+    status: statusMap[l.status] || l.status,
+    nextDueDate: l.next_due_date || 'N/A',
+    applicationDate: l.created_at ? l.created_at.split('T')[0] : '',
+    applicationStatus: l.status === 'PENDING' ? 'submitted' : (l.status === 'REJECTED' ? 'rejected' : 'approved'),
+    approvedBy: l.approved_by,
+    approvedAmount: l.approved_amount != null ? Number(l.approved_amount) : null,
+    rejectionReason: l.rejection_reason,
+    // Fields with no backend model — kept for UI compatibility only.
+    approvalWorkflow: [],
+    eligibilityChecks: {},
+    documents: {},
+    disbursement: null,
+    autoDeduction: { enabled: false },
+    prepaymentRules: { allowed: false },
+    foreclosureOptions: { allowedAfter: null },
+    emiSchedule: [],
+    missedPayments: 0,
+    overdueAmount: 0,
+    completionStatus: l.status === 'COMPLETED' ? 'completed' : 'pending',
+    certificateNumber: null,
+  });
+
+  const loadLoans = () => {
+    payrollAPI.listLoans({ limit: 200 })
+      .then((data) => {
+        const items = data?.items || (Array.isArray(data) ? data : []);
+        setLoans(items.map(mapLoan));
+      })
+      .catch((err) => {
+        console.error('Failed to load loans:', err);
+        showNotification(err.message || 'Failed to load loans', 'error');
+      });
+  };
+
+  useEffect(() => {
+    loadLoans();
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [loanTypeFilter, setLoanTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -190,228 +260,124 @@ const LoansAdvances = () => {
   };
 
   const handleApplyForLoan = (data) => {
-    const amount = parseFloat(data.amount);
-    const monthlyEMI = calculateEMI(
-      amount,
-      parseFloat(data.interestRate),
-      parseInt(data.tenureMonths)
-    );
-
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + parseInt(data.tenureMonths));
-
-    const newLoan = {
-      id: loans.length + 1,
-      loanId: `LN${String(loans.length + 1).padStart(3, '0')}`,
-      employeeId: data.employeeId,
-      employeeName: data.employeeName,
-      department: data.department || 'N/A',
-      designation: data.designation || 'N/A',
-      loanType: data.loanType,
-      amount: amount,
-      interestRate: parseFloat(data.interestRate),
-      tenureMonths: parseInt(data.tenureMonths),
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      monthlyEMI: monthlyEMI,
-      amountPaid: 0,
-      amountPending: amount,
-      status: 'Pending',
-      nextDueDate: 'N/A',
-      applicationDate: new Date().toISOString().split('T')[0],
-      applicationStatus: 'submitted',
-      approvalWorkflow: [
-        { level: 'supervisor', status: 'pending', date: null, approvedBy: null },
-        { level: 'hr', status: 'pending', date: null, approvedBy: null },
-        { level: 'finance', status: 'pending', date: null, approvedBy: null }
-      ],
-      eligibilityChecks: {
-        serviceTenure: { required: '6 months', actual: `${data.serviceTenure || 0} months`, status: 'pass' },
-        salaryRatio: { required: '3x', actual: '2.5x', status: 'pass' },
-        existingLoans: { count: parseInt(data.existingLoans || 0), status: 'pass' }
-      },
-      documents: {
-        applicationForm: { uploaded: true, verified: false },
-        identityProof: { uploaded: false, verified: false },
-        salarySlips: { uploaded: false, verified: false },
-        agreement: { generated: false, signed: false },
-        certificate: { generated: false }
-      },
-      disbursement: {
-        status: 'pending',
-        method: '',
-        bankDetails: { accountNumber: '', bankName: '' },
-        disbursementDate: null,
-        disbursementAmount: amount,
-        transactionId: ''
-      },
-      paymentMethod: 'payroll_deduction',
-      autoDeduction: {
-        enabled: false,
-        deductionDate: 5,
-        accountDetails: { accountNumber: '', bankName: '' }
-      },
-      emiSchedule: [],
-      prepaymentRules: {
-        allowed: true,
-        minimumAmount: 10000,
-        charges: '2% of prepayment amount'
-      },
-      foreclosureOptions: {
-        allowedAfter: 12,
-        charges: '3% of outstanding'
-      },
-      missedPayments: 0,
-      overdueAmount: 0,
-      completionStatus: 'pending',
-      certificateNumber: null
-    };
-
-    setLoans([...loans, newLoan]);
-    closeModal();
-    showNotification('Loan application submitted successfully!', 'success');
+    payrollAPI.applyForLoan({
+      employee_id: Number(data.employeeId),
+      loan_type: data.loanType,
+      amount: parseFloat(data.amount),
+      reason: data.reason || undefined,
+      interest_rate: data.interestRate ? parseFloat(data.interestRate) : 0,
+      interest_method: data.interestMethod || 'Interest Free',
+      repayment_mode: data.repaymentMode || 'Payroll Deduction',
+      requested_tenure_months: data.tenureMonths ? parseInt(data.tenureMonths) : undefined,
+    })
+      .then(() => {
+        closeModal();
+        showNotification('Loan application submitted successfully!', 'success');
+        loadLoans();
+      })
+      .catch((err) => {
+        console.error('Error applying for loan:', err);
+        showNotification(err.message || 'Error submitting loan application', 'error');
+      });
   };
 
   const handleUpdateLoan = (data) => {
-    setLoans(loans.map(loan =>
-      loan.id === data.id
-        ? {
-            ...loan,
-            ...data,
-            amount: parseFloat(data.amount),
-            interestRate: parseFloat(data.interestRate),
-            tenureMonths: parseInt(data.tenureMonths),
-            monthlyEMI: calculateEMI(
-              parseFloat(data.amount),
-              parseFloat(data.interestRate),
-              parseInt(data.tenureMonths)
-            ),
-            amountPending: parseFloat(data.amount) - parseFloat(data.amountPaid)
-          }
-        : loan
-    ));
-    closeModal();
-    showNotification('Loan updated successfully!', 'success');
+    payrollAPI.updateLoan(data.id, {
+      loan_type: data.loanType,
+      amount: parseFloat(data.amount),
+      reason: data.reason || undefined,
+      interest_rate: data.interestRate ? parseFloat(data.interestRate) : undefined,
+      repayment_mode: data.repaymentMode || undefined,
+    })
+      .then(() => {
+        closeModal();
+        showNotification('Loan updated successfully!', 'success');
+        loadLoans();
+      })
+      .catch((err) => {
+        console.error('Error updating loan:', err);
+        showNotification(err.message || 'Error updating loan', 'error');
+      });
   };
 
   const handleDeleteLoan = (loan) => {
-    setLoans(loans.filter(l => l.id !== loan.id));
-    closeModal();
-    showNotification('Loan deleted successfully!', 'success');
+    payrollAPI.deleteLoan(loan.id)
+      .then(() => {
+        setLoans(loans.filter(l => l.id !== loan.id));
+        closeModal();
+        showNotification('Loan deleted successfully!', 'success');
+      })
+      .catch((err) => {
+        console.error('Error deleting loan:', err);
+        showNotification(err.message || 'Error deleting loan (active loans cannot be deleted)', 'error');
+      });
   };
 
-  const handleApproveLoan = (loan, level) => {
-    setLoans(loans.map(l => {
-      if (l.id === loan.id) {
-        const updatedWorkflow = [...l.approvalWorkflow];
-        const levelIndex = updatedWorkflow.findIndex(w => w.level === level);
-        
-        if (levelIndex !== -1) {
-          updatedWorkflow[levelIndex] = {
-            ...updatedWorkflow[levelIndex],
-            status: 'approved',
-            date: new Date().toISOString().split('T')[0],
-            approvedBy: 'Current User'
-          };
-        }
-
-        const nextLevels = ['supervisor', 'hr', 'finance'];
-        const currentIndex = nextLevels.indexOf(level);
-        const nextLevel = nextLevels[currentIndex + 1];
-
-        if (nextLevel) {
-          const nextLevelIndex = updatedWorkflow.findIndex(w => w.level === nextLevel);
-          if (nextLevelIndex !== -1 && updatedWorkflow[nextLevelIndex].status === 'pending') {
-            updatedWorkflow[nextLevelIndex] = {
-              ...updatedWorkflow[nextLevelIndex],
-              status: 'pending'
-            };
-          }
-        }
-
-        let newApplicationStatus = l.applicationStatus;
-        if (level === 'supervisor') {
-          newApplicationStatus = 'under_review';
-        } else if (level === 'hr') {
-          newApplicationStatus = 'under_review';
-        } else if (level === 'finance') {
-          newApplicationStatus = 'approved';
-        }
-
-        return {
-          ...l,
-          approvalWorkflow: updatedWorkflow,
-          applicationStatus: newApplicationStatus,
-          status: newApplicationStatus === 'approved' ? 'Active' : 'Pending'
-        };
-      }
-      return l;
-    }));
-
-    showNotification(`Loan ${level} approval completed!`, 'success');
+  // The backend has ONE real approve action (LoanApprovalRequest), not a
+  // 3-level supervisor/hr/finance workflow — that workflow was purely local
+  // theater. This approves the loan for its originally-requested amount and
+  // tenure (both already on the loan record, not invented), starting today.
+  // Approving also generates the real EMI schedule server-side.
+  const handleApproveLoan = (loan) => {
+    payrollAPI.approveLoan(loan.id, {
+      approved_by: 'Current User',
+      approved_amount: loan.amount,
+      total_installments: loan.tenureMonths,
+      issue_date: new Date().toISOString().split('T')[0],
+    })
+      .then(() => {
+        showNotification('Loan approved successfully!', 'success');
+        loadLoans();
+      })
+      .catch((err) => {
+        console.error('Error approving loan:', err);
+        showNotification(err.message || 'Error approving loan', 'error');
+      });
   };
 
-  const handleRejectLoan = (loan, level) => {
-    setLoans(loans.map(l => {
-      if (l.id === loan.id) {
-        const updatedWorkflow = [...l.approvalWorkflow];
-        const levelIndex = updatedWorkflow.findIndex(w => w.level === level);
-        if (levelIndex !== -1) {
-          updatedWorkflow[levelIndex] = {
-            ...updatedWorkflow[levelIndex],
-            status: 'rejected',
-            date: new Date().toISOString().split('T')[0],
-            approvedBy: 'Current User'
-          };
-        }
-
-        return {
-          ...l,
-          approvalWorkflow: updatedWorkflow,
-          applicationStatus: 'rejected',
-          status: 'Rejected'
-        };
-      }
-      return l;
-    }));
-
-    showNotification('Loan application rejected!', 'warning');
+  const handleRejectLoan = (loan) => {
+    payrollAPI.rejectLoan(loan.id, {
+      approved_by: 'Current User',
+      rejection_reason: 'Rejected by reviewer',
+    })
+      .then(() => {
+        showNotification('Loan application rejected!', 'warning');
+        loadLoans();
+      })
+      .catch((err) => {
+        console.error('Error rejecting loan:', err);
+        showNotification(err.message || 'Error rejecting loan', 'error');
+      });
   };
 
   const handleProcessPayment = (data) => {
-    setLoans(loans.map(loan => {
-      if (loan.loanId === data.loanId) {
-        const newAmountPaid = loan.amountPaid + parseFloat(data.amount);
-        const newAmountPending = Math.max(0, loan.amountPending - parseFloat(data.amount));
-        const newStatus = newAmountPending === 0 ? 'Completed' : loan.status;
+    const loan = loans.find(l => l.loanId === data.loanId);
+    if (!loan) return;
 
-        const updatedEMISchedule = [...(loan.emiSchedule || [])];
-        const currentMonthIndex = updatedEMISchedule.findIndex(emi => emi.status === 'due');
-        if (currentMonthIndex !== -1) {
-          updatedEMISchedule[currentMonthIndex] = {
-            ...updatedEMISchedule[currentMonthIndex],
-            status: 'paid',
-            paymentDate: data.paymentDate
-          };
-        }
-
-        return {
-          ...loan,
-          amountPaid: newAmountPaid,
-          amountPending: newAmountPending,
-          status: newStatus,
-          emiSchedule: updatedEMISchedule,
-          nextDueDate: updatedEMISchedule.find(emi => emi.status === 'due')?.dueDate || 'N/A'
-        };
-      }
-      return loan;
-    }));
-
-    closeModal();
-    showNotification('Payment processed successfully!', 'success');
+    payrollAPI.recordLoanRepayment(loan.id, {
+      paid_amount: parseFloat(data.amount),
+      paid_date: data.paymentDate || new Date().toISOString().split('T')[0],
+      payment_reference: data.paymentReference || undefined,
+    })
+      .then(() => {
+        closeModal();
+        showNotification('Payment processed successfully!', 'success');
+        loadLoans();
+      })
+      .catch((err) => {
+        console.error('Error processing payment:', err);
+        showNotification(err.message || 'Error processing payment', 'error');
+      });
   };
 
+  // ------------------------------------------------------------------
+  // The four handlers below (disbursement tracking, prepayment,
+  // foreclosure, certificate generation) have NO backend model or
+  // endpoint at all — LoanAdvanceResponse has no disbursement/prepayment/
+  // foreclosure/certificate fields, and there's no route for any of them.
+  // They remain local-only simulations; wiring them for real would need
+  // new backend schema + endpoints, not just a frontend fix.
+  // ------------------------------------------------------------------
   const handleProcessDisbursement = (data) => {
     setLoans(loans.map(loan => {
       if (loan.loanId === data.loanId) {
@@ -824,39 +790,16 @@ const LoansAdvances = () => {
 
                         {(loan.applicationStatus === 'submitted' || loan.applicationStatus === 'under_review') && (
                           <>
-                            {loan.approvalWorkflow?.find(w => w.status === 'pending')?.level === 'supervisor' && (
-                              <button
-                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition"
-                                onClick={() => handleApproveLoan(loan, 'supervisor')}
-                                title="Approve"
-                              >
-                                <Icon icon="heroicons:check" className="w-4 h-4" />
-                              </button>
-                            )}
-                            {loan.approvalWorkflow?.find(w => w.status === 'pending')?.level === 'hr' && (
-                              <button
-                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition"
-                                onClick={() => handleApproveLoan(loan, 'hr')}
-                                title="Approve"
-                              >
-                                <Icon icon="heroicons:check" className="w-4 h-4" />
-                              </button>
-                            )}
-                            {loan.approvalWorkflow?.find(w => w.status === 'pending')?.level === 'finance' && (
-                              <button
-                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition"
-                                onClick={() => handleApproveLoan(loan, 'finance')}
-                                title="Approve"
-                              >
-                                <Icon icon="heroicons:check" className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition"
+                              onClick={() => handleApproveLoan(loan)}
+                              title="Approve"
+                            >
+                              <Icon icon="heroicons:check" className="w-4 h-4" />
+                            </button>
                             <button
                               className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition"
-                              onClick={() => {
-                                const pendingLevel = loan.approvalWorkflow?.find(w => w.status === 'pending')?.level || 'supervisor';
-                                handleRejectLoan(loan, pendingLevel);
-                              }}
+                              onClick={() => handleRejectLoan(loan)}
                               title="Reject"
                             >
                               <Icon icon="heroicons:x-mark" className="w-4 h-4" />

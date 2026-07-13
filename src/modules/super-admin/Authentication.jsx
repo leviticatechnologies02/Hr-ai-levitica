@@ -1,6 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { BASE_URL } from '../../shared/constants/api.config';
+
+const authHeader = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// NOTE on scope: this file's audit logs, active sessions, trusted
+// devices, MFA, and CAPTCHA were all entirely client-side simulations
+// with no backend to wire them to — there is no audit log, session, MFA,
+// or trusted-device endpoint anywhere in the backend. Those are left as
+// local/cosmetic UX layers on top of the two things that actually matter
+// and ARE backend-reachable: logging in (previously never checked
+// credentials at all — any email/password combination "succeeded") and
+// registering a new organization (previously never created a real tenant
+// or user account). Both are now wired to the real backend below.
+const fromBackendTenant = (t) => ({
+  id: t.id,
+  name: t.tenant_name,
+  domain: t.domain || '',
+  logo: (t.tenant_name || '??').substring(0, 2).toUpperCase(),
+  status: t.status || (t.is_active ? 'active' : 'inactive'),
+  employeeCount: t.max_employees ?? 0,
+  primaryColor: t.primary_color || '#1890ff',
+  subscriptionPlan: t.plan || 'Starter',
+  createdAt: t.created_at ? t.created_at.split('T')[0] : '',
+  adminEmail: t.contact_email,
+});
 
 const Authentication = () => {
   // State Management
@@ -243,6 +271,40 @@ const Authentication = () => {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
 
+  // Load real tenants (used by the tenant-selector in Login/Register) and
+  // the real user list (Admin tab) from the backend, replacing what was
+  // previously hardcoded/localStorage-seeded mock data.
+  useEffect(() => {
+    const loadTenants = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/super-admin/tenants/`);
+        if (res.ok) {
+          const data = await res.json();
+          setTenants(data.map(fromBackendTenant));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadTenants();
+  }, []);
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/admin/superadmin/users`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          setUsers(await res.json());
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUsers();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('rememberMe', rememberMe.toString());
   }, [rememberMe]);
@@ -307,7 +369,7 @@ const Authentication = () => {
     return '192.168.1.' + Math.floor(Math.random() * 255);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     if (!loginForm.tenantId && !selectedTenant) {
@@ -329,6 +391,28 @@ const Authentication = () => {
         generateCaptcha();
         return;
       }
+    }
+
+    // Actually verify credentials against the backend. This previously
+    // never happened — any email/password combination "succeeded".
+    let loginResponse;
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/login-json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginForm.email, password: loginForm.password }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setFailedAttempts(prev => prev + 1);
+        alert(err.detail || 'Invalid email or password.');
+        return;
+      }
+      loginResponse = await res.json();
+      localStorage.setItem('access_token', loginResponse.access_token);
+    } catch (err) {
+      alert(`Login failed: ${err.message}`);
+      return;
     }
 
     // Get device information
@@ -377,8 +461,8 @@ const Authentication = () => {
       lastActivity: new Date().toISOString(),
       ip: getClientIP(),
       expiresAt: new Date(Date.now() + (settings.sessionTimeout * 60 * 1000)).toISOString(),
-      jwtToken: 'jwt_token_' + Date.now(),
-      refreshToken: 'refresh_token_' + Date.now()
+      jwtToken: loginResponse.access_token,
+      refreshToken: loginResponse.refresh_token || null
     };
 
     setActiveSessions([...activeSessions, newSession]);
@@ -409,36 +493,70 @@ const Authentication = () => {
       setLoginForm({ email: '', password: '', tenantId: '' });
       setSelectedTenant(null);
     }
-    
-    console.log('Login attempt:', { ...loginForm, tenantId: selectedTenant?.id || loginForm.tenantId, deviceInfo });
   };
 
   // Handle Registration
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     if (registerForm.password !== registerForm.confirmPassword) {
       alert('Passwords do not match!');
       return;
     }
 
-    // Create new tenant
-    const newTenant = {
-      id: registerForm.tenantDomain.toLowerCase().replace(/\s+/g, '-'),
-      name: registerForm.companyName,
-      domain: `${registerForm.tenantDomain}.hrms.com`,
-      logo: registerForm.companyName.substring(0, 2).toUpperCase(),
-      status: 'pending',
-      employeeCount: parseInt(registerForm.companySize.split('-')[0]),
-      primaryColor: '#3b82f6', // Default blue
-      subscriptionPlan: 'Starter',
-      createdAt: new Date().toISOString().split('T')[0],
-      adminEmail: registerForm.email,
-      ...registerForm
-    };
+    // Create a real Tenant and a real (pending-approval) user account.
+    // Previously this only pushed a fake object into local component
+    // state — nothing was ever persisted, and the "pending approval"
+    // message was misleading since there was nothing for an admin to
+    // approve. There's no single-call "register org + admin" endpoint,
+    // so this makes both calls in sequence; if tenant creation succeeds
+    // but user creation fails, the tenant is still there for a superadmin
+    // to attach a real user to later via Super Admin > Users.
+    let createdTenant;
+    try {
+      const tenantRes = await fetch(`${BASE_URL}/api/super-admin/tenants/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_name: registerForm.companyName,
+          domain: `${registerForm.tenantDomain}.hrms.com`,
+          contact_email: registerForm.email,
+          contact_phone: registerForm.phone,
+          plan: 'Starter',
+          max_employees: parseInt(registerForm.companySize.split('-')[0], 10) || 1,
+          status: 'pending',
+          company_size: registerForm.companySize,
+        }),
+      });
+      if (!tenantRes.ok) {
+        const err = await tenantRes.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to create organization');
+      }
+      createdTenant = await tenantRes.json();
+      setTenants([...tenants, fromBackendTenant(createdTenant)]);
+    } catch (err) {
+      alert(`Registration failed: ${err.message}`);
+      return;
+    }
 
-    const updatedTenants = [...tenants, newTenant];
-    setTenants(updatedTenants);
-    
+    try {
+      const userRes = await fetch(`${BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: registerForm.fullName,
+          email: registerForm.email,
+          password: registerForm.password,
+          role: 'company',
+        }),
+      });
+      if (!userRes.ok) {
+        const err = await userRes.json().catch(() => ({}));
+        throw new Error(err.detail || 'Organization was created, but the admin account could not be created');
+      }
+    } catch (err) {
+      alert(`${err.message}. A super admin will need to create your login separately and link it to "${registerForm.companyName}" (tenant #${createdTenant.id}).`);
+    }
+
     // Add to audit logs
     const newLog = {
       id: Date.now(),
