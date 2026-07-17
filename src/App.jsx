@@ -1102,7 +1102,7 @@ const App = () => {
         }
       />
       <Route
-        path='/hrms/payroll/payroll-integration'
+        path='/payroll/payroll-integration'
         element={
           <ProtectedRoute>
             <RecruiterDashboardLayout>
