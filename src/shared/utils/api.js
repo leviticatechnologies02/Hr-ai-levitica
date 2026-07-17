@@ -1297,117 +1297,127 @@ export const adminAPI = {
 // ==========================================
 
 export const attendanceAPI = {
+  // Basic attendance (routers/.../attendance.py — kept for whatever
+  // originally used it)
   list: () => apiCall("/api/attendance/"),
-
   getById: (id) => apiCall(`/api/attendance/${id}`),
-
   create: (data) =>
     apiCall("/api/attendance/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
-
   update: (id, data) =>
     apiCall(`/api/attendance/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
-
-  delete: (id) =>
-    apiCall(`/api/attendance/${id}`, {
-      method: "DELETE",
-    }),
-
+  delete: (id) => apiCall(`/api/attendance/${id}`, { method: "DELETE" }),
   checkIn: (data) =>
     apiCall("/api/attendance/check-in", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
-
   checkOut: (data) =>
     apiCall("/api/attendance/check-out", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
 
-  // ==========================================
-  // Attendance Capture (biometric / GPS / web / geo-fences / settings)
-  // Real router: routers/HR_Automation/attendance/routers/attendance_capture.py
-  // mounted at /api/attendance (router itself prefixed /capture)
-  // ==========================================
+  // Daily Punches (routers/HR_Automation/attendance/routers/daily_punches.py)
+  // — matches the filter set used by DailyPunches.jsx / DailyAttendance.jsx
+  // exactly (business unit/location/cost center/department/late/absent/
+  // no-punches). THIS was the missing piece causing "daily punch not
+  // getting" — these methods didn't exist on attendanceAPI in this upload
+  // at all, so every call from DailyPunches.jsx threw a TypeError.
+  listDailyPunches: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/daily-punches/list${qs ? `?${qs}` : ''}`);
+  },
+  getPunchFilterOptions: () => apiCall('/api/attendance/daily-punches/filter-options'),
+  getEmployeePunches: (employeeId, punchDate) =>
+    apiCall(`/api/attendance/daily-punches/employee/${employeeId}?punch_date=${punchDate}`),
+  recordPunch: (data) => apiCall('/api/attendance/daily-punches/punches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  addManualPunch: (data) => apiCall('/api/attendance/daily-punches/manual-punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updatePunch: (punchId, data) => apiCall(`/api/attendance/daily-punches/punches/${punchId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deletePunch: (punchId) => apiCall(`/api/attendance/daily-punches/punches/${punchId}`, { method: 'DELETE' }),
+  regularisePunch: (data) => apiCall('/api/attendance/daily-punches/regularise', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  markProcessed: (summaryIds) => apiCall('/api/attendance/daily-punches/mark-processed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(summaryIds) }),
+  exportDailyPunchesUrl: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return `${BASE_URL}/api/attendance/daily-punches/export${qs ? `?${qs}` : ''}`;
+  },
+
+  // Attendance Capture & Tracking (routers/.../attendance_capture.py, mounted at /api/attendance/capture)
   getDashboardSummary: () => apiCall('/api/attendance/capture/dashboard/summary'),
 
-  // --- Biometric devices ---
+  // Biometric devices
+  listDevices: (activeOnly = false) => apiCall(`/api/attendance/capture/biometric/devices${activeOnly ? '?active_only=true' : ''}`),
+  getDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}`),
   addDevice: (data) => apiCall('/api/attendance/capture/biometric/devices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  listDevices: () => apiCall('/api/attendance/capture/biometric/devices'),
-  getDevice: (deviceId) => apiCall(`/api/attendance/capture/biometric/devices/${deviceId}`),
-  updateDevice: (deviceId, data) => apiCall(`/api/attendance/capture/biometric/devices/${deviceId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  deleteDevice: (deviceId) => apiCall(`/api/attendance/capture/biometric/devices/${deviceId}`, { method: 'DELETE' }),
-  syncDevice: (deviceId) => apiCall(`/api/attendance/capture/biometric/devices/${deviceId}/sync`, { method: 'POST' }),
+  updateDevice: (id, data) => apiCall(`/api/attendance/capture/biometric/devices/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}`, { method: 'DELETE' }),
+  syncDevice: (id) => apiCall(`/api/attendance/capture/biometric/devices/${id}/sync`, { method: 'POST' }),
   syncAllDevices: () => apiCall('/api/attendance/capture/biometric/sync-all', { method: 'POST' }),
   reconnectOfflineDevices: () => apiCall('/api/attendance/capture/biometric/reconnect-offline', { method: 'POST' }),
-  listSyncLogs: (deviceId, limit = 20) => {
-    const q = new URLSearchParams();
-    if (deviceId != null) q.append('device_id', deviceId);
-    if (limit != null) q.append('limit', limit);
-    return apiCall(`/api/attendance/capture/biometric/sync-logs?${q.toString()}`);
-  },
-  simulatePunch: (data) => apiCall('/api/attendance/capture/biometric/simulate-punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  getPunchStats: (employeeId) => apiCall(`/api/attendance/capture/biometric/punch-stats/${employeeId}`),
+  getSyncLogs: (deviceId, limit = 20) => apiCall(`/api/attendance/capture/biometric/sync-logs?${deviceId ? `device_id=${deviceId}&` : ''}limit=${limit}`),
+  simulateBiometricPunch: (data) => apiCall('/api/attendance/capture/biometric/simulate-punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getPunchStatistics: (employeeId) => apiCall(`/api/attendance/capture/biometric/punch-stats/${employeeId}`),
 
-  // --- GPS / geo-fences ---
-  addGeoFence: (data) => apiCall('/api/attendance/capture/gps/geo-fences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // GPS / Geo-fencing
   listGeoFences: (activeOnly = true) => apiCall(`/api/attendance/capture/gps/geo-fences?active_only=${activeOnly}`),
-  updateGeoFence: (fenceId, data) => apiCall(`/api/attendance/capture/gps/geo-fences/${fenceId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  deleteGeoFence: (fenceId) => apiCall(`/api/attendance/capture/gps/geo-fences/${fenceId}`, { method: 'DELETE' }),
+  addGeoFence: (data) => apiCall('/api/attendance/capture/gps/geo-fences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateGeoFence: (id, data) => apiCall(`/api/attendance/capture/gps/geo-fences/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteGeoFence: (id) => apiCall(`/api/attendance/capture/gps/geo-fences/${id}`, { method: 'DELETE' }),
   gpsCheckIn: (data) => apiCall('/api/attendance/capture/gps/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  getGpsStatistics: (employeeId) => apiCall(`/api/attendance/capture/gps/statistics${employeeId != null ? `?employee_id=${employeeId}` : ''}`),
+  getGpsStatistics: (employeeId) => apiCall(`/api/attendance/capture/gps/statistics${employeeId ? `?employee_id=${employeeId}` : ''}`),
   getGpsRecentActivity: (limit = 20) => apiCall(`/api/attendance/capture/gps/recent-activity?limit=${limit}`),
 
-  // --- Web portal / IP whitelist ---
-  addIpWhitelist: (data) => apiCall('/api/attendance/capture/web/ip-whitelist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // Web portal check-in / IP whitelist
   listIpWhitelist: () => apiCall('/api/attendance/capture/web/ip-whitelist'),
-  removeIpWhitelist: (entryId) => apiCall(`/api/attendance/capture/web/ip-whitelist/${entryId}`, { method: 'DELETE' }),
+  addIpWhitelist: (data) => apiCall('/api/attendance/capture/web/ip-whitelist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  removeIpWhitelist: (id) => apiCall(`/api/attendance/capture/web/ip-whitelist/${id}`, { method: 'DELETE' }),
   checkMyIp: () => apiCall('/api/attendance/capture/web/check-ip'),
   webCheckIn: (data) => apiCall('/api/attendance/capture/web/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  markWfh: (employeeId, workDate) => {
-    const q = new URLSearchParams({ employee_id: employeeId });
-    if (workDate) q.append('work_date', workDate);
-    return apiCall(`/api/attendance/capture/web/mark-wfh?${q.toString()}`, { method: 'POST' });
-  },
+  markWfh: (employeeId, workDate) => apiCall(`/api/attendance/capture/web/mark-wfh?employee_id=${employeeId}${workDate ? `&work_date=${workDate}` : ''}`, { method: 'POST' }),
   getWebRecentActivity: (limit = 20) => apiCall(`/api/attendance/capture/web/recent-activity?limit=${limit}`),
 
-  // --- Daily snapshot (capture module's own, distinct from /daily below) ---
-  listDailyCapture: () => apiCall('/api/attendance/capture/daily'),
-  listDailyCaptureToday: () => apiCall('/api/attendance/capture/daily/today'),
-
-  // --- Settings ---
+  // Daily attendance (capture-scoped view) + settings
+  getCaptureDailyAttendance: (employeeId, attDate) => {
+    const params = new URLSearchParams();
+    if (employeeId) params.set('employee_id', employeeId);
+    if (attDate) params.set('att_date', attDate);
+    return apiCall(`/api/attendance/capture/daily${params.toString() ? `?${params}` : ''}`);
+  },
+  getCaptureTodayAttendance: () => apiCall('/api/attendance/capture/daily/today'),
   getAttendanceSettings: () => apiCall('/api/attendance/capture/settings'),
   updateAttendanceSettings: (data) => apiCall('/api/attendance/capture/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   resetAttendanceSettings: () => apiCall('/api/attendance/capture/settings/reset', { method: 'POST' }),
 
-  // ==========================================
-  // Daily attendance bulk upload (per-day check-in/check-out rows) —
-  // routers/HR_Automation/attendance/routers/daily_attendance.py, mounted
-  // at /api/attendance (router prefixed /daily). This is the correct match
-  // for a CSV of {employee_code, att_date, check_in, check_out} rows.
-  // NOTE: this is a DIFFERENT endpoint/schema than the monthly P/A/H/W/CO/
-  // CL/LW-count bulk upload at /api/attendance/manual/upload — don't
-  // confuse the two; they take differently-shaped rows.
-  // ==========================================
-  bulkUploadAttendance: (rows) => apiCall('/api/attendance/daily/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }) }),
+  // Bulk CSV upload (routers/.../daily_attendance.py). NOTE: this router is
+  // mounted at /api/attendance with an internal prefix of /attendance/daily
+  // too, so the real final path really does double up "attendance" — not
+  // a typo here, matches the backend as written.
+  bulkUploadAttendance: (rows) => apiCall('/api/attendance/attendance/daily/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }) }),
+
+  // Monthly Attendance (routers/.../monthly_attendance.py — also double-
+  // prefixed the same way daily_attendance.py is: mounted at /api/attendance
+  // with an internal prefix of /attendance/monthly).
+  getMonthlyFilterOptions: () => apiCall('/api/attendance/attendance/monthly/filter-options'),
+  getMonthlyCalendar: (employeeId, month, year) => apiCall(`/api/attendance/attendance/monthly/calendar?employee_id=${employeeId}&month=${month}&year=${year}`),
+  listMonthlyCalendars: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/attendance/monthly/calendars?${qs}`);
+  },
+  replaceMonthlyDay: (employeeId, attDate, data) => apiCall(`/api/attendance/attendance/monthly/${employeeId}/replace?att_date=${attDate}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  recalculateMonthly: (employeeId, month, year) => apiCall(`/api/attendance/attendance/monthly/${employeeId}/recalculate?month=${month}&year=${year}`, { method: 'POST' }),
+  downloadMonthlyCsvUrl: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return `${BASE_URL}/api/attendance/attendance/monthly/download?${qs}`;
+  },
 };
 
 // ==========================================
