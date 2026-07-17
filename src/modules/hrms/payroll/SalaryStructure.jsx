@@ -105,6 +105,54 @@ const SalaryStructure = () => {
   const [versions, setVersions] = useState([]);
   const [dashboard, setDashboard] = useState(null);
 
+  // THE MISSING PIECE: `structures` was referenced throughout this file
+  // (rendered in the Structures tab, and passed as a prop to 5 different
+  // modals that are always mounted regardless of active tab) but was never
+  // declared anywhere — a ReferenceError on every render, crashing the
+  // whole page immediately on load. This was flagged in the comment above
+  // as an intentionally-deferred design decision (the modal's form fields
+  // don't map cleanly to the backend), but the read-only load path below
+  // needed no such decision and should have been wired regardless.
+  const [structures, setStructures] = useState([]);
+  const [structuresLoading, setStructuresLoading] = useState(false);
+
+  // Backend SalaryStructureTemplateResponse -> local UI shape used by the
+  // Structures tab and its modals (name/grade/level/status/ctc/
+  // employeeCount/effectiveDate).
+  const mapStructureTemplate = (t) => ({
+    id: t.id,
+    name: t.template_name,
+    code: t.template_code,
+    grade: t.grade,
+    level: t.level,
+    category: t.category,
+    ctc: t.annual_ctc,
+    takeHome: t.take_home_monthly,
+    employerCost: t.employer_cost_monthly,
+    status: t.status,
+    version: t.version,
+    department: t.department,
+    employeeCount: t.employee_count,
+    // No dedicated "effective date" field on the template — created_at is
+    // the closest real timestamp the backend actually tracks.
+    effectiveDate: t.created_at ? t.created_at.split('T')[0] : '',
+    description: t.description,
+    componentLines: t.component_lines || [],
+  });
+
+  const loadStructures = async () => {
+    setStructuresLoading(true);
+    try {
+      const data = await payrollAPI.getStructureTemplatesOverview();
+      setStructures((data.templates || []).map(mapStructureTemplate));
+    } catch (err) {
+      console.error('Failed to load structure templates:', err);
+      toast.error(err.message || 'Failed to load structures');
+    } finally {
+      setStructuresLoading(false);
+    }
+  };
+
   // Backend SalaryComponentResponse -> local UI shape used throughout this
   // file (name/category/type/taxable/statutory/calculation/value/base/
   // proRata/rounding/isActive), matching ComponentModal/ComponentViewModal.
@@ -150,15 +198,10 @@ const SalaryStructure = () => {
   useEffect(() => {
     loadComponents();
     loadAssignments();
+    loadStructures();
     payrollAPI.getSalaryStructureDashboard()
       .catch((err) => console.error('Failed to load salary structure dashboard:', err))
       .then((data) => data && setDashboard(data));
-    // NOTE: Structure templates and assignments are NOT loaded here yet —
-    // StructureModal's form fields (minCTC/maxCTC/incrementRange/employeeType/
-    // standardDeductions) don't match the backend's SalaryStructureTemplateCreate
-    // schema (annual_ctc + component_lines), so wiring that tab needs a design
-    // decision first rather than a guessed mapping. See handleAddStructure etc.
-    // below, still stubbed.
   }, []);
 
   const getStatusBadge = (status) => {
@@ -308,22 +351,74 @@ const SalaryStructure = () => {
     }
   };
 
-  const handleAddStructure = (data) => {
-    toast.success('Structure created successfully');
-    setShowStructureModal(false);
+  // NOTE: StructureModal's form collects several fields with no backend
+  // equivalent on SalaryStructureTemplateCreate — minCTC/maxCTC/
+  // incrementRange, employeeType, componentGroups, and standardDeductions
+  // (pf/esi/professionalTax/tds toggles) all have nowhere to go; the real
+  // schema only has template_name/template_code/description/grade/level/
+  // category/annual_ctc/take_home_monthly/employer_cost_monthly/status/
+  // department + component_lines (a structured list, not the free-form
+  // componentGroups this form builds). Mapping what's compatible below;
+  // the rest stays local-only in the form until either the backend adds
+  // those fields or the modal is redesigned around component_lines.
+  const handleAddStructure = async (data) => {
+    try {
+      await payrollAPI.createStructureTemplate({
+        template_name: data.name,
+        template_code: data.name?.toUpperCase().replace(/\s+/g, '_').slice(0, 20) || `TMPL_${Date.now()}`,
+        description: data.description || null,
+        grade: data.grade || null,
+        level: data.level || null,
+        category: data.category || 'permanent',
+        annual_ctc: Number(data.ctc) || 0,
+        status: data.status || 'draft',
+        department: Array.isArray(data.department) ? data.department[0] : (data.department || null),
+      });
+      await loadStructures();
+      toast.success('Structure created successfully');
+      setShowStructureModal(false);
+    } catch (err) {
+      toast.error(err.message || 'Failed to create structure');
+    }
   };
 
-  const handleUpdateStructure = (data) => {
-    toast.success('Structure updated successfully');
-    setShowViewStructureModal(false);
-    setSelectedStructure(null);
-  };
-
-  const handleDeleteStructure = (id) => {
-    if (window.confirm('Are you sure you want to delete this structure?')) {
-      toast.success('Structure deleted successfully');
+  const handleUpdateStructure = async (data) => {
+    if (!data.id) {
+      toast.error('Missing structure id — cannot update');
+      return;
+    }
+    try {
+      await payrollAPI.updateStructureTemplate(data.id, {
+        template_name: data.name,
+        description: data.description || null,
+        grade: data.grade || null,
+        level: data.level || null,
+        category: data.category || undefined,
+        annual_ctc: Number(data.ctc) || undefined,
+        status: data.status || undefined,
+        department: Array.isArray(data.department) ? data.department[0] : (data.department || undefined),
+      });
+      await loadStructures();
+      toast.success('Structure updated successfully');
       setShowViewStructureModal(false);
       setSelectedStructure(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to update structure');
+    }
+  };
+
+  const handleDeleteStructure = async (id) => {
+    if (!id) return;
+    if (window.confirm('Are you sure you want to delete this structure?')) {
+      try {
+        await payrollAPI.deleteStructureTemplate(id);
+        setStructures((prev) => prev.filter((s) => s.id !== id));
+        toast.success('Structure deleted successfully');
+        setShowViewStructureModal(false);
+        setSelectedStructure(null);
+      } catch (err) {
+        toast.error(err.message || 'Failed to delete structure');
+      }
     }
   };
 
