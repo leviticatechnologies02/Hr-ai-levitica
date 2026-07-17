@@ -730,15 +730,15 @@ const App = () => {
         }
       />
       <Route
-        path='/hrms/attendance/payroll-integration'
+        path='/hrms/attendance/reports'
         element={
           <ProtectedRoute>
             <RecruiterDashboardLayout>
-              <PayrollIntegration />
+              <AttendanceReports />
             </RecruiterDashboardLayout>
           </ProtectedRoute>
         }
-      />
+      />     
       <Route
         path='/hrms/leave'
         element={
@@ -864,139 +864,6 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-
-       {/* Attendance & Leave Routes (canonical) */}
-      <Route
-        path='/attendance/capture'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <AttendanceCapture />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/daily-punches'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <DailyPunches />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/daily-attendance'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <DailyAttendance />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/monthly-attendance'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <MonthlyAttendance />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/manual-attendance'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <ManualAttendance />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/leave-correction'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <LeaveCorrection />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/shifts'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <ShiftManagement />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/rules'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <WorkHourRules />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/leave'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <LeaveManagement />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/regularization'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <Regularization />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/holidays'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <HolidayCalendar />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/attendance/reports'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <AttendanceReports />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/payroll/payroll-integration'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <PayrollIntegration />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-
 
 {/* Payroll Management Routes (canonical) */}
       <Route

@@ -244,7 +244,7 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
         { to: '/hrms/attendance/work-hour-rules', tabKey: 'work-hour-rules', label: 'Work Hour Rules', icon: HiOutlineClock },
         { to: '/hrms/attendance/regularization', tabKey: 'regularization', label: 'Regularization', icon: HiOutlineCalendar },
         { to: '/hrms/attendance/holiday-calendar', tabKey: 'holiday-calendar', label: 'Holiday Calendar', icon: HiOutlineCalendar },
-        { to: '/hrms/attendance/payroll-integration', tabKey: 'attendance-payroll-integration', label: 'Payroll Integration', icon: HiOutlineClock },
+        { to: '/hrms/attendance/reports', tabKey: 'attendance-reports', label: 'Attendance Reports', icon: HiOutlineChartBar },
         { to: '/hrms/leave', tabKey: 'leave-management', label: 'Leave Management', icon: HiOutlineCalendar },
       ]
     },
@@ -276,25 +276,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
         { to: '/onboarding/induction', tabKey: 'induction', label: 'Induction & Orientation', icon: HiOutlineAcademicCap },
         { to: '/onboarding/probation', tabKey: 'probation', label: 'Probation Management', icon: HiOutlineClock },
         { to: '/onboarding/buddy', tabKey: 'buddy-mentor', label: 'Buddy/Mentor Program', icon: HiOutlineUserGroup }
-      ]
-    },
-    {
-      type: 'dropdown',
-      label: 'Attendance & Leave',
-      icon: HiOutlineCalendar,
-      items: [
-        { to: '/attendance/capture', tabKey: 'att-capture', label: 'Attendance Capture', icon: HiOutlineClock },
-        { to: '/attendance/daily-punches', tabKey: 'daily-punches', label: 'Daily Punches', icon: HiOutlineCamera },
-        { to: '/attendance/daily-attendance', tabKey: 'daily-attendance', label: 'Daily Attendance', icon: HiOutlineCalendarDays },
-        { to: '/attendance/monthly-attendance', tabKey: 'monthly-attendance', label: 'Monthly Attendance', icon: HiOutlineCalendar },
-        { to: '/attendance/manual-attendance', tabKey: 'manual-attendance', label: 'Manual Attendance', icon: HiOutlinePencilSquare },
-        { to: '/attendance/leave-correction', tabKey: 'leave-correction', label: 'Leave Correction', icon: HiOutlineExclamationCircle },
-        { to: '/attendance/shifts', tabKey: 'shifts', label: 'Shift Management', icon: HiOutlineArrowPathRoundedSquare },
-        { to: '/attendance/rules', tabKey: 'rules', label: 'Work Hour Rules', icon: HiOutlineDocumentText },
-        { to: '/attendance/leave', tabKey: 'leave-mgmt', label: 'Leave Management', icon: HiOutlineCalendarDays },
-        { to: '/attendance/regularization', tabKey: 'regularization', label: 'Regularization', icon: HiOutlineCheckBadge },
-        { to: '/attendance/holidays', tabKey: 'holidays', label: 'Holiday Calendar', icon: HiOutlineGift },
-        { to: '/attendance/reports', tabKey: 'att-reports', label: 'Attendance Reports', icon: HiOutlineChartBar }
       ]
     },
     {
