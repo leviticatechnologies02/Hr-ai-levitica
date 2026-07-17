@@ -250,22 +250,6 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
     },
     {
       type: 'dropdown',
-      label: 'Payroll',
-      icon: HiOutlineFolderOpen,
-      items: [
-        { to: '/hrms/payroll/salary-structure', tabKey: 'salary-structure', label: 'Salary Structure', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/salary-slip', tabKey: 'salary-slip', label: 'Salary Slip', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/processing-engine', tabKey: 'payroll-processing', label: 'Processing Engine', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/statutory-compliance', tabKey: 'statutory-compliance', label: 'Statutory Compliance', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/reimbursements', tabKey: 'reimbursements', label: 'Reimbursements', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/loans-advances', tabKey: 'loans-advances', label: 'Loans & Advances', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/bank-transfer', tabKey: 'bank-transfer', label: 'Bank Transfer', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/final-settlement', tabKey: 'final-settlement', label: 'Final Settlement', icon: HiOutlineFolderOpen },
-        { to: '/hrms/payroll/reports', tabKey: 'payroll-reports', label: 'Payroll Reports', icon: HiOutlineFolderOpen },
-      ]
-    },
-    {
-      type: 'dropdown',
       label: 'Onboarding & Pre-Joining',
       icon: HiOutlineUserPlus,
       items: [

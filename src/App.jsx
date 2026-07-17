@@ -864,104 +864,7 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-
-{/* Payroll Management Routes (canonical) */}
-      <Route
-        path='/hrms/payroll/salary-slip'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <Salaryslip />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/salary-structure'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <SalaryStructure />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/statutory-compliance'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <StatutoryCompliance />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/reimbursements'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <Reimbursements />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/processing-engine'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <PayrollProcessingEngine />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/loans-advances'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <LoansAdvances />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/reports'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <PayrollReports />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/bank-transfer'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <BankTransfer />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/hrms/payroll/final-settlement'
-        element={
-          <ProtectedRoute>
-            <RecruiterDashboardLayout>
-              <FinalSettlement />
-            </RecruiterDashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-
-
-   
-
-
-
+ 
       {/* Sidebar legacy HR-Ops paths -> render same protected components directly */}
       <Route
         path='/hr-ops/confirmation'
@@ -1194,6 +1097,16 @@ const App = () => {
           <ProtectedRoute>
             <RecruiterDashboardLayout>
               <PayrollReports />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/hrms/payroll/payroll-integration'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <PayrollIntegration />
             </RecruiterDashboardLayout>
           </ProtectedRoute>
         }
