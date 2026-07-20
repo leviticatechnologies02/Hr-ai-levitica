@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL, API_ENDPOINTS } from '../../../../shared/constants/api.config';
+
+const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
 const ExamPage = () => {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(3 * 60); // 1 minute for testing
+  const [questions, setQuestions] = useState([]);
+  const [candidateId, setCandidateId] = useState(null);
+  const [examLoading, setExamLoading] = useState(true);
+  const [examError, setExamError] = useState(null);
+  const [finalResult, setFinalResult] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [showWarning, setShowWarning] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -25,14 +33,42 @@ const ExamPage = () => {
     securityViolationSkipRef.current = Date.now() + duration;
   };
 
+  // Submits real answers to POST /api/assessment/aptitude/submit. Declared before
+  // handleAutoSubmit (and included in its deps below) so the callback always sees the
+  // latest candidateId/selectedAnswers rather than a stale closure from first render.
+  const submitExamToServer = useCallback(async () => {
+    if (!candidateId) return null;
+    try {
+      const answersPayload = {};
+      Object.entries(selectedAnswers).forEach(([qId, letter]) => {
+        answersPayload[qId] = letter;
+      });
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.ASSESSMENT_APTITUDE.SUBMIT}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: candidateId, answers: answersPayload }),
+      });
+      if (!res.ok) throw new Error('Failed to submit the exam');
+      const result = await res.json();
+      setFinalResult(result);
+      return result;
+    } catch (err) {
+      console.error(err);
+      setExamError('Your exam finished but we could not reach the server to submit it. Please contact support.');
+      return null;
+    }
+  }, [candidateId, selectedAnswers]);
+
   // Auto-submit function (defined early to avoid reference errors)
-  const handleAutoSubmit = useCallback(() => {
+  const handleAutoSubmit = useCallback(async () => {
     // Hide all warnings before showing success
     setShowWarning(false);
     setShowSecurityWarning(false);
     setShowSubmitConfirm(false);
     setShowTimeUp(false);
-    
+
+    await submitExamToServer();
+
     setShowSuccess(true);
     setIsExamStarted(false);
 
@@ -62,7 +98,7 @@ const ExamPage = () => {
       setShowSuccess(false);
       navigate('/'); // Redirect to home page
     }, 3000);
-  }, [navigate]);
+  }, [navigate, submitExamToServer]);
 
   const registerSecurityViolation = useCallback(({ type = 'generic', autoHide = true, skipDuration = 0 } = {}) => {
     const now = Date.now();
@@ -89,189 +125,63 @@ const ExamPage = () => {
   }, [handleAutoSubmit]);
 
 
-  // Sample aptitude questions (25 questions)
-  const questions = [
-    {
-      id: 1,
-      question: "HTML attributes provide additional information about the HTML element?",
-      options: ["True", "False"],
-      correct: 0,
-      type: "Technical"
-    },
-    {
-      id: 2,
-      question: "If a train travels 120 km in 2 hours, what is its speed?",
-      options: ["60 km/h", "40 km/h", "80 km/h", "100 km/h"],
-      correct: 0,
-      type: "Quantitative"
-    },
-    {
-      id: 3,
-      question: "Complete the series: 2, 4, 8, 16, ?",
-      options: ["24", "32", "20", "28"],
-      correct: 1,
-      type: "Logical Reasoning"
-    },
-    {
-      id: 4,
-      question: "What is the synonym of 'Benevolent'?",
-      options: ["Cruel", "Kind", "Strict", "Harsh"],
-      correct: 1,
-      type: "Verbal Ability"
-    },
-    {
-      id: 5,
-      question: "If 5x + 3 = 18, what is the value of x?",
-      options: ["2", "3", "4", "5"],
-      correct: 1,
-      type: "Quantitative"
-    },
-    {
-      id: 6,
-      question: "Which number should come next in the pattern: 1, 4, 9, 16, 25, ?",
-      options: ["30", "36", "35", "40"],
-      correct: 1,
-      type: "Logical Reasoning"
-    },
-    {
-      id: 7,
-      question: "What is the capital of France?",
-      options: ["London", "Berlin", "Paris", "Madrid"],
-      correct: 2,
-      type: "General Knowledge"
-    },
-    {
-      id: 8,
-      question: "JavaScript is a programming language?",
-      options: ["True", "False"],
-      correct: 0,
-      type: "Technical"
-    },
-    {
-      id: 9,
-      question: "What is 15% of 200?",
-      options: ["25", "30", "35", "40"],
-      correct: 1,
-      type: "Quantitative"
-    },
-    {
-      id: 10,
-      question: "Which of the following is a prime number?",
-      options: ["4", "6", "7", "8"],
-      correct: 2,
-      type: "Quantitative"
-    },
-    {
-      id: 11,
-      question: "What is the opposite of 'Generous'?",
-      options: ["Kind", "Stingy", "Helpful", "Friendly"],
-      correct: 1,
-      type: "Verbal Ability"
-    },
-    {
-      id: 12,
-      question: "In a class of 30 students, 18 are girls. What percentage are boys?",
-      options: ["40%", "50%", "60%", "70%"],
-      correct: 0,
-      type: "Quantitative"
-    },
-    {
-      id: 13,
-      question: "Which programming language is used for web development?",
-      options: ["Python", "Java", "HTML", "C++"],
-      correct: 2,
-      type: "Technical"
-    },
-    {
-      id: 14,
-      question: "What comes next: A, C, E, G, ?",
-      options: ["H", "I", "J", "K"],
-      correct: 1,
-      type: "Logical Reasoning"
-    },
-    {
-      id: 15,
-      question: "What is the square root of 144?",
-      options: ["11", "12", "13", "14"],
-      correct: 1,
-      type: "Quantitative"
-    },
-    {
-      id: 16,
-      question: "Which is the largest planet in our solar system?",
-      options: ["Earth", "Saturn", "Jupiter", "Neptune"],
-      correct: 2,
-      type: "General Knowledge"
-    },
-    {
-      id: 17,
-      question: "What is the result of 7 × 8?",
-      options: ["54", "56", "58", "60"],
-      correct: 1,
-      type: "Quantitative"
-    },
-    {
-      id: 18,
-      question: "Which word means 'to make something better'?",
-      options: ["Improve", "Destroy", "Ignore", "Avoid"],
-      correct: 0,
-      type: "Verbal Ability"
-    },
-    {
-      id: 19,
-      question: "What is the next number in the sequence: 3, 6, 12, 24, ?",
-      options: ["36", "48", "30", "42"],
-      correct: 1,
-      type: "Logical Reasoning"
-    },
-    {
-      id: 20,
-      question: "CSS is used for styling web pages?",
-      options: ["True", "False"],
-      correct: 0,
-      type: "Technical"
-    },
-    {
-      id: 21,
-      question: "What is 25% of 80?",
-      options: ["15", "20", "25", "30"],
-      correct: 1,
-      type: "Quantitative"
-    },
-    {
-      id: 22,
-      question: "Which is the smallest country in the world?",
-      options: ["Monaco", "Vatican City", "San Marino", "Liechtenstein"],
-      correct: 1,
-      type: "General Knowledge"
-    },
-    {
-      id: 23,
-      question: "What is the meaning of 'Ubiquitous'?",
-      options: ["Rare", "Everywhere", "Expensive", "Difficult"],
-      correct: 1,
-      type: "Verbal Ability"
-    },
-    {
-      id: 24,
-      question: "If a rectangle has length 8 and width 6, what is its area?",
-      options: ["42", "48", "52", "56"],
-      correct: 1,
-      type: "Quantitative"
-    },
-    {
-      id: 25,
-      question: "What is the missing number: 2, 5, 10, 17, 26, ?",
-      options: ["35", "37", "39", "41"],
-      correct: 1,
-      type: "Logical Reasoning"
-    }
-  ];
+  // Real questions fetched from the backend aptitude exam (/api/assessment/aptitude/start).
+  // Backend returns options as {A,B,C,D}; we keep them as an ordered array here so the
+  // existing radio-button rendering below doesn't need to change, and track the selected
+  // OPTION LETTER (not index) in selectedAnswers since that's what /submit expects.
+  useEffect(() => {
+    const loadExam = async () => {
+      setExamLoading(true);
+      setExamError(null);
+      try {
+        const email = localStorage.getItem('aptitude_candidate_email');
+        const storedId = localStorage.getItem('aptitude_candidate_id');
+        if (!email) {
+          setExamError('No verified candidate found. Please log in again.');
+          setExamLoading(false);
+          return;
+        }
+        const res = await fetch(`${BASE_URL}${API_ENDPOINTS.ASSESSMENT_APTITUDE.START}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: storedId ? Number(storedId) : 0, email }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.detail || 'Failed to start the exam');
+        }
+        const data = await res.json();
+        const mapped = (data.questions || []).map((q) => ({
+          id: q.no,
+          question: q.question,
+          optionKeys: OPTION_KEYS.filter((k) => q.options && q.options[k] !== undefined),
+          options: OPTION_KEYS.filter((k) => q.options && q.options[k] !== undefined).map((k) => q.options[k]),
+        }));
+        setQuestions(mapped);
+        setCandidateId(data.candidate_id);
+        localStorage.setItem('aptitude_candidate_id', String(data.candidate_id));
+      } catch (err) {
+        console.error(err);
+        setExamError(err.message || 'Failed to load the exam');
+      } finally {
+        setExamLoading(false);
+      }
+    };
+    loadExam();
+  }, []);
+
+  // Time limit comes from /instructions (fetched on the instructions page and cached);
+  // fall back to 30 minutes if it isn't available for some reason.
+  useEffect(() => {
+    const storedLimit = localStorage.getItem('aptitude_time_limit_seconds');
+    if (storedLimit) setTimeLeft(Number(storedLimit));
+  }, []);
+
 
   // Timer effect
   useEffect(() => {
     let interval = null;
-    if (isExamStarted && timeLeft > 0) {
+    if (!examLoading && isExamStarted && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(timeLeft => timeLeft - 1);
       }, 1000);
@@ -490,10 +400,10 @@ const ExamPage = () => {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleAnswerSelect = (questionId, answerIndex) => {
+  const handleAnswerSelect = (questionId, optionLetter) => {
     setSelectedAnswers(prev => ({
       ...prev,
-      [questionId]: answerIndex
+      [questionId]: optionLetter
     }));
   };
 
@@ -517,13 +427,15 @@ const ExamPage = () => {
     setShowSubmitConfirm(true);
   };
 
-  const confirmSubmit = () => {
+  const confirmSubmit = async () => {
     // Hide all warnings before showing success
     setShowSubmitConfirm(false);
     setShowWarning(false);
     setShowSecurityWarning(false);
     setShowTimeUp(false);
-    
+
+    await submitExamToServer();
+
     setShowSuccess(true);
     setIsExamStarted(false);
 
@@ -664,6 +576,29 @@ const ExamPage = () => {
     reEnterFullscreen();
   };
 
+  if (examLoading) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center bg-gradient-primary">
+        <div className="text-white text-center">
+          <div className="spinner-border text-white mb-3" role="status"></div>
+          <p className="fs-5">Loading your exam…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (examError && questions.length === 0) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center bg-gradient-primary">
+        <div className="bg-white rounded-3 shadow-lg p-5 text-center" style={{ maxWidth: '480px' }}>
+          <h4 className="text-danger mb-3">Couldn't load the exam</h4>
+          <p className="text-muted">{examError}</p>
+          <button className="btn btn-primary mt-2" onClick={() => navigate('/assessment/aptitude/login')}>Back to Login</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-vh-100 bg-gradient-primary exam-fullscreen">
 
@@ -783,8 +718,8 @@ const ExamPage = () => {
                         type="radio"
                         name={`question-${currentQ.id}`}
                         id={`option-${index}`}
-                        checked={selectedAnswers[currentQ.id] === index}
-                        onChange={() => handleAnswerSelect(currentQ.id, index)}
+                        checked={selectedAnswers[currentQ.id] === currentQ.optionKeys[index]}
+                        onChange={() => handleAnswerSelect(currentQ.id, currentQ.optionKeys[index])}
                         style={{ transform: 'scale(1.2)' }}
                       />
                       <label
@@ -984,7 +919,13 @@ const ExamPage = () => {
                 <div className="mb-3">
                   <div className="display-4 text-success mb-2">✓</div>
                   <p className="fw-bold fs-5 mb-2">Your assessment has been submitted successfully!</p>
-                  <p className="text-muted mb-0">Thank you for completing the exam.</p>
+                  {finalResult ? (
+                    <p className="text-muted mb-0">
+                      Score: {finalResult.score}/{questions.length} — {finalResult.status === 'Qualified' ? 'You qualified for the next round.' : 'Thank you for taking the test.'}
+                    </p>
+                  ) : (
+                    <p className="text-muted mb-0">Thank you for completing the exam.</p>
+                  )}
                 </div>
               </div>
             </div>

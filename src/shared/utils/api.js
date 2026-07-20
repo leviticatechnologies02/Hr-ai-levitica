@@ -1418,6 +1418,74 @@ export const attendanceAPI = {
     const qs = new URLSearchParams(params).toString();
     return `${BASE_URL}/api/attendance/attendance/monthly/download?${qs}`;
   },
+
+
+  // Shift Management (routers/.../shift_management.py, mounted at
+  // /api/attendance with internal prefix /shifts)
+  listShifts: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/shifts/${qs ? `?${qs}` : ''}`);
+  },
+  getShift: (id) => apiCall(`/api/attendance/shifts/${id}`),
+  createShift: (data) => apiCall('/api/attendance/shifts/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateShift: (id, data) => apiCall(`/api/attendance/shifts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteShift: (id) => apiCall(`/api/attendance/shifts/${id}`, { method: 'DELETE' }),
+ 
+  assignShiftIndividual: (data) => apiCall('/api/attendance/shifts/assignments/individual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  assignShiftBulk: (data) => apiCall('/api/attendance/shifts/assignments/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listShiftAssignments: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/shifts/assignments${qs ? `?${qs}` : ''}`);
+  },
+  updateShiftAssignment: (id, data) => apiCall(`/api/attendance/shifts/assignments/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteShiftAssignment: (id) => apiCall(`/api/attendance/shifts/assignments/${id}`, { method: 'DELETE' }),
+ 
+  generateRoster: (data) => apiCall('/api/attendance/shifts/rosters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listRosters: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/shifts/rosters${qs ? `?${qs}` : ''}`);
+  },
+  updateRoster: (id, data) => apiCall(`/api/attendance/shifts/rosters/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteRoster: (id) => apiCall(`/api/attendance/shifts/rosters/${id}`, { method: 'DELETE' }),
+ 
+  createShiftSwap: (data) => apiCall('/api/attendance/shifts/swaps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listShiftSwaps: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/shifts/swaps${qs ? `?${qs}` : ''}`);
+  },
+  updateShiftSwap: (id, data) => apiCall(`/api/attendance/shifts/swaps/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteShiftSwap: (id) => apiCall(`/api/attendance/shifts/swaps/${id}`, { method: 'DELETE' }),
+ 
+  createFlexibleArrangement: (data) => apiCall('/api/attendance/shifts/flexible', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listFlexibleArrangements: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/shifts/flexible${qs ? `?${qs}` : ''}`);
+  },
+  updateFlexibleArrangement: (id, data) => apiCall(`/api/attendance/shifts/flexible/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteFlexibleArrangement: (id) => apiCall(`/api/attendance/shifts/flexible/${id}`, { method: 'DELETE' }),
+ 
+  getShiftNotifications: () => apiCall('/api/attendance/shifts/notifications'),
+  getEmployeesForShiftAssignment: () => apiCall('/api/attendance/shifts/employees-list'),
+ 
+  // Work Hour Rules — standalone router (routers/.../work_hour_rules.py,
+  // mounted at /api/attendance with internal prefix /work-hour-rules).
+  // NOTE: shift_management.py ALSO exposes a work-hour-rules endpoint at
+  // /api/attendance/shifts/work-hour-rules (a simpler config-only GET/PUT).
+  // This standalone router is the richer one (full CRUD + per-tab PATCH +
+  // stats) and is the better match for a dedicated WorkHourRules.jsx page.
+  createWorkHourRule: (data) => apiCall('/api/attendance/work-hour-rules/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listWorkHourRules: (activeOnly = true) => apiCall(`/api/attendance/work-hour-rules/?active_only=${activeOnly}`),
+  getActiveWorkHourPolicy: () => apiCall('/api/attendance/work-hour-rules/active'),
+  getWorkHourRule: (id) => apiCall(`/api/attendance/work-hour-rules/${id}`),
+  updateWorkHourRule: (id, data) => apiCall(`/api/attendance/work-hour-rules/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteWorkHourRule: (id) => apiCall(`/api/attendance/work-hour-rules/${id}`, { method: 'DELETE' }),
+  updateWorkHourAttendanceTab: (id, data) => apiCall(`/api/attendance/work-hour-rules/${id}/attendance`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateWorkHourOvertimeTab: (id, data) => apiCall(`/api/attendance/work-hour-rules/${id}/overtime`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateWorkHourBreaksTab: (id, data) => apiCall(`/api/attendance/work-hour-rules/${id}/breaks`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateWorkHourSettingsTab: (id, data) => apiCall(`/api/attendance/work-hour-rules/${id}/settings`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getWorkHourAttendanceStats: (ruleId) => apiCall(`/api/attendance/work-hour-rules/stats/attendance${ruleId ? `?rule_id=${ruleId}` : ''}`),
+  getWorkHourOvertimeStats: (ruleId) => apiCall(`/api/attendance/work-hour-rules/stats/overtime${ruleId ? `?rule_id=${ruleId}` : ''}`),
+  getWorkHourStorageUsage: () => apiCall('/api/attendance/work-hour-rules/stats/storage'),
 };
 
 // ==========================================
@@ -2054,6 +2122,172 @@ export const inductionAPI = {
 // ==========================================
 // Export default for convenience
 // ==========================================
+// ==========================================
+// REIMBURSEMENTS APIs
+// ==========================================
+export const reimbursementAPI = {
+  getDashboard: () => apiCall('/api/payroll/reimbursements/dashboard'),
+
+  listTypes: () => apiCall('/api/payroll/reimbursements/types'),
+  // { name, description?, category?, limit_amount, frequency?, is_taxable? }
+  createType: (data) => apiCall('/api/payroll/reimbursements/types', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getType: (typeId) => apiCall(`/api/payroll/reimbursements/types/${typeId}`),
+  updateType: (typeId, data) => apiCall(`/api/payroll/reimbursements/types/${typeId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteType: (typeId) => apiCall(`/api/payroll/reimbursements/types/${typeId}`, { method: 'DELETE' }),
+
+  listClaims: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.employeeId != null) q.append('employee_id', params.employeeId);
+    if (params.typeId != null) q.append('type_id', params.typeId);
+    if (params.status) q.append('status', params.status);
+    if (params.dateFrom) q.append('date_from', params.dateFrom);
+    if (params.dateTo) q.append('date_to', params.dateTo);
+    if (params.search) q.append('search', params.search);
+    if (params.skip != null) q.append('skip', params.skip);
+    if (params.limit != null) q.append('limit', params.limit);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/reimbursements/claims${qs ? `?${qs}` : ''}`);
+  },
+  // { employee_id, employee_code, employee_name, type_id, claimed_amount, description?, receipt_path?, receipt_filename? }
+  submitClaim: (data) => apiCall('/api/payroll/reimbursements/claims', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  exportClaims: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.status) q.append('status', params.status);
+    if (params.typeId != null) q.append('type_id', params.typeId);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/reimbursements/claims/export${qs ? `?${qs}` : ''}`);
+  },
+  getClaim: (claimId) => apiCall(`/api/payroll/reimbursements/claims/${claimId}`),
+  getClaimLogs: (claimId) => apiCall(`/api/payroll/reimbursements/claims/${claimId}/logs`),
+  // { approved_by?, remarks? }
+  managerApprove: (claimId, data) => apiCall(`/api/payroll/reimbursements/claims/${claimId}/manager-approve`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  managerReject: (claimId, data) => apiCall(`/api/payroll/reimbursements/claims/${claimId}/manager-reject`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  financeApprove: (claimId, data) => apiCall(`/api/payroll/reimbursements/claims/${claimId}/finance-approve`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  financeReject: (claimId, data) => apiCall(`/api/payroll/reimbursements/claims/${claimId}/finance-reject`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  // { payroll_run_id, payroll_processed_date?, processed_by? }
+  markPaid: (claimId, data) => apiCall(`/api/payroll/reimbursements/claims/${claimId}/mark-paid`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  downloadReceipt: (claimId) => apiCall(`/api/payroll/reimbursements/receipts/${claimId}`),
+
+  listBalances: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.employeeId != null) q.append('employee_id', params.employeeId);
+    if (params.typeId != null) q.append('type_id', params.typeId);
+    if (params.period) q.append('period', params.period);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/reimbursements/balances${qs ? `?${qs}` : ''}`);
+  },
+  getEmployeeBalances: (employeeId) => apiCall(`/api/payroll/reimbursements/balances/employee/${employeeId}`),
+
+  getReports: () => apiCall('/api/payroll/reimbursements/reports'),
+};
+
+// ==========================================
+// FINAL SETTLEMENT APIs
+// ==========================================
+export const finalSettlementAPI = {
+  getStats: (settlementId) => apiCall(`/api/payroll/final-settlements/stats${settlementId != null ? `?settlement_id=${settlementId}` : ''}`),
+  exportAllReport: () => apiCall('/api/payroll/final-settlements/export/report'),
+ 
+  list: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.status) q.append('status', params.status);
+    if (params.exitType) q.append('exit_type', params.exitType);
+    if (params.search) q.append('search', params.search);
+    if (params.page) q.append('page', params.page);
+    if (params.pageSize) q.append('page_size', params.pageSize);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/final-settlements${qs ? `?${qs}` : ''}`);
+  },
+  // { employee_id, employee_code, employee_name, last_working_date, exit_type?, ...+ optional nested notice_period/salary_breakdown/leave_encashment/bonus/gratuity/deduction/assets/payment }
+  create: (data) => apiCall('/api/payroll/final-settlements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  getByEmployee: (employeeId) => apiCall(`/api/payroll/final-settlements/employee/${employeeId}`),
+  get: (settlementId) => apiCall(`/api/payroll/final-settlements/${settlementId}`),
+  update: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  remove: (settlementId) => apiCall(`/api/payroll/final-settlements/${settlementId}`, { method: 'DELETE' }),
+ 
+  recalculate: (settlementId) => apiCall(`/api/payroll/final-settlements/${settlementId}/recalculate`, { method: 'POST' }),
+  submit: (settlementId, submittedByName) => apiCall(`/api/payroll/final-settlements/${settlementId}/submit${submittedByName ? `?submitted_by_name=${encodeURIComponent(submittedByName)}` : ''}`, { method: 'POST' }),
+  approve: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  reject: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  pay: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) }),
+  cancel: (settlementId, reason, cancelledByName) => {
+    const q = new URLSearchParams({ reason });
+    if (cancelledByName) q.append('cancelled_by_name', cancelledByName);
+    return apiCall(`/api/payroll/final-settlements/${settlementId}/cancel?${q.toString()}`, { method: 'POST' });
+  },
+ 
+  updateNoticePeriod: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/notice-period`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateSalaryBreakdown: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/salary-breakdown`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateLeaveEncashment: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/leave-encashment`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateBonus: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/bonus`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateGratuity: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/gratuity`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // NOTE: do not pass notice_period_recovery/asset_penalty — those are computed automatically.
+  updateDeductions: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/deductions`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+ 
+  addAsset: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/assets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // return_status: 'returned' | 'lost' | 'damaged'
+  updateAsset: (settlementId, assetId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/assets/${assetId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  removeAsset: (settlementId, assetId) => apiCall(`/api/payroll/final-settlements/${settlementId}/assets/${assetId}`, { method: 'DELETE' }),
+ 
+  updatePaymentInfo: (settlementId, data) => apiCall(`/api/payroll/final-settlements/${settlementId}/payment`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+ 
+  // doc_type: 'Form16' | 'Form19' | 'Form10C' | 'Experience Letter' | 'Relieving Letter'
+  generateDocument: (settlementId, docType, generatedBy) => apiCall(`/api/payroll/final-settlements/${settlementId}/documents/${encodeURIComponent(docType)}/generate${generatedBy ? `?generated_by=${encodeURIComponent(generatedBy)}` : ''}`, { method: 'POST' }),
+  issueDocument: (settlementId, docType) => apiCall(`/api/payroll/final-settlements/${settlementId}/documents/${encodeURIComponent(docType)}/issue`, { method: 'POST' }),
+ 
+  exportSingle: (settlementId) => apiCall(`/api/payroll/final-settlements/${settlementId}/export`),
+};
+ 
+// ==========================================
+// STATUTORY COMPLIANCE APIs (PF/ESI/ECR/VPF/UAN)
+// ==========================================
+export const statutoryComplianceAPI = {
+  getDashboard: () => apiCall('/api/payroll/statutory/dashboard'),
+ 
+  getConfig: () => apiCall('/api/payroll/statutory/config'),
+  createConfig: (data) => apiCall('/api/payroll/statutory/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateConfig: (configId, data) => apiCall(`/api/payroll/statutory/config/${configId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+ 
+  getEligibilityRule: () => apiCall('/api/payroll/statutory/eligibility'),
+  // { config_id, minimum_salary?, maximum_salary?, allow_permanent?, allow_contract?, allow_intern?, allow_part_time?, probation_period_days?, auto_enroll_eligible? }
+  createEligibilityRule: (data) => apiCall('/api/payroll/statutory/eligibility', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateEligibilityRule: (ruleId, data) => apiCall(`/api/payroll/statutory/eligibility/${ruleId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+ 
+  listPfStatements: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.month) q.append('month', params.month);
+    if (params.year) q.append('year', params.year);
+    if (params.employeeId != null) q.append('employee_id', params.employeeId);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/statutory/pf-statements${qs ? `?${qs}` : ''}`);
+  },
+  createPfStatement: (data) => apiCall('/api/payroll/statutory/pf-statements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updatePfStatement: (statementId, data) => apiCall(`/api/payroll/statutory/pf-statements/${statementId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // Real server-side generation from actual payroll data for the given month/year.
+  generatePfStatements: (month, year) => apiCall(`/api/payroll/statutory/pf-statements/generate?month=${month}&year=${year}`, { method: 'POST' }),
+ 
+  listRemittance: (year) => apiCall(`/api/payroll/statutory/remittance${year ? `?year=${year}` : ''}`),
+  createRemittance: (data) => apiCall('/api/payroll/statutory/remittance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateRemittance: (summaryId, data) => apiCall(`/api/payroll/statutory/remittance/${summaryId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  generateRemittance: (month, year) => apiCall(`/api/payroll/statutory/remittance/generate?month=${month}&year=${year}`, { method: 'POST' }),
+ 
+  listEcrRecords: (year) => apiCall(`/api/payroll/statutory/ecr${year ? `?year=${year}` : ''}`),
+  createEcrRecord: (data) => apiCall('/api/payroll/statutory/ecr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateEcrRecord: (ecrId, data) => apiCall(`/api/payroll/statutory/ecr/${ecrId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // Real server-side generation from the PF statements already on file.
+  generateEcr: (month, year) => apiCall(`/api/payroll/statutory/ecr/generate?month=${month}&year=${year}`, { method: 'POST' }),
+  submitEcr: (ecrId) => apiCall(`/api/payroll/statutory/ecr/${ecrId}/submit`, { method: 'POST' }),
+ 
+  listVpfRecords: () => apiCall('/api/payroll/statutory/vpf'),
+  createVpfRecord: (data) => apiCall('/api/payroll/statutory/vpf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateVpfRecord: (vpfId, data) => apiCall(`/api/payroll/statutory/vpf/${vpfId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+ 
+  listUanRecords: () => apiCall('/api/payroll/statutory/uan'),
+  createUanRecord: (data) => apiCall('/api/payroll/statutory/uan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateUanRecord: (uanId, data) => apiCall(`/api/payroll/statutory/uan/${uanId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  activateUan: (uanId) => apiCall(`/api/payroll/statutory/uan/${uanId}/activate`, { method: 'POST' }),
+};
+
 const apiServices = {
   authAPI,
   jobAPI,
@@ -2083,6 +2317,9 @@ const apiServices = {
   probationAPI,
   buddyMentorAPI,
   inductionAPI,
+  reimbursementAPI,
+  finalSettlementAPI,
+  statutoryComplianceAPI,
 };
 
 export default apiServices;

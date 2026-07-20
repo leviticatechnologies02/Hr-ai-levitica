@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -7,6 +7,7 @@ import NewClaimModal from '../modal/NewClaimModal';
 import ClaimDetailsModal from '../modal/ClaimDetailsModal';
 import EditReimbursementModal from '../modal/EditReimbursementModal';
 import ReportsModal from '../modal/ReportsModal';
+import { reimbursementAPI, employeeAPI } from '../../../shared/utils/api';
 
 const Reimbursements = () => {
   const [activeTab, setActiveTab] = useState('master');
@@ -27,6 +28,97 @@ const Reimbursements = () => {
   const [reimbursements, setReimbursements] = useState([]);
   const [claims, setClaims] = useState([]);
   const [employeeBalances, setEmployeeBalances] = useState([]);
+  const [employees, setEmployees] = useState([]);
+
+  // Backend status values (PENDING|FINANCE_REVIEW|APPROVED|REJECTED|PAID) ->
+  // the Title-Case-with-space convention getStatusBadge/getApprovalBadge use.
+  const statusMap = {
+    PENDING: 'Pending',
+    FINANCE_REVIEW: 'Finance Review',
+    APPROVED: 'Approved',
+    REJECTED: 'Rejected',
+    PAID: 'Paid',
+  };
+
+  const mapType = (t) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    category: t.category,
+    limit: Number(t.limit_amount) || 0,
+    frequency: t.frequency,
+    taxable: !!t.is_taxable,
+    isActive: t.is_active,
+  });
+
+  // Backend ClaimListItem is flat (manager_approval_status/finance_approval_status
+  // as separate fields); the UI expects nested { managerApproval: {status,...},
+  // financeApproval: {status,...} } objects — reshaped here.
+  const mapClaim = (c) => ({
+    id: c.id,
+    employee: c.employee_name,
+    employeeId: c.employee_code,
+    employeeDbId: c.employee_id,
+    type: c.type_name,
+    frequency: c.frequency,
+    amount: Number(c.claimed_amount) || 0,
+    taxAmount: Number(c.tax_amount) || 0,
+    netAmount: Number(c.net_amount) || 0,
+    date: c.claim_date ? c.claim_date.split('T')[0] : '',
+    status: statusMap[c.status] || c.status,
+    file: !!c.receipt_filename,
+    receiptFile: c.receipt_filename,
+    managerApproval: {
+      status: statusMap[c.manager_approval_status] || c.manager_approval_status || 'Pending',
+      date: c.manager_approved_at ? c.manager_approved_at.split('T')[0] : null,
+      approver: c.manager_approved_by,
+    },
+    financeApproval: {
+      status: statusMap[c.finance_approval_status] || c.finance_approval_status || 'Pending',
+      date: c.finance_approved_at ? c.finance_approved_at.split('T')[0] : null,
+      approver: c.finance_approved_by,
+    },
+    payrollProcessed: !!c.payroll_processed,
+    payrollDate: c.payroll_processed_date ? c.payroll_processed_date.split('T')[0] : null,
+  });
+
+  // Backend returns a flat list, one row per employee+type+period —
+  // grouped here into the nested { employee, employeeId, balances: { [type]: {...} } }
+  // shape the Balances tab expects.
+  const mapBalances = (rows) => {
+    const grouped = new Map();
+    (rows || []).forEach((b) => {
+      const key = b.employee_id;
+      if (!grouped.has(key)) {
+        grouped.set(key, { employeeId: b.employee_code, employee: b.employee_name, balances: {} });
+      }
+      grouped.get(key).balances[b.type_name] = {
+        limit: Number(b.limit_amount) || 0,
+        used: Number(b.used_amount) || 0,
+        remaining: Number(b.remaining_amount) || 0,
+        period: b.period,
+      };
+    });
+    return Array.from(grouped.values());
+  };
+
+  const loadReimbursementData = () => {
+    Promise.all([
+      reimbursementAPI.listTypes().catch((err) => { console.error('Failed to load reimbursement types:', err); return []; }),
+      reimbursementAPI.listClaims({ limit: 500 }).catch((err) => { console.error('Failed to load claims:', err); return []; }),
+      reimbursementAPI.listBalances().catch((err) => { console.error('Failed to load balances:', err); return []; }),
+      employeeAPI.list().catch((err) => { console.error('Failed to load employees:', err); return []; }),
+    ]).then(([typesData, claimsData, balancesData, employeesData]) => {
+      setReimbursements((Array.isArray(typesData) ? typesData : []).map(mapType));
+      setClaims((Array.isArray(claimsData) ? claimsData : []).map(mapClaim));
+      setEmployeeBalances(mapBalances(balancesData));
+      setEmployees(Array.isArray(employeesData) ? employeesData : []);
+    });
+  };
+
+  useEffect(() => {
+    loadReimbursementData();
+  }, []);
 
   const openModal = (type, data = null) => {
     setModalState({ type, isOpen: true, data });
@@ -133,7 +225,7 @@ const Reimbursements = () => {
   const handleSubmitClaim = (data) => {
     const amount = parseFloat(data.amount);
     const selectedReimbursement = reimbursements.find(r => r.name === data.type);
-    
+
     if (!selectedReimbursement) {
       showNotification('Reimbursement type not found', 'error');
       return;
@@ -144,134 +236,115 @@ const Reimbursements = () => {
       return;
     }
 
-    const taxAmount = selectedReimbursement.taxable ? amount * 0.30 : 0;
-    const netAmount = amount - taxAmount;
+    // NewClaimModal only collects free-text employee name/ID, but the
+    // backend needs a real numeric employee_id (FK). Resolve it against the
+    // real employee directory rather than sending an invalid/fabricated id —
+    // if nothing matches, fail clearly instead of corrupting the claim.
+    const matchedEmployee = employees.find(
+      (e) => e.employeeId === data.employeeId || e.id === Number(data.employeeId) || e.name === data.employee
+    );
+    if (!matchedEmployee) {
+      showNotification(`No employee found matching "${data.employee}" / "${data.employeeId}". Please check the employee ID.`, 'error');
+      return;
+    }
 
-    const newClaim = {
-      id: claims.length + 1,
-      employee: data.employee,
-      employeeId: data.employeeId,
-      type: data.type,
-      amount: amount,
-      date: new Date().toISOString().split('T')[0],
-      status: 'Pending',
-      file: true,
-      frequency: data.frequency,
-      managerApproval: { status: 'Pending', date: null, approver: null },
-      financeApproval: { status: 'Pending', date: null, approver: null },
-      payrollProcessed: false,
-      payrollDate: null,
-      taxAmount: taxAmount,
-      netAmount: netAmount,
-      description: data.description || '',
-      receiptFile: data.receipt?.name || 'receipt.pdf'
-    };
-
-    setClaims([...claims, newClaim]);
-    closeModal();
-    showNotification(`Claim submitted successfully for ${data.employee}!`, 'success');
+    reimbursementAPI.submitClaim({
+      employee_id: matchedEmployee.id,
+      employee_code: matchedEmployee.employeeId || data.employeeId,
+      employee_name: matchedEmployee.name || data.employee,
+      type_id: selectedReimbursement.id,
+      claimed_amount: amount,
+      description: data.description || undefined,
+      receipt_filename: data.receipt?.name || undefined,
+    })
+      .then(() => {
+        closeModal();
+        showNotification(`Claim submitted successfully for ${data.employee}!`, 'success');
+        loadReimbursementData();
+      })
+      .catch((err) => {
+        console.error('Error submitting claim:', err);
+        showNotification(err.message || 'Error submitting claim', 'error');
+      });
   };
 
   const handleManagerApproval = (id, action) => {
-    const claim = claims.find(c => c.id === id);
-    if (!claim) return;
-
-    const updatedClaim = {
-      ...claim,
-      managerApproval: {
-        status: action,
-        date: new Date().toISOString().split('T')[0],
-        approver: 'Current Manager'
-      },
-      status: action === 'Approved' ? 'Finance Review' : 'Rejected'
-    };
-
-    setClaims(claims.map(c => c.id === id ? updatedClaim : c));
-    showNotification(`Claim ${action.toLowerCase()} by manager.`, action === 'Approved' ? 'success' : 'error');
+    const apiCallFn = action === 'Approved' ? reimbursementAPI.managerApprove : reimbursementAPI.managerReject;
+    apiCallFn(id, { approved_by: 'Current Manager' })
+      .then(() => {
+        showNotification(`Claim ${action.toLowerCase()} by manager.`, action === 'Approved' ? 'success' : 'error');
+        loadReimbursementData();
+      })
+      .catch((err) => {
+        console.error('Error processing manager approval:', err);
+        showNotification(err.message || 'Error processing approval', 'error');
+      });
   };
 
   const handleFinanceApproval = (id, action) => {
-    const claim = claims.find(c => c.id === id);
-    if (!claim) return;
-
-    const updatedClaim = {
-      ...claim,
-      financeApproval: {
-        status: action,
-        date: new Date().toISOString().split('T')[0],
-        approver: 'Finance Manager'
-      },
-      status: action === 'Approved' ? 'Approved' : 'Rejected',
-      payrollProcessed: action === 'Approved',
-      payrollDate: action === 'Approved' ? new Date().toISOString().split('T')[0] : null
-    };
-
-    setClaims(claims.map(c => c.id === id ? updatedClaim : c));
-    showNotification(`Claim ${action.toLowerCase()} by finance.`, action === 'Approved' ? 'success' : 'error');
+    const apiCallFn = action === 'Approved' ? reimbursementAPI.financeApprove : reimbursementAPI.financeReject;
+    apiCallFn(id, { approved_by: 'Finance Manager' })
+      .then(() => {
+        showNotification(`Claim ${action.toLowerCase()} by finance.`, action === 'Approved' ? 'success' : 'error');
+        loadReimbursementData();
+      })
+      .catch((err) => {
+        console.error('Error processing finance approval:', err);
+        showNotification(err.message || 'Error processing approval', 'error');
+      });
   };
 
   const handleSaveReimbursement = (data) => {
-    const newReimbursement = {
-      id: editingReimbursement ? editingReimbursement.id : reimbursements.length + 1,
+    const payload = {
       name: data.name,
-      limit: parseInt(data.limit),
-      taxable: data.taxable === 'true',
+      limit_amount: parseFloat(data.limit),
+      is_taxable: data.taxable === 'true' || data.taxable === true,
       frequency: data.frequency,
-      description: data.description,
-      category: data.category
+      description: data.description || undefined,
+      category: data.category,
     };
 
-    if (editingReimbursement) {
-      setReimbursements(reimbursements.map(r => 
-        r.id === editingReimbursement.id ? newReimbursement : r
-      ));
-      showNotification('Reimbursement type updated successfully!', 'success');
-    } else {
-      setReimbursements([...reimbursements, newReimbursement]);
-      showNotification('Reimbursement type added successfully!', 'success');
-    }
+    const request = editingReimbursement
+      ? reimbursementAPI.updateType(editingReimbursement.id, payload)
+      : reimbursementAPI.createType(payload);
+
+    request
+      .then(() => {
+        showNotification(`Reimbursement type ${editingReimbursement ? 'updated' : 'added'} successfully!`, 'success');
+        loadReimbursementData();
+      })
+      .catch((err) => {
+        console.error('Error saving reimbursement type:', err);
+        showNotification(err.message || 'Error saving reimbursement type', 'error');
+      });
 
     closeModal();
     setEditingReimbursement(null);
   };
 
   const handleDownloadFile = async (claim) => {
-    if (!claim.file && !claim.fileUrl) {
-      showNotification('File not found. Please upload the file again.', 'error');
+    if (!claim.file) {
+      showNotification('No receipt uploaded for this claim.', 'error');
       return;
     }
 
     try {
-      if (claim.file instanceof Blob || claim.file instanceof File) {
-        const url = URL.createObjectURL(claim.file);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = claim.receiptFile || 'receipt.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      const blob = await reimbursementAPI.downloadReceipt(claim.id);
+      if (!blob) {
+        showNotification('Receipt not found on server.', 'error');
         return;
       }
-
-      if (typeof claim.file === 'string' && claim.file.startsWith('data:')) {
-        const a = document.createElement('a');
-        a.href = claim.file;
-        a.download = claim.receiptFile || 'receipt.pdf';
-        document.body.appendChild(a);
-        a.click();
-        return;
-      }
-
-      if (claim.fileUrl || (typeof claim.file === 'string' && claim.file.startsWith('http'))) {
-        window.open(claim.fileUrl || claim.file, '_blank');
-        return;
-      }
-
-      showNotification('Unable to download file. Please try again.', 'error');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = claim.receiptFile || 'receipt.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
-      showNotification('Unable to download file. Please try again.', 'error');
+      showNotification(error.message || 'Unable to download file. Please try again.', 'error');
     }
   };
 

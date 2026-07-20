@@ -1,238 +1,174 @@
-import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, FunnelChart, Funnel, LabelList } from 'recharts';
-import { Calendar, Filter, Download, Share, TrendingUp, Users, Target, DollarSign } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Download, Share, TrendingUp, Users, Target, Filter } from 'lucide-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL, API_ENDPOINTS } from '../../../shared/constants/api.config';
+
+const CHANNEL_COLORS = ['#0077B5', '#34D399', '#F59E0B', '#8B5CF6', '#EF4444', '#64748B', '#EC4899'];
 
 const CandidateSourcing = () => {
-  const [selectedDateRange, setSelectedDateRange] = useState('30 days');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [selectedRole, setSelectedRole] = useState('All Roles');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
-  const [selectedRecruiter, setSelectedRecruiter] = useState('All Recruiters');
 
-  const kpiData = {
-    totalCandidates: 500,
-    uniqueChannels: 6,
-    bestChannel: 'Referrals',
-    avgCostPerHire: 25000,
-    avgConversionRate: 5
-  };
-
-  const channelDistribution = [
-    { name: 'LinkedIn', value: 40, count: 200, color: '#0077B5' },
-    { name: 'Referrals', value: 20, count: 100, color: '#34D399' },
-    { name: 'Naukri', value: 24, count: 120, color: '#F59E0B' },
-    { name: 'Career Page', value: 16, count: 80, color: '#8B5CF6' }
-  ];
-
-  const channelPerformance = [
-    {
-      channel: 'LinkedIn',
-      applications: 200,
-      shortlisted: 80,
-      interviews: 40,
-      offers: 15,
-      hires: 6,
-      conversion: 3,
-      costPerHire: 28000
-    },
-    {
-      channel: 'Referrals',
-      applications: 100,
-      shortlisted: 50,
-      interviews: 25,
-      offers: 12,
-      hires: 8,
-      conversion: 8,
-      costPerHire: 12000
-    },
-    {
-      channel: 'Naukri',
-      applications: 120,
-      shortlisted: 40,
-      interviews: 15,
-      offers: 6,
-      hires: 3,
-      conversion: 2.5,
-      costPerHire: 30000
-    },
-    {
-      channel: 'Career Page',
-      applications: 80,
-      shortlisted: 25,
-      interviews: 12,
-      offers: 4,
-      hires: 2,
-      conversion: 2.5,
-      costPerHire: 20000
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (selectedRole !== 'All Roles') params.set('job_role', selectedRole);
+      if (selectedDepartment !== 'All Departments') params.set('department', selectedDepartment);
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.ANALYTICS.CANDIDATE_SOURCING}?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to load candidate sourcing data');
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Failed to load candidate sourcing data');
+      toast.error('Failed to load candidate sourcing data from the server');
+    } finally {
+      setLoading(false);
     }
-  ];
+  }, [selectedRole, selectedDepartment]);
 
-  const recruiterData = [
-    { recruiter: 'Rajesh', Candidates: 32, Interviews: 16, Hires: 4 },
-    { recruiter: 'Nagendra', Candidates: 25, Interviews: 12, Hires: 3 },
-    { recruiter: 'Priya', Candidates: 20, Interviews: 8, Hires: 2 },
-    { recruiter: 'Asha', Candidates: 15, Interviews: 6, Hires: 1 }
-  ];
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  const timeToHireData = [
-    { month: 'Jan', timeToHire: 14 },
-    { month: 'Feb', timeToHire: 12 },
-    { month: 'Mar', timeToHire: 11 },
-    { month: 'Apr', timeToHire: 12 }
-  ];
+  const channelDistribution = data?.channelDistribution || [];
+  const recruiterData = data?.recruiterData || [];
 
-  const funnelData = [
-    { name: 'Applications', value: 500, fill: '#3B82F6' },
-    { name: 'Shortlisted', value: 195, fill: '#10B981' },
-    { name: 'Interviews', value: 92, fill: '#F59E0B' },
-    { name: 'Offers', value: 37, fill: '#EF4444' },
-    { name: 'Hires', value: 19, fill: '#8B5CF6' }
-  ];
+  const channelDistributionWithColor = useMemo(
+    () => channelDistribution.map((c, i) => ({ ...c, color: CHANNEL_COLORS[i % CHANNEL_COLORS.length] })),
+    [channelDistribution]
+  );
 
-  const channelComparisonData = channelPerformance.map(channel => ({
-    channel: channel.channel,
-    Applications: channel.applications,
-    Interviews: channel.interviews,
-    Hires: channel.hires
-  }));
+  const channelComparisonData = useMemo(
+    () => channelDistribution.map((c) => ({
+      channel: c.name,
+      Candidates: c.count,
+      Interviewed: c.interviewed,
+      Hired: c.hired,
+    })),
+    [channelDistribution]
+  );
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
+  const bestChannelForVolume = useMemo(() => {
+    if (!channelDistribution.length) return null;
+    return channelDistribution.reduce((a, b) => (b.count > a.count ? b : a));
+  }, [channelDistribution]);
+
+  const bestChannelForConversion = useMemo(() => {
+    if (!channelDistribution.length) return null;
+    return channelDistribution.reduce((a, b) => (b.conversionRate > a.conversionRate ? b : a));
+  }, [channelDistribution]);
+
+  const handleExport = () => {
+    if (!channelDistribution.length) return;
+    const headers = ['Channel', 'Candidates', 'Percentage', 'Interviewed', 'Hired', 'Conversion %'];
+    const rows = channelDistribution.map((c) => [c.name, c.count, `${c.percentage}%`, c.interviewed, c.hired, `${c.conversionRate}%`]);
+    const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'candidate-sourcing.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
     <div className="container-fluid py-4">
+      <ToastContainer position="top-right" autoClose={3000} />
       <div className="mb-12 d-flex align-items-start justify-content-between">
         <div>
           <h4 className="mb-2">Candidate Sourcing Analytics</h4>
-          <p className="text-secondary-light mb-0">Track sourcing channels, conversion rates, and hiring efficiency.</p>
+          <p className="text-secondary-light mb-0">Track sourcing channels and conversion rates from real pipeline data.</p>
         </div>
         <div className="d-flex gap-2">
-          <button className="btn btn-primary d-inline-flex align-items-center gap-2"><Download size={16} /><span>Export</span></button>
-          <button className="btn btn-success d-inline-flex align-items-center gap-2"><Share size={16} /><span>Share Report</span></button>
+          <button className="btn btn-primary d-inline-flex align-items-center gap-2" onClick={handleExport}>
+            <Download size={16} /><span>Export</span>
+          </button>
+          <button className="btn btn-success d-inline-flex align-items-center gap-2" disabled title="Coming soon">
+            <Share size={16} /><span>Share Report</span>
+          </button>
         </div>
       </div>
+
+      {loading && <div className="text-muted small mb-3">Loading candidate sourcing data…</div>}
+      {error && <div className="alert alert-danger py-2">{error}</div>}
 
       <div className="card border shadow-none mb-24">
         <div className="card-body p-24">
           <div className="row g-3">
-            <div>
-              <label className="form-label">Date Range</label>
-              <select 
-                className="form-select"
-                value={selectedDateRange}
-                onChange={(e) => setSelectedDateRange(e.target.value)}
-              >
-                <option>Last 7 days</option>
-                <option>30 days</option>
-                <option>Quarter</option>
-                <option>Custom</option>
-              </select>
-            </div>
-            <div>
+            <div className="col-12 col-sm-6 col-lg-4">
               <label className="form-label">Job Role</label>
-              <select 
-                className="form-select"
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-              >
-                <option>All Roles</option>
-                <option>Frontend Engineer</option>
-                <option>Backend Engineer</option>
-                <option>Full Stack Developer</option>
-                <option>Data Scientist</option>
-              </select>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Frontend Engineer"
+                value={selectedRole === 'All Roles' ? '' : selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value.trim() === '' ? 'All Roles' : e.target.value)}
+              />
+              <small className="text-secondary-light">Exact job title match; filters server-side.</small>
             </div>
-            <div>
+            <div className="col-12 col-sm-6 col-lg-4">
               <label className="form-label">Department</label>
-              <select 
-                className="form-select"
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-              >
-                <option>All Departments</option>
-                <option>Technology</option>
-                <option>Sales</option>
-                <option>Marketing</option>
-                <option>HR</option>
-              </select>
-            </div>
-            <div>
-              <label className="form-label">Recruiter</label>
-              <select 
-                className="form-select"
-                value={selectedRecruiter}
-                onChange={(e) => setSelectedRecruiter(e.target.value)}
-              >
-                <option>All Recruiters</option>
-                <option>Sarah Johnson</option>
-                <option>Mike Chen</option>
-                <option>Priya Patel</option>
-                <option>Alex Rodriguez</option>
-              </select>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Technology"
+                value={selectedDepartment === 'All Departments' ? '' : selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value.trim() === '' ? 'All Departments' : e.target.value)}
+              />
             </div>
           </div>
         </div>
 
-        <div className="row g-3 mb-24 align-items-stretch p-24" >
-          <div className="col-12 col-sm-6 col-lg-3 d-flex">
+        <div className="row g-3 mb-24 align-items-stretch p-24">
+          <div className="col-12 col-sm-6 col-lg-4 d-flex">
             <div className="card border shadow-none w-100">
-              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{minHeight: '96px'}}>
+              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{ minHeight: '96px' }}>
                 <div>
                   <div className="text-secondary-light text-sm">Total Candidates</div>
-                  <div className="h4 mb-0">{kpiData.totalCandidates}</div>
+                  <div className="h4 mb-0">{data?.totalCandidates ?? '—'}</div>
                 </div>
                 <Users className="text-primary-600" />
               </div>
             </div>
           </div>
-          <div className="col-12 col-sm-6 col-lg-3 d-flex">
+          <div className="col-12 col-sm-6 col-lg-4 d-flex">
             <div className="card border shadow-none w-100">
-              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{minHeight: '96px'}}>
+              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{ minHeight: '96px' }}>
                 <div>
                   <div className="text-secondary-light text-sm">Unique Channels</div>
-                  <div className="h4 mb-0 text-success">{kpiData.uniqueChannels}</div>
+                  <div className="h4 mb-0 text-success">{data?.uniqueChannels ?? '—'}</div>
                 </div>
-                <Target className="text-success" />
+                <Filter className="text-primary-600" />
               </div>
             </div>
           </div>
-          <div className="col-12 col-sm-6 col-lg-3 d-flex">
+          <div className="col-12 col-sm-6 col-lg-4 d-flex">
             <div className="card border shadow-none w-100">
-              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{minHeight: '96px'}}>
+              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{ minHeight: '96px' }}>
                 <div>
                   <div className="text-secondary-light text-sm">Best Channel</div>
-                  <div className="h6 mb-0">{kpiData.bestChannel}</div>
+                  <div className="h6 mb-0 text-primary-600">{data?.bestChannel ?? '—'}</div>
                 </div>
                 <TrendingUp className="text-primary-600" />
               </div>
             </div>
           </div>
-          <div className="col-12 col-sm-6 col-lg-3 d-flex">
-            <div className="card border shadow-none w-100">
-              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{minHeight: '96px'}}>
-                <div>
-                  <div className="text-secondary-light text-sm">Avg Cost per Hire</div>
-                  <div className="h6 mb-0">{formatCurrency(kpiData.avgCostPerHire)}</div>
-                </div>
-                <DollarSign className="text-warning" />
-              </div>
-            </div>
-          </div>
-          <div className="col-12 col-sm-6 col-lg-3 d-flex">
-            <div className="card border shadow-none w-100">
-              <div className="card-body p-16 d-flex align-items-center justify-content-between" style={{minHeight: '96px'}}>
-                <div>
-                  <div className="text-secondary-light text-sm">Avg Conversion</div>
-                  <div className="h4 mb-0 text-primary-600">{kpiData.avgConversionRate}%</div>
-                </div>
-                <Filter className="text-primary-600" />
-              </div>
-            </div>
+        </div>
+
+        <div className="px-24">
+          <div className="alert alert-light border py-2 px-3 mb-24 small">
+            Cost-per-hire isn't shown here — there's no recruiting-spend data in the system to calculate it from.
+            Channels labeled "Unknown" are candidates that existed before source tracking was added.
           </div>
         </div>
 
@@ -241,26 +177,29 @@ const CandidateSourcing = () => {
             <div className="card border shadow-none h-100">
               <div className="card-body p-24">
                 <h6 className="mb-3">Candidate Distribution by Source</h6>
-                <div style={{height: '256px'}}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={channelDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {channelDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div style={{ height: '256px' }}>
+                  {channelDistributionWithColor.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={channelDistributionWithColor}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percentage }) => `${name}: ${percentage}%`}
+                          outerRadius={80}
+                          dataKey="count"
+                        >
+                          {channelDistributionWithColor.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value, name, props) => [`${value} candidates`, props.payload.name]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-secondary-light small">No data yet.</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -269,18 +208,22 @@ const CandidateSourcing = () => {
             <div className="card border shadow-none h-100">
               <div className="card-body p-24">
                 <h6 className="mb-3">Channel Performance Comparison</h6>
-                <div style={{height: '256px'}}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={channelComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="channel" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="Applications" fill="#3B82F6" />
-                      <Bar dataKey="Interviews" fill="#10B981" />
-                      <Bar dataKey="Hires" fill="#8B5CF6" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div style={{ height: '256px' }}>
+                  {channelComparisonData.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={channelComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="channel" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="Candidates" fill="#3B82F6" />
+                        <Bar dataKey="Interviewed" fill="#10B981" />
+                        <Bar dataKey="Hired" fill="#8B5CF6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-secondary-light small">No data yet.</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -288,53 +231,33 @@ const CandidateSourcing = () => {
         </div>
 
         <div className="row g-3 mb-24 p-24">
-          <div className="col-12 col-lg-6">
+          <div className="col-12">
             <div className="card border shadow-none h-100">
               <div className="card-body p-24">
                 <h6 className="mb-3">Candidates Processed by Recruiter</h6>
-                <div style={{height: '256px'}}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={recruiterData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="recruiter" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="Candidates" fill="#3B82F6" />
-                      <Bar dataKey="Interviews" fill="#10B981" />
-                      <Bar dataKey="Hires" fill="#F59E0B" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-12 col-lg-6">
-            <div className="card border shadow-none h-100">
-              <div className="card-body p-24">
-                <h6 className="mb-3">Time-to-Hire Trend</h6>
-                <div style={{height: '256px'}}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={timeToHireData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis domain={[0, 16]} />
-                      <Tooltip formatter={(value) => [`${value} days`, 'Time to Hire']} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="timeToHire" 
-                        stroke="#3B82F6" 
-                        strokeWidth={2}
-                        dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div style={{ height: '256px' }}>
+                  {recruiterData.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={recruiterData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="recruiter" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="candidates" name="Candidates" fill="#3B82F6" />
+                        <Bar dataKey="interviews" name="Interviews" fill="#10B981" />
+                        <Bar dataKey="hires" name="Hires" fill="#F59E0B" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-secondary-light small">No recruiter-linked applications yet.</div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card  body shadow-none mb-24 p-24">
+        <div className="card body shadow-none mb-24 p-24">
           <div className="card-body p-24">
             <h6 className="mb-3">Sourcing Performance Table</h6>
             <div className="table-responsive">
@@ -342,62 +265,67 @@ const CandidateSourcing = () => {
                 <thead>
                   <tr>
                     <th>Channel</th>
-                    <th>Applications</th>
-                    <th>Shortlisted</th>
-                    <th>Interviews</th>
-                    <th>Offers</th>
-                    <th>Hires</th>
+                    <th>Candidates</th>
+                    <th>% of Total</th>
+                    <th>Interviewed</th>
+                    <th>Hired</th>
                     <th>Conversion %</th>
-                    <th>Cost per Hire</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {channelPerformance.map((channel, index) => (
+                  {channelDistribution.map((channel, index) => (
                     <tr key={index}>
-                      <td className="fw-medium">{channel.channel}</td>
-                      <td>{channel.applications}</td>
-                      <td>{channel.shortlisted}</td>
-                      <td>{channel.interviews}</td>
-                      <td>{channel.offers}</td>
-                      <td>{channel.hires}</td>
+                      <td className="fw-medium">{channel.name}</td>
+                      <td>{channel.count}</td>
+                      <td>{channel.percentage}%</td>
+                      <td>{channel.interviewed}</td>
+                      <td>{channel.hired}</td>
                       <td>
-                        <span className={`badge ${channel.conversion >= 5 ? 'bg-success-subtle text-success-main' : 'bg-warning-subtle text-warning-main'}`}>{channel.conversion}%</span>
+                        <span className={`badge ${channel.conversionRate >= 5 ? 'bg-success-subtle text-success-main' : 'bg-warning-subtle text-warning-main'}`}>
+                          {channel.conversionRate}%
+                        </span>
                       </td>
-                      <td>{formatCurrency(channel.costPerHire)}</td>
                     </tr>
                   ))}
+                  {!channelDistribution.length && !loading && (
+                    <tr><td colSpan={6} className="text-center text-secondary-light">No sourcing data available yet.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <div className="row g-3 p-24">
-          <div className="col-12 col-lg-4">
-            <div className="card border shadow-none h-100">
-              <div className="card-body p-24 bg-success-subtle">
-                <h6 className="mb-2 text-success-main">Top Performer</h6>
-                <p className="mb-0 text-success">Referrals are the highest performing channel with 8% conversion rate and lowest cost per hire at ₹12,000.</p>
+        {(bestChannelForConversion || bestChannelForVolume) && (
+          <div className="row g-3 p-24">
+            {bestChannelForConversion && (
+              <div className="col-12 col-lg-6">
+                <div className="card border shadow-none h-100">
+                  <div className="card-body p-24 bg-success-subtle">
+                    <h6 className="mb-2 text-success-main">Top Performer</h6>
+                    <p className="mb-0 text-success">
+                      {bestChannelForConversion.name} has the highest conversion rate at {bestChannelForConversion.conversionRate}%
+                      ({bestChannelForConversion.hired} hired out of {bestChannelForConversion.count} candidates).
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="col-12 col-lg-4">
-            <div className="card border shadow-none h-100">
-              <div className="card-body p-24 bg-primary-50">
-                <h6 className="mb-2 text-primary-600">Volume Leader</h6>
-                <p className="mb-0 text-secondary-light">LinkedIn generates the most applications (200) but has lower conversion at 3%. Consider improving screening process.</p>
+            )}
+            {bestChannelForVolume && (
+              <div className="col-12 col-lg-6">
+                <div className="card border shadow-none h-100">
+                  <div className="card-body p-24 bg-primary-50">
+                    <h6 className="mb-2 text-primary-600">Volume Leader</h6>
+                    <p className="mb-0 text-secondary-light">
+                      {bestChannelForVolume.name} generates the most candidates ({bestChannelForVolume.count}) at a
+                      {' '}{bestChannelForVolume.conversionRate}% conversion rate.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
-          <div className="col-12 col-lg-4">
-            <div className="card border shadow-none h-100">
-              <div className="card-body p-24 bg-purple-50">
-                <h6 className="mb-2 text-purple">Opportunity</h6>
-                <p className="mb-0 text-secondary-light">Career Page attracts candidates at lower cost (₹20,000) but needs better screening to improve 2.5% conversion rate.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -2,12 +2,16 @@ import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Icon } from '@iconify/react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
 
 const PersonalInformationForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const candidateData = location.state || {};
 
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     // Basic Information
     firstName: "",
@@ -231,35 +235,138 @@ const PersonalInformationForm = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate required fields
     if (!formData.firstName || !formData.lastName || !formData.dateOfBirth || !formData.gender) {
-      alert("Please fill all required fields!");
+      toast.error("Please fill all required fields!");
       return;
     }
 
-    // Create form entry
-    const newForm = {
-      id: Date.now(),
-      candidate: `${formData.firstName} ${formData.middleName} ${formData.lastName}`.trim(),
-      created: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      email: formData.personalEmail,
-      mobile: formData.phonePrimary,
-      info: "View Form",
-      status: "Pending",
-      formData: formData
-    };
+    const userId = localStorage.getItem("userId") ? parseInt(localStorage.getItem("userId"), 10) : null;
+    if (!userId) {
+      toast.error("No logged-in user found — please log in again before continuing.");
+      return;
+    }
 
-    // Navigate back to forms list with new form data
-    navigate("/onboarding/pre-joining", {
-      state: { newForm }
-    });
+    setSubmitting(true);
+    try {
+      // Only blood group / passport / license have a real column on the backend's
+      // personal-info table — first/middle/last name, DOB, gender, marital status,
+      // nationality, languages, and the photo aren't stored by this endpoint.
+      const personalInfoPayload = {
+        user_id: userId,
+        blood_group: formData.bloodGroup || null,
+        passport_number: formData.identification.passport.number || null,
+        driving_license_number: null, // this form doesn't collect a driving license number
+      };
+
+      const requests = [];
+      if (formData.bloodGroup) {
+        requests.push(
+          fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PERSONAL_INFO}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(personalInfoPayload),
+          })
+        );
+      }
+
+      if (formData.currentAddress.line1 && formData.currentAddress.city) {
+        requests.push(
+          fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PRESENT_ADDRESS}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              address_line_1: formData.currentAddress.line1,
+              address_line_2: formData.currentAddress.line2 || null,
+              city: formData.currentAddress.city,
+              pincode: formData.currentAddress.pincode,
+              state: formData.currentAddress.state,
+              country: formData.currentAddress.country || "India",
+            }),
+          })
+        );
+      }
+
+      if (formData.permanentAddress.line1 && formData.permanentAddress.city) {
+        requests.push(
+          fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.PERMANENT_ADDRESS}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              address_line_1: formData.permanentAddress.line1,
+              address_line_2: formData.permanentAddress.line2 || null,
+              city: formData.permanentAddress.city,
+              pincode: formData.permanentAddress.pincode,
+              state: formData.permanentAddress.state,
+              country: formData.permanentAddress.country || "India",
+            }),
+          })
+        );
+      }
+
+      // Backend only stores father/mother details + marital status — not the
+      // full familyMembers/nominees lists collected further down this form.
+      const father = formData.familyMembers.find((m) => (m.relation || "").toLowerCase() === "father");
+      const mother = formData.familyMembers.find((m) => (m.relation || "").toLowerCase() === "mother");
+      if (formData.maritalStatus || father || mother) {
+        requests.push(
+          fetch(`${BASE_URL}${API_ENDPOINTS.ONBOARDING_FORMS.FAMILY_DETAILS}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              marital_status: formData.maritalStatus || "Unspecified",
+              father_name: father?.name || null,
+              father_phone: father?.phone || null,
+              father_dob: father?.dob || null,
+              mother_name: mother?.name || null,
+              mother_phone: mother?.phone || null,
+              mother_dob: mother?.dob || null,
+            }),
+          })
+        );
+      }
+
+      const responses = await Promise.all(requests);
+      const failed = responses.find((r) => !r.ok);
+      if (failed) {
+        const err = await failed.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : "Failed to save one or more sections");
+      }
+
+      toast.success("Personal information saved.");
+      if (formData.nominees.length > 0 || formData.emergencyContacts.some((c) => c.name)) {
+        toast.info("Note: nominees and emergency contacts aren't stored by the backend yet — only what's shown above was saved.");
+      }
+
+      // Create form entry for the local forms list (unchanged local behavior)
+      const newForm = {
+        id: Date.now(),
+        candidate: `${formData.firstName} ${formData.middleName} ${formData.lastName}`.trim(),
+        created: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        email: formData.personalEmail,
+        mobile: formData.phonePrimary,
+        info: "View Form",
+        status: "Pending",
+        formData: formData
+      };
+
+      navigate("/onboarding/pre-joining", {
+        state: { newForm }
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Failed to save personal information");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="page-content" style={{ padding: "30px 0" }}>
+      <ToastContainer position="top-right" autoClose={3500} />
       <div className="container-fluid">
         {/* Breadcrumb */}
         <nav aria-label="breadcrumb" className="mb-4">
@@ -1117,10 +1224,11 @@ const PersonalInformationForm = () => {
             <button
               type="submit"
               className="btn btn-primary"
+              disabled={submitting}
               style={{ borderRadius: 8, padding: "10px 30px" }}
             >
               <Icon icon="heroicons:check" className="me-2" />
-              Submit Form
+              {submitting ? "Saving…" : "Submit Form"}
             </button>
           </div>
         </form>

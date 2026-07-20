@@ -37,6 +37,9 @@ import AssessmentLibrary from './modules/ai-recruitment/assessments/AssessmentLi
 import AssignAssessments from './modules/ai-recruitment/assessments/AssignAssessments';
 import TestResultsViewer from './modules/ai-recruitment/assessments/TestResultsViewer';
 import AptitudeTest from "./modules/ai-recruitment/assessments/aptitude/AptitudeTest";
+import AptitudeLoginPage from "./modules/ai-recruitment/assessments/aptitude/LoginPage";
+import AptitudeInstructionPage from "./modules/ai-recruitment/assessments/aptitude/InstructionPage";
+import AptitudeExamPage from "./modules/ai-recruitment/assessments/aptitude/ExamPage";
 import CodingTest from './modules/ai-recruitment/assessments/CodingTest';
 import CommunicationTest from './modules/ai-recruitment/assessments/CommunicationTest';
 import AIPrescreening from './modules/ai-recruitment/interviews/AIPrescreening';
@@ -1417,6 +1420,18 @@ const App = () => {
 
       {/* Assessment Test Routes - Public/Candidate */}
       <Route path='/assessment/aptitude' element={<AptitudeTest />} />
+      {/*
+        NOTE: AptitudeTest.jsx above (the route actually used today) is a separate,
+        still-unwired mock component. LoginPage.js / InstructionPage.js / ExamPage.js
+        are a second, now fully backend-wired implementation of the same candidate
+        flow that was previously orphaned (no route pointed to them at all). They're
+        registered here under /assessment/aptitude/login so they're reachable and
+        testable; swap AptitudeTest.jsx for this flow (or vice versa) once the team
+        decides which one to keep — see report Section 2.
+      */}
+      <Route path='/assessment/aptitude/login' element={<AptitudeLoginPage />} />
+      <Route path='/assessment/aptitude/instructions' element={<AptitudeInstructionPage />} />
+      <Route path='/assessment/aptitude/exam' element={<AptitudeExamPage />} />
       <Route path='/assessment/coding' element={<CodingTest />} />
       <Route path='/assessment/communication' element={<CommunicationTest />} />
 
@@ -1502,6 +1517,7 @@ const App = () => {
     </Routes>
     </div>
   );
+  
 };
 
 export default App;

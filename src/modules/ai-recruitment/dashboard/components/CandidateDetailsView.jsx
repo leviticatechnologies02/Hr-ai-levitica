@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
+import { BASE_URL } from '../../../../shared/constants/api.config';
 
 const CandidateDetailsView = ({ candidate, onClose }) => {
   const fullData = candidate.fullData || candidate;
@@ -28,7 +29,7 @@ const CandidateDetailsView = ({ candidate, onClose }) => {
   
   const handleDownload = () => {
     if (resumeUrl) {
-      const backendBaseUrl = "http://localhost:8000";
+      const backendBaseUrl = BASE_URL;
       let downloadUrl;
       
       if (resumeUrl.startsWith('http')) {

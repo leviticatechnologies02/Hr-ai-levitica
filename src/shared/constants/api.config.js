@@ -53,6 +53,7 @@ export const API_ENDPOINTS = {
   
   // Analytics
   ANALYTICS: {
+  KPIS: '/analytics/kpis',
   HIRING_FUNNEL: '/api/hiring_funnel/',
   TIME_TO_HIRE: '/api/hiring_funnel/time-to-hire',
   TIME_TO_HIRE_DETAIL: '/analytics/time-to-hire-detail',
@@ -62,6 +63,15 @@ export const API_ENDPOINTS = {
     APPLICATIONS_OVER_TIME: '/api/recruiter_dashboard/analytics/applications-over-time',
   },
   
+  // Candidate-facing aptitude test flow (mounted at /api/assessment/aptitude in main.py)
+  ASSESSMENT_APTITUDE: {
+    SEND_OTP: '/api/assessment/aptitude/send',
+    VERIFY_OTP: '/api/assessment/aptitude/verify',
+    INSTRUCTIONS: '/api/assessment/aptitude/instructions',
+    START: '/api/assessment/aptitude/start',
+    SUBMIT: '/api/assessment/aptitude/submit',
+  },
+
   // Assessments (backend mounts at /assessments and /assignments — no /api prefix)
   ASSESSMENTS: {
     LIST: '/assessments',

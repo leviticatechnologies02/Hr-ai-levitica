@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 
 import ExportModal from "../modal/ExportModal";
 import ImportModal from "../modal/ImportModal";
+import { attendanceAPI } from "../../../shared/utils/api";
 
 const WorkHourContext = createContext();
 
@@ -333,6 +334,31 @@ const AttendanceRules = () => {
   useEffect(() => {
     localStorage.setItem("attendanceRules", JSON.stringify(rules));
   }, [rules]);
+
+  // Backend WorkHourRule stores each of these as a flexible JSON column
+  // (late_arrival_rules, early_departure_rules, work_hours_half_day_config,
+  // short_leave_policies, continuous_absence_detection, weekend_working,
+  // holiday_working) — a near 1:1 match to this tab's local object shape,
+  // so whole objects pass through rather than needing field-by-field
+  // translation. Overwrites the localStorage defaults above with real
+  // saved values once the fetch resolves.
+  useEffect(() => {
+    attendanceAPI.getActiveWorkHourPolicy()
+      .then((policy) => {
+        setRules((prev) => ({
+          ...prev,
+          lateArrival: { ...prev.lateArrival, ...(policy.late_arrival_rules || {}), gracePeriod: policy.grace_period_minutes ?? prev.lateArrival.gracePeriod },
+          earlyDeparture: { ...prev.earlyDeparture, ...(policy.early_departure_rules || {}) },
+          minWorkHours: policy.min_daily_hours ?? prev.minWorkHours,
+          halfDayCriteria: { ...prev.halfDayCriteria, ...(policy.work_hours_half_day_config || {}) },
+          shortLeave: { ...prev.shortLeave, ...(policy.short_leave_policies || {}) },
+          continuousAbsence: { ...prev.continuousAbsence, ...(policy.continuous_absence_detection || {}), notifyAfterDays: policy.absence_alert_days ?? prev.continuousAbsence.notifyAfterDays },
+          weekendWorking: { ...prev.weekendWorking, ...(policy.weekend_working || {}), rate: policy.weekend_rate_multiplier ?? prev.weekendWorking.rate },
+          holidayWorking: { ...prev.holidayWorking, ...(policy.holiday_working || {}) },
+        }));
+      })
+      .catch((err) => console.error('Failed to load attendance rules from backend:', err));
+  }, []);
 
   const handleChange = (section, data) => {
     setRules((prev) => ({
@@ -809,6 +835,23 @@ const OvertimeManagement = () => {
     localStorage.setItem("overtimeManagementRules", JSON.stringify(rules));
   }, [rules]);
 
+  useEffect(() => {
+    attendanceAPI.getActiveWorkHourPolicy()
+      .then((policy) => {
+        setRules((prev) => ({
+          ...prev,
+          eligibility: { ...prev.eligibility, ...(policy.overtime_eligibility || {}) },
+          calculation: { ...prev.calculation, ...(policy.overtime_calculation || {}) },
+          caps: { ...prev.caps, ...(policy.overtime_caps || {}) },
+          approvalWorkflow: { ...prev.approvalWorkflow, ...(policy.overtime_approval_workflow || {}) },
+          compensation: { ...prev.compensation, ...(policy.overtime_compensation_settings || {}) },
+          reports: { ...prev.reports, ...(policy.overtime_reports_settings || {}) },
+          categories: policy.overtime_categories?.length ? policy.overtime_categories : prev.categories,
+        }));
+      })
+      .catch((err) => console.error('Failed to load overtime rules from backend:', err));
+  }, []);
+
   const handleChange = (section, data) => {
     setRules((prev) => ({
       ...prev,
@@ -1072,6 +1115,19 @@ const BreakManagement = () => {
   useEffect(() => {
     localStorage.setItem("breakManagementRules", JSON.stringify(rules));
   }, [rules]);
+
+  useEffect(() => {
+    attendanceAPI.getActiveWorkHourPolicy()
+      .then((policy) => {
+        setRules((prev) => ({
+          ...prev,
+          breaks: policy.break_configurations?.length ? policy.break_configurations : prev.breaks,
+          enforcement: { ...prev.enforcement, ...(policy.break_settings || {}) },
+          policies: { ...prev.policies, ...(policy.break_auto_deduction_rules || {}) },
+        }));
+      })
+      .catch((err) => console.error('Failed to load break rules from backend:', err));
+  }, []);
 
   const handleAddBreak = () => {
     if (!breakForm.name) {
@@ -1578,6 +1634,27 @@ const Settings = () => {
     localStorage.setItem("workHourSettings", JSON.stringify(settings));
   }, [settings]);
 
+  // NOTE: dateFormat and fiscalYearStart have no backend column
+  // (WorkHourRule only has currency/time_format/week_start_day/
+  // backup_frequency/auto_save/email_alerts/sms_alerts) — stay
+  // local-only.
+  useEffect(() => {
+    attendanceAPI.getActiveWorkHourPolicy()
+      .then((policy) => {
+        setSettings((prev) => ({
+          ...prev,
+          currency: policy.currency ?? prev.currency,
+          timeFormat: policy.time_format === '24-Hour' ? '24h' : (policy.time_format === '12-Hour' ? '12h' : prev.timeFormat),
+          weekStart: policy.week_start_day ?? prev.weekStart,
+          autoSave: policy.auto_save ?? prev.autoSave,
+          backupFrequency: policy.backup_frequency?.toLowerCase() ?? prev.backupFrequency,
+          notificationEmails: policy.email_alerts ?? prev.notificationEmails,
+          smsAlerts: policy.sms_alerts ?? prev.smsAlerts,
+        }));
+      })
+      .catch((err) => console.error('Failed to load settings from backend:', err));
+  }, []);
+
   const handleSettingsChange = (data) => {
     setSettings((prev) => ({ ...prev, ...data }));
     toast.success("Settings updated");
@@ -1734,13 +1811,84 @@ const WHR = () => {
     }
   }, [state]);
 
-  const handleSave = () => {
+  const [activePolicyId, setActivePolicyId] = useState(null);
+
+  useEffect(() => {
+    attendanceAPI.getActiveWorkHourPolicy()
+      .then((policy) => setActivePolicyId(policy.id))
+      .catch((err) => console.error('Failed to load active work-hour policy id:', err));
+  }, []);
+
+  // THE REAL BUG FIXED HERE: this Save button previously wrote
+  // `state` (from a completely separate, always-empty `rulesReducer` /
+  // `initialState` that none of the 4 tabs ever read from or wrote to)
+  // to localStorage — meaning clicking Save had literally no effect on
+  // anything the user could see or edit. The 4 tabs each already persist
+  // their own real edits to their own localStorage keys on every change;
+  // this now reads those real values and actually sends them to the
+  // backend's 4 tab-scoped PATCH endpoints.
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      localStorage.setItem("workHourRules", JSON.stringify(state));
+    try {
+      let ruleId = activePolicyId;
+      if (!ruleId) {
+        const policy = await attendanceAPI.getActiveWorkHourPolicy();
+        ruleId = policy.id;
+        setActivePolicyId(ruleId);
+      }
+
+      const attendanceRules = JSON.parse(localStorage.getItem("attendanceRules") || "{}");
+      const overtimeRules = JSON.parse(localStorage.getItem("overtimeManagementRules") || "{}");
+      const breakRules = JSON.parse(localStorage.getItem("breakManagementRules") || "{}");
+      const settingsData = JSON.parse(localStorage.getItem("workHourSettings") || "{}");
+
+      await Promise.all([
+        attendanceAPI.updateWorkHourAttendanceTab(ruleId, {
+          late_arrival_rules: attendanceRules.lateArrival,
+          early_departure_rules: attendanceRules.earlyDeparture,
+          min_daily_hours: attendanceRules.minWorkHours,
+          work_hours_half_day_config: attendanceRules.halfDayCriteria,
+          short_leave_policies: attendanceRules.shortLeave,
+          continuous_absence_detection: attendanceRules.continuousAbsence,
+          weekend_working: attendanceRules.weekendWorking,
+          holiday_working: attendanceRules.holidayWorking,
+          grace_period_minutes: attendanceRules.lateArrival?.gracePeriod,
+          absence_alert_days: attendanceRules.continuousAbsence?.notifyAfterDays,
+          weekend_rate_multiplier: attendanceRules.weekendWorking?.rate,
+        }),
+        attendanceAPI.updateWorkHourOvertimeTab(ruleId, {
+          overtime_eligibility: overtimeRules.eligibility,
+          overtime_calculation: overtimeRules.calculation,
+          overtime_caps: overtimeRules.caps,
+          overtime_approval_workflow: overtimeRules.approvalWorkflow,
+          overtime_compensation_settings: overtimeRules.compensation,
+          overtime_reports_settings: overtimeRules.reports,
+          overtime_categories: overtimeRules.categories,
+        }),
+        attendanceAPI.updateWorkHourBreaksTab(ruleId, {
+          break_configurations: breakRules.breaks,
+          break_settings: breakRules.enforcement,
+          break_auto_deduction_rules: breakRules.policies,
+        }),
+        attendanceAPI.updateWorkHourSettingsTab(ruleId, {
+          currency: settingsData.currency,
+          time_format: settingsData.timeFormat === '24h' ? '24-Hour' : '12-Hour',
+          week_start_day: settingsData.weekStart,
+          backup_frequency: settingsData.backupFrequency
+            ? settingsData.backupFrequency.charAt(0).toUpperCase() + settingsData.backupFrequency.slice(1)
+            : undefined,
+          auto_save: settingsData.autoSave,
+          email_alerts: settingsData.notificationEmails,
+          sms_alerts: settingsData.smsAlerts,
+        }),
+      ]);
+
       toast.success("Rules saved successfully!");
-    }, 1000);
+    } catch (err) {
+      toast.error(err.message || "Failed to save rules to the backend");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {

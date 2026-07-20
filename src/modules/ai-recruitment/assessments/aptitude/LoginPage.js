@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL, API_ENDPOINTS } from '../../../../shared/constants/api.config';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ const LoginPage = () => {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   // Timer effect
   useEffect(() => {
@@ -35,23 +38,57 @@ const LoginPage = () => {
     }));
   };
 
-  const handleSendOtp = () => {
-    if (formData.fullName && formData.email) {
+  const handleSendOtp = async () => {
+    if (!formData.fullName || !formData.email) return;
+    setSending(true);
+    setMessage('');
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.ASSESSMENT_APTITUDE.SEND_OTP}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formData.fullName, email: formData.email }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to send OTP');
+      }
       setIsOtpSent(true);
       setIsTimerActive(true);
       setTimeLeft(300);
-      setMessage('OTP sent successfully! Mock OTP: 111111');
+      setMessage('OTP sent successfully! Check your email.');
+    } catch (err) {
+      setMessage(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setSending(false);
     }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp === '111111') {
+  const handleVerifyOtp = async () => {
+    setVerifying(true);
+    setMessage('');
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.ASSESSMENT_APTITUDE.VERIFY_OTP}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Invalid OTP');
+      }
+      // Persist candidate identity for the instructions/exam pages, which are
+      // separate routes and can't receive this via component state/props.
+      localStorage.setItem('aptitude_candidate_email', formData.email);
+      localStorage.setItem('aptitude_candidate_name', formData.fullName);
+
       setMessage('OTP verified successfully! Redirecting to instructions...');
       setTimeout(() => {
-        navigate('/instructions');
+        navigate('/assessment/aptitude/instructions');
       }, 2000);
-    } else {
-      setMessage('Invalid OTP. Please try again.');
+    } catch (err) {
+      setMessage(err.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -130,10 +167,10 @@ const LoginPage = () => {
                       <button
                         type="button"
                         onClick={handleSendOtp}
-                        disabled={!formData.fullName || !formData.email}
+                        disabled={!formData.fullName || !formData.email || sending}
                         className="btn btn-warning w-100"
                       >
-                        Send OTP
+                        {sending ? 'Sending…' : 'Send OTP'}
                       </button>
                     </div>
 
@@ -174,10 +211,10 @@ const LoginPage = () => {
                           <button
                             type="button"
                             onClick={handleVerifyOtp}
-                            disabled={otp.length !== 6}
+                            disabled={otp.length !== 6 || verifying}
                             className="btn btn-success w-100"
                           >
-                            Verify & Start Exam
+                            {verifying ? 'Verifying…' : 'Verify & Start Exam'}
                           </button>
                         </div>
                       </div>

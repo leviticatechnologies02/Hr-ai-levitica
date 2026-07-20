@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL, API_ENDPOINTS } from '../../../../shared/constants/api.config';
 
 const InstructionPage = () => {
   const navigate = useNavigate();
@@ -8,6 +9,39 @@ const InstructionPage = () => {
   const [examTime, setExamTime] = useState(30 * 60); // 30 minutes in seconds
   const [isExamStarted, setIsExamStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const [totalQuestions, setTotalQuestions] = useState(25);
+  const [instructionsLoading, setInstructionsLoading] = useState(true);
+  const [instructionsError, setInstructionsError] = useState(null);
+
+  // Real question count + time limit for THIS candidate's assigned assessment,
+  // from GET /api/assessment/aptitude/instructions?email=...
+  useEffect(() => {
+    const loadInstructions = async () => {
+      setInstructionsLoading(true);
+      setInstructionsError(null);
+      const email = localStorage.getItem('aptitude_candidate_email');
+      if (!email) {
+        setInstructionsError('No verified candidate found. Please log in first.');
+        setInstructionsLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${BASE_URL}${API_ENDPOINTS.ASSESSMENT_APTITUDE.INSTRUCTIONS}?email=${encodeURIComponent(email)}`);
+        if (!res.ok) throw new Error('Failed to load exam instructions');
+        const data = await res.json();
+        setTotalQuestions(data.total_questions || 25);
+        setExamTime(data.time_limit_seconds || 30 * 60);
+        setTimeLeft(data.time_limit_seconds || 30 * 60);
+        localStorage.setItem('aptitude_time_limit_seconds', String(data.time_limit_seconds || 30 * 60));
+      } catch (err) {
+        console.error(err);
+        setInstructionsError(err.message || 'Failed to load exam instructions');
+      } finally {
+        setInstructionsLoading(false);
+      }
+    };
+    loadInstructions();
+  }, []);
 
   useEffect(() => {
     let interval = null;
@@ -61,7 +95,7 @@ const InstructionPage = () => {
     if (micPermission && cameraPermission) {
       setIsExamStarted(true);
       // Redirect to exam page
-      navigate('/exam');
+      navigate('/assessment/aptitude/exam');
     } else {
       alert('Please grant both microphone and camera permissions before starting the exam.');
     }
@@ -110,7 +144,7 @@ const InstructionPage = () => {
                       <ul className="list-unstyled mb-0">
                         <li className="mb-3 d-flex align-items-start">
                           <span className="me-2 fw-bold text-primary">•</span>
-                          <span><strong>Total Duration:</strong> 30 minutes for the entire exam</span>
+                          <span><strong>Total Duration:</strong> {Math.round(examTime / 60)} minutes for the entire exam ({totalQuestions} questions)</span>
                         </li>
                         <li className="mb-3 d-flex align-items-start">
                           <span className="me-2 fw-bold text-primary">•</span>
@@ -146,34 +180,28 @@ const InstructionPage = () => {
                   <div className="mb-4">
                     <h4 className="text-primary mb-3 fw-bold">
                       <span className="me-2">🎯</span>
-                      Section Details
+                      Assessment Details
                     </h4>
-                    <div className="row g-3">
-                      <div className="col-md-6">
-                        <div className="bg-info bg-opacity-10 p-4 rounded-3 h-100 border border-info border-opacity-25">
-                          <h6 className="text-info fw-bold mb-2">Reading Comprehension</h6>
-                          <p className="mb-0 text-muted">5 questions, 10 minutes</p>
+                    {instructionsLoading ? (
+                      <p className="text-muted">Loading your assessment details…</p>
+                    ) : instructionsError ? (
+                      <div className="alert alert-danger py-2">{instructionsError}</div>
+                    ) : (
+                      <div className="row g-3">
+                        <div className="col-md-6">
+                          <div className="bg-info bg-opacity-10 p-4 rounded-3 h-100 border border-info border-opacity-25">
+                            <h6 className="text-info fw-bold mb-2">Total Questions</h6>
+                            <p className="mb-0 text-muted">{totalQuestions} multiple-choice questions</p>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="bg-warning bg-opacity-10 p-4 rounded-3 h-100 border border-warning border-opacity-25">
+                            <h6 className="text-warning fw-bold mb-2">Time Limit</h6>
+                            <p className="mb-0 text-muted">{Math.round(examTime / 60)} minutes, one continuous session</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="col-md-6">
-                        <div className="bg-warning bg-opacity-10 p-4 rounded-3 h-100 border border-warning border-opacity-25">
-                          <h6 className="text-warning fw-bold mb-2">Logical Reasoning</h6>
-                          <p className="mb-0 text-muted">8 questions, 7 minutes</p>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="bg-success bg-opacity-10 p-4 rounded-3 h-100 border border-success border-opacity-25">
-                          <h6 className="text-success fw-bold mb-2">Quantitative Aptitude</h6>
-                          <p className="mb-0 text-muted">10 questions, 10 minutes</p>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="bg-danger bg-opacity-10 p-4 rounded-3 h-100 border border-danger border-opacity-25">
-                          <h6 className="text-danger fw-bold mb-2">Verbal Ability</h6>
-                          <p className="mb-0 text-muted">7 questions, 3 minutes</p>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Important Guidelines */}
@@ -276,7 +304,7 @@ const InstructionPage = () => {
                         {isExamStarted ? 'Exam in Progress...' : 'Start Exam'}
                       </button>
                       <p className="small text-muted mt-2 mb-0">
-                        Exam Duration: 30 minutes
+                        Exam Duration: {Math.round(examTime / 60)} minutes
                       </p>
                     </div>
                   </div>

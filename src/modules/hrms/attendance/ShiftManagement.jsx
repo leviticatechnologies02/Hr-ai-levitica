@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import ShiftModal from "../modal/ShiftModal";
 import SwapRequestModal from "../modal/SwapRequestModal";
 import FlexibleArrangementModal from "../modal/FlexibleArrangementModal";
+import { attendanceAPI, employeeAPI } from "../../../shared/utils/api";
 
 const shiftReducer = (state, action) => {
   switch (action.type) {
@@ -196,13 +197,6 @@ const ShiftManagement = () => {
     }),
   };
 
-  useEffect(() => {
-    const storedNotifications = localStorage.getItem('shiftNotifications');
-    if (storedNotifications) {
-      setNotifications(JSON.parse(storedNotifications));
-    }
-  }, []);
-
   const [state, dispatch] = useReducer(shiftReducer, initialState);
   const {
     shifts,
@@ -213,34 +207,172 @@ const ShiftManagement = () => {
     rules,
   } = state;
 
-  useEffect(() => {
-    localStorage.setItem("shiftMaster", JSON.stringify(shifts));
-    localStorage.setItem("shiftAssignments", JSON.stringify(shiftAssignments));
-    localStorage.setItem("shiftRosters", JSON.stringify(rosters));
-    localStorage.setItem("shiftSwapRequests", JSON.stringify(swapRequests));
-    localStorage.setItem("flexibleArrangements", JSON.stringify(flexibleArrangements));
-    localStorage.setItem("shiftRules", JSON.stringify(rules));
-  }, [state]);
+  const [employeesList, setEmployeesList] = useState([]);
+  const [loadingShifts, setLoadingShifts] = useState(true);
 
-  const handleAddShift = () => {
+  // Backend ShiftResponse (shift_name/shift_code/shift_type/start_time/
+  // end_time/duration_hours/week_offs [single string]/differential_pay/
+  // break_duration_minutes [single int]/grace_period_minutes/
+  // is_night_shift/is_active) -> local shape. NOTE: breakTimes here is a
+  // rich array of named break objects (start/end/paid per break) — the
+  // backend only tracks one total break_duration_minutes. Per-break detail
+  // has nowhere to persist; kept in local form state only, summed into a
+  // single number when sent to the backend.
+  const mapShiftFromBackend = (s) => ({
+    id: s.id,
+    name: s.shift_name,
+    code: s.shift_code,
+    type: s.shift_type,
+    startTime: s.start_time?.slice(0, 5),
+    endTime: s.end_time?.slice(0, 5),
+    duration: s.duration_hours,
+    gracePeriod: s.grace_period_minutes,
+    breakTimes: [],
+    totalBreakMinutes: s.break_duration_minutes,
+    weekOffs: s.week_offs ? s.week_offs.split(',').map((w) => w.trim()) : [],
+    differentialPay: s.differential_pay,
+    isActive: s.is_active,
+    isNightShift: s.is_night_shift,
+    description: s.description || '',
+    allowMultiplePerDay: false, // no backend field
+    coreHours: { start: "10:00", end: "16:00" }, // no backend field
+    rotationPattern: "weekly", // no backend field
+  });
+
+  const mapAssignmentFromBackend = (a) => ({
+    id: a.id,
+    employeeId: a.employee_id,
+    employeeName: a.employee_name,
+    employeeCode: a.employee_code,
+    shiftId: a.shift_id,
+    shiftName: a.shift_name,
+    startDate: a.start_date,
+    endDate: a.end_date,
+    isActive: a.status === 'active',
+    status: a.status,
+  });
+
+  const mapRosterFromBackend = (r) => ({
+    id: r.id,
+    name: r.roster_name,
+    shiftId: r.shift_id,
+    shiftName: r.shift_name,
+    period: r.period,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    status: r.status,
+    published: r.published,
+    createdAt: r.created_at,
+    days: [], // backend doesn't return a day-by-day breakdown
+  });
+
+  const mapSwapFromBackend = (s) => ({
+    id: s.id,
+    employeeId: s.employee_id,
+    employeeName: s.employee_name,
+    currentShift: s.current_shift,
+    requestedShift: s.requested_shift,
+    swapDate: s.swap_date,
+    reason: s.reason,
+    status: s.status,
+    createdAt: s.created_at,
+  });
+
+  const mapFlexibleFromBackend = (f) => ({
+    id: f.id,
+    employeeId: f.employee_id,
+    employeeName: f.employee_name,
+    arrangementType: f.arrangement_type,
+    coreHours: f.core_hours,
+    flexibleWindow: f.flexible_window,
+    remoteDays: f.remote_days,
+    status: f.status,
+    isActive: f.status === 'active',
+    createdAt: f.created_at,
+  });
+
+  const loadAllShiftData = async () => {
+    setLoadingShifts(true);
+    try {
+      const [shiftsData, assignmentsData, rostersData, swapsData, flexData, notifData, empData] = await Promise.all([
+        attendanceAPI.listShifts(),
+        attendanceAPI.listShiftAssignments(),
+        attendanceAPI.listRosters(),
+        attendanceAPI.listShiftSwaps(),
+        attendanceAPI.listFlexibleArrangements(),
+        attendanceAPI.getShiftNotifications(),
+        attendanceAPI.getEmployeesForShiftAssignment(),
+      ]);
+      dispatch({ type: "SET_SHIFTS", payload: (shiftsData || []).map(mapShiftFromBackend) });
+      dispatch({ type: "SET_SHIFT_ASSIGNMENTS", payload: (assignmentsData || []).map(mapAssignmentFromBackend) });
+      dispatch({ type: "SET_ROSTERS", payload: (rostersData || []).map(mapRosterFromBackend) });
+      dispatch({ type: "SET_SWAP_REQUESTS", payload: (swapsData || []).map(mapSwapFromBackend) });
+      dispatch({ type: "SET_FLEXIBLE_ARRANGEMENTS", payload: (flexData || []).map(mapFlexibleFromBackend) });
+      setNotifications(notifData || []);
+      setEmployeesList(empData || []);
+    } catch (err) {
+      console.error('Failed to load shift management data:', err);
+      toast.error(err.message || 'Failed to load shift data');
+    } finally {
+      setLoadingShifts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllShiftData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [savingShift, setSavingShift] = useState(false);
+
+  const handleAddShift = async () => {
     if (!shiftForm.name || !shiftForm.code) {
       toast.error("Please enter shift name and code");
       return;
     }
 
-    const newShift = {
-      id: editingShift ? editingShift.id : Date.now(),
-      ...shiftForm,
-      breakTimes: shiftForm.breakTimes || [],
+    // NOTE: allowMultiplePerDay, coreHours, and rotationPattern have no
+    // backend column at all — stay local-only in the form. breakTimes
+    // (named breaks with individual start/end/paid flags) also has no
+    // per-break storage on the backend; summed into one
+    // break_duration_minutes number instead.
+    const totalBreakMinutes = (shiftForm.breakTimes || []).reduce(
+      (sum, b) => sum + (Number(b.duration) || 0), 0
+    );
+
+    const payload = {
+      shift_name: shiftForm.name,
+      shift_code: shiftForm.code,
+      shift_type: shiftForm.type,
+      description: shiftForm.description || null,
+      start_time: shiftForm.startTime,
+      end_time: shiftForm.endTime,
+      duration_hours: Number(shiftForm.duration) || 8,
+      week_offs: (shiftForm.weekOffs || []).join(', ') || 'Sunday',
+      differential_pay: Number(shiftForm.differentialPay) || 1.0,
+      break_duration_minutes: totalBreakMinutes || 30,
+      grace_period_minutes: Number(shiftForm.gracePeriod) || 10,
+      is_night_shift: shiftForm.type === 'night',
+      is_active: shiftForm.isActive,
     };
 
-    if (editingShift) {
-      dispatch({ type: "UPDATE_SHIFT", payload: newShift });
-      toast.success("Shift updated successfully");
-    } else {
-      dispatch({ type: "ADD_SHIFT", payload: newShift });
-      toast.success("Shift added successfully");
+    setSavingShift(true);
+    try {
+      if (editingShift) {
+        const updated = await attendanceAPI.updateShift(editingShift.id, payload);
+        dispatch({ type: "UPDATE_SHIFT", payload: mapShiftFromBackend(updated) });
+        toast.success("Shift updated successfully");
+      } else {
+        const created = await attendanceAPI.createShift(payload);
+        dispatch({ type: "ADD_SHIFT", payload: mapShiftFromBackend(created) });
+        toast.success("Shift added successfully");
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to save shift');
+      setSavingShift(false);
+      return;
     }
+    setSavingShift(false);
 
     setShowShiftModal(false);
     setEditingShift(null);
@@ -285,10 +417,15 @@ const ShiftManagement = () => {
     setShowShiftModal(true);
   };
 
-  const handleDeleteShift = (shiftId) => {
+  const handleDeleteShift = async (shiftId) => {
     if (window.confirm("Are you sure you want to delete this shift?")) {
-      dispatch({ type: "DELETE_SHIFT", payload: shiftId });
-      toast.success("Shift deleted successfully");
+      try {
+        await attendanceAPI.deleteShift(shiftId);
+        dispatch({ type: "DELETE_SHIFT", payload: shiftId });
+        toast.success("Shift deleted successfully");
+      } catch (err) {
+        toast.error(err.message || 'Failed to delete shift');
+      }
     }
   };
 
@@ -321,26 +458,32 @@ const ShiftManagement = () => {
     });
   };
 
-  const handleBulkAssignShift = (shiftId, employeeIds) => {
-    const assignments = employeeIds.map((empId) => ({
-      id: Date.now() + Math.random(),
-      employeeId: empId,
-      shiftId: shiftId,
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: null,
-      isActive: true,
-      assignedBy: "Admin",
-      assignedAt: new Date().toISOString(),
-    }));
-
-    assignments.forEach((assignment) => {
-      dispatch({ type: "ADD_SHIFT_ASSIGNMENT", payload: assignment });
-    });
-
-    toast.success(`Shift assigned to ${assignments.length} employees.`);
+  const handleBulkAssignShift = async (shiftId, employeeIds) => {
+    try {
+      const result = await attendanceAPI.assignShiftBulk({
+        shift_id: shiftId,
+        employee_ids: employeeIds,
+        start_date: new Date().toISOString().split("T")[0],
+      });
+      await loadAllShiftData();
+      toast.success(result.message || `Shift assigned to ${employeeIds.length} employees.`);
+      if ((result.errors || []).length > 0) {
+        toast.warning(`${result.errors.length} assignment(s) failed — check console for details`);
+        console.warn('Bulk shift assignment errors:', result.errors);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to assign shift');
+    }
   };
 
-  const generateRoster = () => {
+  const [generatingRoster, setGeneratingRoster] = useState(false);
+
+  // NOTE: the backend's roster model doesn't store a day-by-day breakdown
+  // or per-day employee assignments at all — it only tracks
+  // name/shift/period/date-range/status. The detailed day-by-day preview
+  // built below stays a client-side-only display; only the roster record
+  // itself (name, dates, status) is actually persisted.
+  const generateRoster = async () => {
     if (!selectedShift) {
       toast.error("Please select a shift");
       return;
@@ -348,7 +491,7 @@ const ShiftManagement = () => {
 
     const startDate = new Date(rosterStartDate);
     const endDate = new Date(startDate);
-    
+
     if (rosterPeriod === "weekly") {
       endDate.setDate(endDate.getDate() + 6);
     } else {
@@ -358,11 +501,11 @@ const ShiftManagement = () => {
 
     const rosterDays = [];
     const currentDate = new Date(startDate);
-    
+
     while (currentDate <= endDate) {
       const dayOfWeek = currentDate.toLocaleDateString("en-US", { weekday: "long" });
       const isWeekOff = selectedShift.weekOffs?.includes(dayOfWeek) || false;
-      
+
       rosterDays.push({
         date: new Date(currentDate).toISOString().split("T")[0],
         day: dayOfWeek,
@@ -371,131 +514,153 @@ const ShiftManagement = () => {
         isWeekOff,
         employees: [],
       });
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    const roster = {
-      id: Date.now(),
-      name: `${selectedShift.name} Roster - ${rosterStartDate}`,
-      shiftId: selectedShift.id,
-      period: rosterPeriod,
-      startDate: rosterStartDate,
-      endDate: endDate.toISOString().split("T")[0],
-      days: rosterDays,
-      status: "draft",
-      published: false,
-      createdAt: new Date().toISOString(),
-      createdBy: "Admin",
-    };
-
-    dispatch({ type: "ADD_ROSTER", payload: roster });
-    toast.success("Roster generated successfully");
+    setGeneratingRoster(true);
+    try {
+      const created = await attendanceAPI.generateRoster({
+        shift_id: selectedShift.id,
+        period: rosterPeriod === 'weekly' ? 'Weekly' : 'Monthly',
+        start_date: rosterStartDate,
+      });
+      dispatch({ type: "ADD_ROSTER", payload: { ...mapRosterFromBackend(created), days: rosterDays } });
+      toast.success("Roster generated successfully");
+    } catch (err) {
+      toast.error(err.message || 'Failed to generate roster');
+    } finally {
+      setGeneratingRoster(false);
+    }
   };
 
-  const publishRoster = (rosterId) => {
+  const [publishingRosterId, setPublishingRosterId] = useState(null);
+
+  const publishRoster = async (rosterId) => {
     const roster = rosters.find((r) => r.id === rosterId);
     if (!roster) return;
 
-    const updatedRoster = {
-      ...roster,
-      published: true,
-      publishedAt: new Date().toISOString(),
-      publishedBy: "Admin",
-    };
-
-    dispatch({ type: "SET_ROSTERS", payload: rosters.map((r) => r.id === rosterId ? updatedRoster : r) });
-    toast.success(`Roster "${roster.name}" published successfully.`);
+    setPublishingRosterId(rosterId);
+    try {
+      const updated = await attendanceAPI.updateRoster(rosterId, { published: true });
+      dispatch({
+        type: "SET_ROSTERS",
+        payload: rosters.map((r) => r.id === rosterId ? { ...mapRosterFromBackend(updated), days: r.days } : r),
+      });
+      toast.success(`Roster "${roster.name}" published successfully.`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to publish roster');
+    } finally {
+      setPublishingRosterId(null);
+    }
   };
 
-  const handleSwapRequest = () => {
+  const [submittingSwap, setSubmittingSwap] = useState(false);
+
+  const handleSwapRequest = async () => {
     if (!swapForm.employeeId || !swapForm.currentShiftId || !swapForm.requestedShiftId || !swapForm.swapDate) {
       toast.error("Please fill all required fields");
       return;
     }
 
-    const swapRequest = {
-      id: Date.now(),
-      ...swapForm,
-      status: "pending",
-      requestedAt: new Date().toISOString(),
-      approvedBy: null,
-      approvedAt: null,
-      rejectedBy: null,
-      rejectedAt: null,
-      rejectionReason: null,
-    };
-
-    dispatch({ type: "ADD_SWAP_REQUEST", payload: swapRequest });
-    setShowSwapModal(false);
-    setSwapForm({
-      employeeId: "",
-      currentShiftId: "",
-      requestedShiftId: "",
-      swapDate: "",
-      reason: "",
-      swapWithEmployeeId: "",
-    });
-    toast.success("Shift swap request submitted successfully");
-  };
-
-  const handleSwapApproval = (requestId, approved) => {
-    const request = swapRequests.find((r) => r.id === requestId);
-    if (!request) return;
-
-    const updatedRequest = {
-      ...request,
-      status: approved ? "approved" : "rejected",
-      [approved ? "approvedBy" : "rejectedBy"]: "Manager",
-      [approved ? "approvedAt" : "rejectedAt"]: new Date().toISOString(),
-      rejectionReason: approved ? null : "Not approved by manager",
-    };
-
-    dispatch({ type: "UPDATE_SWAP_REQUEST", payload: updatedRequest });
-
-    if (approved) {
-      const assignment = shiftAssignments.find(
-        (a) => a.employeeId === request.employeeId && a.isActive
-      );
-      if (assignment) {
-        dispatch({
-          type: "UPDATE_SHIFT_ASSIGNMENT",
-          payload: { ...assignment, shiftId: request.requestedShiftId },
-        });
-      }
-      toast.success("Shift swap approved and assignment updated.");
-    } else {
-      toast.info("Shift swap rejected.");
+    setSubmittingSwap(true);
+    try {
+      const created = await attendanceAPI.createShiftSwap({
+        employee_id: Number(swapForm.employeeId),
+        current_shift_id: Number(swapForm.currentShiftId),
+        requested_shift_id: Number(swapForm.requestedShiftId),
+        swap_date: swapForm.swapDate,
+        reason: swapForm.reason || null,
+      });
+      dispatch({ type: "ADD_SWAP_REQUEST", payload: mapSwapFromBackend(created) });
+      setShowSwapModal(false);
+      setSwapForm({
+        employeeId: "",
+        currentShiftId: "",
+        requestedShiftId: "",
+        swapDate: "",
+        reason: "",
+        swapWithEmployeeId: "",
+      });
+      toast.success("Shift swap request submitted successfully");
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit swap request');
+    } finally {
+      setSubmittingSwap(false);
     }
   };
 
-  const handleFlexibleArrangement = () => {
+  const handleSwapApproval = async (requestId, approved) => {
+    const request = swapRequests.find((r) => r.id === requestId);
+    if (!request) return;
+
+    try {
+      const updated = await attendanceAPI.updateShiftSwap(requestId, {
+        status: approved ? 'approved' : 'rejected',
+        remarks: approved ? null : 'Not approved by manager',
+      });
+      dispatch({ type: "UPDATE_SWAP_REQUEST", payload: mapSwapFromBackend(updated) });
+
+      if (approved) {
+        // The backend already updates the employee's active assignment to
+        // the requested shift server-side when a swap is approved — just
+        // refresh assignments to reflect it, rather than guessing the
+        // update client-side.
+        const assignmentsData = await attendanceAPI.listShiftAssignments();
+        dispatch({ type: "SET_SHIFT_ASSIGNMENTS", payload: (assignmentsData || []).map(mapAssignmentFromBackend) });
+        toast.success("Shift swap approved and assignment updated.");
+      } else {
+        toast.info("Shift swap rejected.");
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to update swap request');
+    }
+  };
+
+  const [savingFlexible, setSavingFlexible] = useState(false);
+
+  const handleFlexibleArrangement = async () => {
     if (!flexibleForm.employeeId) {
       toast.error("Please select an employee");
       return;
     }
 
-    const arrangement = {
-      id: Date.now(),
-      ...flexibleForm,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      createdBy: "Admin",
-    };
+    // NOTE: hybridSchedule (officeDays/remoteDays) and compressedWeek
+    // (enabled/workDays/hoursPerDay) have no backend columns —
+    // FlexibleArrangement only has arrangement_type/core_hours/
+    // flexible_window/remote_days/status. Folding remoteWorkDays into
+    // remote_days as a comma-joined string; the rest stays local-only.
+    const coreHoursStr = `${flexibleForm.coreHours?.start || '10:00'}-${flexibleForm.coreHours?.end || '16:00'}`;
+    const flexWindowStr = `${flexibleForm.flexibleStart || '08:00'}-${flexibleForm.flexibleEnd || '20:00'}`;
 
-    dispatch({ type: "ADD_FLEXIBLE_ARRANGEMENT", payload: arrangement });
-    setShowFlexibleModal(false);
-    setFlexibleForm({
-      employeeId: "",
-      arrangementType: "flexible",
-      coreHours: { start: "10:00", end: "16:00" },
-      flexibleStart: "08:00",
-      flexibleEnd: "20:00",
-      remoteWorkDays: [],
-      hybridSchedule: { officeDays: [], remoteDays: [] },
-      compressedWeek: { enabled: false, workDays: 4, hoursPerDay: 10 },
-    });
-    toast.success("Flexible work arrangement saved successfully");
+    setSavingFlexible(true);
+    try {
+      const created = await attendanceAPI.createFlexibleArrangement({
+        employee_id: Number(flexibleForm.employeeId),
+        arrangement_type: flexibleForm.arrangementType,
+        core_hours: coreHoursStr,
+        flexible_window: flexWindowStr,
+        remote_days: (flexibleForm.remoteWorkDays || []).join(', ') || 'None',
+        status: 'active',
+      });
+      dispatch({ type: "ADD_FLEXIBLE_ARRANGEMENT", payload: mapFlexibleFromBackend(created) });
+      setShowFlexibleModal(false);
+      setFlexibleForm({
+        employeeId: "",
+        arrangementType: "flexible",
+        coreHours: { start: "10:00", end: "16:00" },
+        flexibleStart: "08:00",
+        flexibleEnd: "20:00",
+        remoteWorkDays: [],
+        hybridSchedule: { officeDays: [], remoteDays: [] },
+        compressedWeek: { enabled: false, workDays: 4, hoursPerDay: 10 },
+      });
+      toast.success("Flexible work arrangement saved successfully");
+    } catch (err) {
+      toast.error(err.message || 'Failed to save flexible arrangement');
+    } finally {
+      setSavingFlexible(false);
+    }
   };
 
   const filteredShifts = shifts.filter((shift) => {
