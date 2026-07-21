@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Icon } from "@iconify/react";
 import DownloadLeaveCorrectionModal from "../modal/DownloadLeaveCorrectionModal";
 import UploadLeaveCorrectionModal from "../modal/UploadLeaveCorrectionModal";
+import { attendanceAPI } from "../../../shared/utils/api";
 
 function LeaveCorrection() {
   const [employees, setEmployees] = useState([]);
@@ -25,28 +26,60 @@ function LeaveCorrection() {
 
   const ITEMS_PER_PAGE = 10;
 
-  const leaveTypes = [
-    "LV458 - Comp Off",
-    "LV454 - Present",
-    "LV455 - Absent",
-    "LV456 - Holiday",
-    "LV457 - Week Off",
-    "LV459 - Casual Leave",
-    "LV1055 - Leave without Pay",
-    "LV2638 - Sick Leave",
-    "LV2640 - Half Day",
-  ];
+  // NOTE: the original hardcoded list here (LV454-Present, LV455-Absent,
+  // LV456-Holiday, LV457-Week Off, LV1055-Leave without Pay, LV2638-Sick
+  // Leave, LV2640-Half Day) mostly didn't match the backend's actual 7
+  // leave type codes at all — only "LV458 - Comp Off" happened to line up.
+  // Replaced with the real list fetched from the backend.
+  const [leaveTypes, setLeaveTypes] = useState(["LV458 - Comp Off"]);
+  const [filterOptionsData, setFilterOptionsData] = useState({
+    business_units: [], locations: [], cost_centers: [], departments: [],
+  });
+
+  useEffect(() => {
+    attendanceAPI.getLeaveCorrectionFilterOptions()
+      .then((opts) => {
+        setLeaveTypes((opts.leave_types || []).map((lt) => lt.label));
+        setFilterOptionsData({
+          business_units: opts.business_units || [],
+          locations: opts.locations || [],
+          cost_centers: opts.cost_centers || [],
+          departments: opts.departments || [],
+        });
+      })
+      .catch((err) => console.error('Failed to load leave correction filter options:', err));
+  }, []);
+
+  const labelToCode = (label) => label?.split(' - ')[0]?.trim();
+
+  const mapRowFromBackend = (r) => ({
+    id: r.employee_id,
+    employeeId: r.employee_id,
+    code: r.employee_code,
+    name: r.employee_name,
+    designation: r.designation || '',
+    opening: r.opening,
+    activity: r.activity,
+    correction: r.correction,
+    closing: r.closing,
+  });
 
   const fetchAttendanceData = async (period, showToast = true) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setEmployees([]);
+      const rows = await attendanceAPI.listLeaveCorrections({
+        period,
+        leave_type_code: labelToCode(leaveType),
+        page: 1,
+        page_size: 200,
+      });
+      setEmployees((rows || []).map(mapRowFromBackend));
       if (!isInitialLoad.current && showToast) {
         toast.info(`Loaded leave corrections for ${period}`);
       }
     } catch (error) {
-      toast.error("Failed to load leave corrections data");
+      toast.error(error.message || "Failed to load leave corrections data");
+      setEmployees([]);
     } finally {
       setIsLoading(false);
       isInitialLoad.current = false;
@@ -97,9 +130,19 @@ function LeaveCorrection() {
     const emp = employees.find((e) => e.id === id);
     if (!emp) return;
     try {
+      const [mon, year] = month.split("-");
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      const result = await attendanceAPI.saveLeaveCorrection({
+        employee_id: emp.employeeId,
+        leave_type_code: labelToCode(leaveType),
+        month: months.indexOf(mon) + 1,
+        year: Number(year),
+        correction: emp.correction,
+      });
+      setEmployees((prev) => prev.map((e) => e.id === id ? { ...e, closing: result.closing } : e));
       toast.success(`Correction saved for ${emp.name}`);
     } catch (error) {
-      toast.error("Failed to save correction");
+      toast.error(error.message || "Failed to save correction");
     }
   };
 
@@ -132,7 +175,17 @@ function LeaveCorrection() {
 
   const handleDownloadSubmit = async (format) => {
     try {
-      downloadAllExcel();
+      if (format === 'csv') {
+        window.open(
+          attendanceAPI.downloadLeaveCorrectionsUrl({
+            period: month,
+            leave_type_code: labelToCode(leaveType),
+          }),
+          "_blank"
+        );
+      } else {
+        downloadAllExcel();
+      }
       toast.success(`Leave corrections downloaded successfully in ${format.toUpperCase()} format!`);
     } catch (error) {
       toast.error("Failed to download leave corrections");
@@ -140,12 +193,53 @@ function LeaveCorrection() {
   };
 
   const handleUploadSubmit = async (file) => {
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     try {
-      toast.success(`File "${file.name}" uploaded successfully!`);
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) throw new Error("File has no data rows");
+
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const empIdIdx = headers.findIndex((h) => h.includes("employee_id") || h === "id");
+      const empCodeIdx = headers.findIndex((h) => h.includes("employee") && h.includes("code"));
+      const correctionIdx = headers.findIndex((h) => h.includes("correction"));
+      const remarksIdx = headers.findIndex((h) => h.includes("remark"));
+
+      if (correctionIdx === -1 || (empIdIdx === -1 && empCodeIdx === -1)) {
+        throw new Error("CSV must have employee_id (or employee_code) and correction columns");
+      }
+
+      const rows = lines.slice(1).map((line) => {
+        const cells = line.split(",").map((c) => c.trim());
+        let employee_id = empIdIdx !== -1 ? Number(cells[empIdIdx]) : null;
+        if (!employee_id && empCodeIdx !== -1) {
+          const match = employees.find((e) => e.code === cells[empCodeIdx]);
+          employee_id = match?.employeeId;
+        }
+        return {
+          employee_id,
+          leave_type_code: labelToCode(leaveType),
+          month: months.indexOf(month.split("-")[0]) + 1,
+          year: Number(month.split("-")[1]),
+          correction: Number(cells[correctionIdx]) || 0,
+          remarks: remarksIdx !== -1 ? cells[remarksIdx] : null,
+        };
+      }).filter((r) => r.employee_id);
+
+      if (rows.length === 0) {
+        throw new Error("No valid rows found (couldn't resolve any employee_id)");
+      }
+
+      const [mon, year] = month.split("-");
+      const result = await attendanceAPI.uploadLeaveCorrections(
+        months.indexOf(mon) + 1, Number(year), labelToCode(leaveType), rows
+      );
+
+      toast.success(`${result.message || `File "${file.name}" uploaded successfully!`}`);
       setShowUploadModal(false);
       fetchAttendanceData(month, true);
     } catch (error) {
-      toast.error("Failed to upload file");
+      toast.error(error.message || "Failed to upload file");
     }
   };
 

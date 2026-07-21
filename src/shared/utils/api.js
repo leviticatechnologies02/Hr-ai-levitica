@@ -1520,6 +1520,25 @@ export const attendanceAPI = {
     const qs = new URLSearchParams(params).toString();
     return apiCall(`/api/attendance/holiday-calendar/carry-forward${qs ? `?${qs}` : ''}`);
   },
+  
+  // Leave Correction (routers/.../leave_correction.py, mounted at
+  // /api/attendance with internal prefix /correction)
+  getLeaveCorrectionFilterOptions: () => apiCall('/api/attendance/correction/filter-options'),
+  listLeaveCorrections: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/correction/${qs ? `?${qs}` : ''}`);
+  },
+  saveLeaveCorrection: (data) => apiCall('/api/attendance/correction/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  bulkSaveLeaveCorrections: (data) => apiCall('/api/attendance/correction/bulk-save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  downloadLeaveCorrectionsUrl: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return `${BASE_URL}/api/attendance/correction/download?${qs}`;
+  },
+  uploadLeaveCorrections: (month, year, leaveTypeCode, rows) =>
+    apiCall(`/api/attendance/correction/upload?month=${month}&year=${year}&leave_type_code=${leaveTypeCode}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows),
+    }),
+
 };
 
 // ==========================================
