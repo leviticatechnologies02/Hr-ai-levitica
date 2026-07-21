@@ -11,6 +11,7 @@ import HolidayCalendarModal from "../modal/HolidayCalendarModal";
 import HolidaySwapModal from "../modal/HolidaySwapModal";
 import HolidayCarryForwardModal from "../modal/HolidayCarryForwardModal";
 import HolidayConfirmModal from "../modal/HolidayConfirmModal";
+import { attendanceAPI, employeeAPI } from "../../../shared/utils/api";
 
 const daysShort = ["S", "M", "T", "W", "T", "F", "S"];
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -103,13 +104,103 @@ const HolidayCalendar = () => {
   const [state, dispatch] = useReducer(holidayReducer, initialState);
   const { holidays, optionalApplications, calendars, swapRequests, carryForward } = state;
 
+  // NOTE: "holidays" (the master list — Add/Edit/Delete individual named
+  // holidays like "Diwali - Oct 20") stays localStorage-only. Checked the
+  // entire backend: routers/.../holiday_calendar.py and its service layer
+  // have NO create/list/update/delete for individual Holiday records at
+  // all — only /quick-actions/today (checks one specific date) touches
+  // the Holiday model directly. This is a genuine backend gap, not
+  // something fixable from the frontend; flagging for the team rather
+  // than fabricating an endpoint.
   useEffect(() => {
     localStorage.setItem("holidays", JSON.stringify(holidays));
-    localStorage.setItem("optionalApplications", JSON.stringify(optionalApplications));
-    localStorage.setItem("holidayCalendars", JSON.stringify(calendars));
-    localStorage.setItem("holidaySwapRequests", JSON.stringify(swapRequests));
-    localStorage.setItem("holidayCarryForward", JSON.stringify(carryForward));
-  }, [state]);
+  }, [holidays]);
+
+  const [employeesList, setEmployeesList] = useState([]);
+  const [loadingHolidayData, setLoadingHolidayData] = useState(true);
+
+  const mapApplicationFromBackend = (a) => ({
+    id: a.id,
+    name: a.holiday_name || '',
+    date: a.holiday_date,
+    holidayId: a.holiday_id,
+    employeeId: a.employee_id,
+    employeeName: '',
+    status: a.status,
+    reason: a.reason || '',
+    appliedDate: a.applied_on ? a.applied_on.split('T')[0] : '',
+    approvedBy: a.approved_by,
+    approvedAt: a.approved_on,
+    rejectionReason: a.rejection_reason,
+  });
+
+  const mapCalendarFromBackend = (c) => ({
+    id: c.id,
+    name: c.calendar_name,
+    location: c.location,
+    employeeGroups: c.employee_groups,
+    status: c.status,
+    isDefault: c.is_default,
+    description: c.description,
+    holidayCount: c.holiday_count,
+    createdAt: c.created_at,
+  });
+
+  const mapSwapFromBackend = (s) => ({
+    id: s.id,
+    employeeId: s.employee_id,
+    employeeName: s.employee_name || '',
+    holidayId: s.holiday_id,
+    holidayDate: s.holiday_date,
+    workDate: s.work_date,
+    reason: s.reason || '',
+    status: s.status,
+    approvedBy: s.approved_by,
+    approvedAt: s.approved_on,
+    rejectionReason: s.rejection_reason,
+    submittedAt: s.created_at,
+  });
+
+  const mapCarryForwardFromBackend = (c) => ({
+    id: c.id,
+    employeeId: c.employee_id,
+    employeeName: c.employee_name || '',
+    fromYear: c.from_year,
+    toYear: c.to_year,
+    holidaysCount: c.holidays_count,
+    status: c.status,
+    processedBy: c.processed_by,
+    processedAt: c.processed_on,
+    remarks: c.remarks,
+  });
+
+  const loadHolidayCalendarData = async () => {
+    setLoadingHolidayData(true);
+    try {
+      const [appsData, calendarsData, swapsData, carryForwardData, empData] = await Promise.all([
+        attendanceAPI.listOptionalHolidayApps(),
+        attendanceAPI.listHolidayCalendars(),
+        attendanceAPI.listHolidaySwaps(),
+        attendanceAPI.listHolidayCarryForward(),
+        employeeAPI.list(),
+      ]);
+      dispatch({ type: "SET_APPLICATIONS", payload: (appsData || []).map(mapApplicationFromBackend) });
+      dispatch({ type: "SET_CALENDARS", payload: (calendarsData || []).map(mapCalendarFromBackend) });
+      dispatch({ type: "SET_SWAP_REQUESTS", payload: (swapsData || []).map(mapSwapFromBackend) });
+      dispatch({ type: "SET_CARRY_FORWARD", payload: (carryForwardData || []).map(mapCarryForwardFromBackend) });
+      setEmployeesList(empData || []);
+    } catch (err) {
+      console.error('Failed to load holiday calendar data:', err);
+      toast.error(err.message || 'Failed to load holiday calendar data');
+    } finally {
+      setLoadingHolidayData(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHolidayCalendarData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [viewMode, setViewMode] = useState("month");
   const [isMobileView, setIsMobileView] = useState(false);
@@ -331,7 +422,14 @@ const HolidayCalendar = () => {
     toast.success("Holiday deleted successfully");
   };
 
-  const applyOptionalHoliday = () => {
+  const [applyingOptional, setApplyingOptional] = useState(false);
+
+  // NOTE: HolidayOptionalModal collects no employee selector at all — the
+  // mock's original code even left employeeId as a hardcoded empty string.
+  // The backend's OptionalHolidayApplicationCreate requires a real
+  // employee_id. Flagging this rather than guessing one; the modal needs
+  // an employee picker added before this can fully work end-to-end.
+  const applyOptionalHoliday = async () => {
     if (!selectedOptionalHoliday) {
       toast.warning("Please select an optional holiday");
       return;
@@ -352,45 +450,52 @@ const HolidayCalendar = () => {
       return;
     }
 
-    const newApplication = {
-      id: Date.now(),
-      name: selectedOptionalHoliday,
-      date: selectedHoliday.date,
-      holidayId: selectedHoliday.id,
-      employeeId: "",
-      employeeName: "",
-      status: "Pending",
-      approvalRequired: true,
-      reason: optionalReason,
-      appliedDate: new Date().toISOString().split("T")[0],
-      advanceBookingDays: selectedHoliday.advanceBookingDays || 0,
-      approvalWorkflow: [
-        { level: 1, approver: "Manager", status: "pending", required: true },
-        { level: 2, approver: "HR", status: "pending", required: true },
-      ],
-    };
+    if (!selectedHoliday.backendId) {
+      toast.error("This holiday only exists locally (no backend holiday-master support) — application cannot be submitted to the server.");
+      return;
+    }
 
-    dispatch({ type: "ADD_APPLICATION", payload: newApplication });
-    setShowOptionalModal(false);
-    setSelectedOptionalHoliday("");
-    setOptionalReason("");
-    toast.success("Optional holiday application submitted!");
+    setApplyingOptional(true);
+    try {
+      const created = await attendanceAPI.applyOptionalHoliday({
+        // TODO: replace with a real employee selector once
+        // HolidayOptionalModal supports one — currently blocked upstream.
+        employee_id: employeesList[0]?.id,
+        holiday_id: selectedHoliday.backendId,
+        reason: optionalReason || null,
+      });
+      dispatch({ type: "ADD_APPLICATION", payload: mapApplicationFromBackend({ ...created, holiday_name: selectedOptionalHoliday }) });
+      setShowOptionalModal(false);
+      setSelectedOptionalHoliday("");
+      setOptionalReason("");
+      toast.success("Optional holiday application submitted!");
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit application');
+    } finally {
+      setApplyingOptional(false);
+    }
   };
 
-  const updateApplicationStatus = (newStatus) => {
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const updateApplicationStatus = async (newStatus) => {
     if (!selectedApplication) return;
 
-    const updatedApplication = {
-      ...selectedApplication,
-      status: newStatus,
-      [newStatus === "Approved" ? "approvedAt" : newStatus === "Rejected" ? "rejectedAt" : "updatedAt"]: new Date().toISOString(),
-      [newStatus === "Approved" ? "approvedBy" : newStatus === "Rejected" ? "rejectedBy" : "updatedBy"]: "Manager",
-    };
-
-    dispatch({ type: "UPDATE_APPLICATION", payload: updatedApplication });
-    setShowStatusModal(false);
-    setSelectedApplication(null);
-    toast.success(`Application status updated to ${newStatus}`);
+    setUpdatingStatus(true);
+    try {
+      const updated = await attendanceAPI.updateOptionalHolidayApp(selectedApplication.id, {
+        status: newStatus,
+        rejection_reason: newStatus === 'Rejected' ? 'Not approved by manager' : null,
+      });
+      dispatch({ type: "UPDATE_APPLICATION", payload: mapApplicationFromBackend({ ...updated, holiday_name: selectedApplication.name }) });
+      setShowStatusModal(false);
+      setSelectedApplication(null);
+      toast.success(`Application status updated to ${newStatus}`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to update application status');
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   const openStatusModal = (application) => {
@@ -398,67 +503,88 @@ const HolidayCalendar = () => {
     setShowStatusModal(true);
   };
 
-  const handleHolidaySwap = () => {
+  const [submittingSwap, setSubmittingSwap] = useState(false);
+
+  const handleHolidaySwap = async () => {
     if (!swapForm.employeeId || !swapForm.holidayDate || !swapForm.workDate || !swapForm.reason) {
       toast.warning("Please fill all required fields");
       return;
     }
 
-    const swapRequest = {
-      id: Date.now(),
-      ...swapForm,
-      status: "pending",
-      submittedAt: new Date().toISOString(),
-      approvalWorkflow: [
-        { level: 1, approver: "Manager", status: "pending", required: true },
-        { level: 2, approver: "HR", status: "pending", required: true },
-      ],
-    };
-
-    dispatch({ type: "ADD_SWAP_REQUEST", payload: swapRequest });
-    setShowSwapModal(false);
-    setSwapForm({ employeeId: "", holidayDate: "", workDate: "", reason: "" });
-    toast.success("Holiday swap request submitted!");
+    setSubmittingSwap(true);
+    try {
+      const created = await attendanceAPI.createHolidaySwap({
+        employee_id: Number(swapForm.employeeId),
+        holiday_date: swapForm.holidayDate,
+        work_date: swapForm.workDate,
+        reason: swapForm.reason,
+      });
+      dispatch({ type: "ADD_SWAP_REQUEST", payload: mapSwapFromBackend(created) });
+      setShowSwapModal(false);
+      setSwapForm({ employeeId: "", holidayDate: "", workDate: "", reason: "" });
+      toast.success("Holiday swap request submitted!");
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit swap request');
+    } finally {
+      setSubmittingSwap(false);
+    }
   };
 
-  const handleSwapApproval = (swapId, approved) => {
+  const [approvingSwapId, setApprovingSwapId] = useState(null);
+
+  const handleSwapApproval = async (swapId, approved) => {
     const swap = swapRequests.find((s) => s.id === swapId);
     if (!swap) return;
 
-    const updatedSwap = {
-      ...swap,
-      status: approved ? "approved" : "rejected",
-      [approved ? "approvedAt" : "rejectedAt"]: new Date().toISOString(),
-      [approved ? "approvedBy" : "rejectedBy"]: "Manager",
-    };
-
-    dispatch({ type: "UPDATE_SWAP_REQUEST", payload: updatedSwap });
-    toast.success(`Swap request ${approved ? "approved" : "rejected"}`);
+    setApprovingSwapId(swapId);
+    try {
+      const updated = await attendanceAPI.updateHolidaySwap(swapId, {
+        status: approved ? 'Approved' : 'Rejected',
+        rejection_reason: approved ? null : 'Not approved by manager',
+      });
+      dispatch({ type: "UPDATE_SWAP_REQUEST", payload: mapSwapFromBackend(updated) });
+      toast.success(`Swap request ${approved ? "approved" : "rejected"}`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to update swap request');
+    } finally {
+      setApprovingSwapId(null);
+    }
   };
 
-  const handleCarryForward = () => {
+  const [processingCarryForward, setProcessingCarryForward] = useState(false);
+
+  const handleCarryForward = async () => {
     if (!carryForwardForm.employeeId || carryForwardForm.holidays.length === 0) {
       toast.warning("Please select employee and holidays to carry forward");
       return;
     }
 
-    const carryForwardRecord = {
-      id: Date.now(),
-      ...carryForwardForm,
-      status: "processed",
-      processedAt: new Date().toISOString(),
-      processedBy: "HR Admin",
-    };
-
-    dispatch({ type: "SET_CARRY_FORWARD", payload: [...carryForward, carryForwardRecord] });
-    setShowCarryForwardModal(false);
-    setCarryForwardForm({
-      employeeId: "",
-      fromYear: new Date().getFullYear() - 1,
-      toYear: new Date().getFullYear(),
-      holidays: [],
-    });
-    toast.success("Holiday carry forward processed!");
+    setProcessingCarryForward(true);
+    try {
+      await attendanceAPI.processHolidayCarryForward({
+        from_year: Number(carryForwardForm.fromYear),
+        to_year: Number(carryForwardForm.toYear),
+        employee_ids: [Number(carryForwardForm.employeeId)],
+      });
+      const records = await attendanceAPI.listHolidayCarryForward({
+        employee_id: carryForwardForm.employeeId,
+        from_year: carryForwardForm.fromYear,
+        to_year: carryForwardForm.toYear,
+      });
+      dispatch({ type: "SET_CARRY_FORWARD", payload: (records || []).map(mapCarryForwardFromBackend) });
+      setShowCarryForwardModal(false);
+      setCarryForwardForm({
+        employeeId: "",
+        fromYear: new Date().getFullYear() - 1,
+        toYear: new Date().getFullYear(),
+        holidays: [],
+      });
+      toast.success("Holiday carry forward processed!");
+    } catch (err) {
+      toast.error(err.message || 'Failed to process carry forward');
+    } finally {
+      setProcessingCarryForward(false);
+    }
   };
 
   const exportToCSV = () => {
@@ -844,9 +970,14 @@ const HolidayCalendar = () => {
                                 </button>
                                 <button
                                   className="p-1.5 text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100"
-                                  onClick={() => {
-                                    dispatch({ type: "DELETE_CALENDAR", payload: cal.id });
-                                    toast.success("Calendar deleted successfully!");
+                                  onClick={async () => {
+                                    try {
+                                      await attendanceAPI.deleteHolidayCalendar(cal.id);
+                                      dispatch({ type: "DELETE_CALENDAR", payload: cal.id });
+                                      toast.success("Calendar deleted successfully!");
+                                    } catch (err) {
+                                      toast.error(err.message || 'Failed to delete calendar');
+                                    }
                                   }}
                                 >
                                   <Icon icon="heroicons:trash" className="w-3.5 h-3.5" />

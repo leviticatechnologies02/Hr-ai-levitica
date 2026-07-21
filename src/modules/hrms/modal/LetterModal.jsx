@@ -2,7 +2,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import Modal from '../../../shared/components/Modal';
 
-const LetterModal = ({ isOpen, onClose, onGenerate, employee = null, formatDate, letterType = 'Confirmation Letter' }) => {
+const LetterModal = ({ isOpen, onClose, onGenerate, employee = null, formatDate, letterType = 'Confirmation Letter', generating = false }) => {
   if (!employee) return null;
 
   return (
@@ -99,11 +99,12 @@ const LetterModal = ({ isOpen, onClose, onGenerate, employee = null, formatDate,
           </button>
           <button
             type="button"
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-60"
             onClick={onGenerate}
+            disabled={generating}
           >
             <Icon icon="heroicons:document-arrow-down" className="w-4 h-4" />
-            Generate & Download
+            {generating ? 'Generating…' : 'Generate & Download'}
           </button>
         </div>
       </div>

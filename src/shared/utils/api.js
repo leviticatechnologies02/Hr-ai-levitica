@@ -1486,6 +1486,40 @@ export const attendanceAPI = {
   getWorkHourAttendanceStats: (ruleId) => apiCall(`/api/attendance/work-hour-rules/stats/attendance${ruleId ? `?rule_id=${ruleId}` : ''}`),
   getWorkHourOvertimeStats: (ruleId) => apiCall(`/api/attendance/work-hour-rules/stats/overtime${ruleId ? `?rule_id=${ruleId}` : ''}`),
   getWorkHourStorageUsage: () => apiCall('/api/attendance/work-hour-rules/stats/storage'),
+
+
+  getHolidayTabSummary: () => apiCall('/api/attendance/holiday-calendar/tab-summary'),
+  checkTodayHoliday: () => apiCall('/api/attendance/holiday-calendar/quick-actions/today'),
+
+  applyOptionalHoliday: (data) => apiCall('/api/attendance/holiday-calendar/optional-apps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listOptionalHolidayApps: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/holiday-calendar/optional-apps${qs ? `?${qs}` : ''}`);
+  },
+  updateOptionalHolidayApp: (id, data) => apiCall(`/api/attendance/holiday-calendar/optional-apps/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteOptionalHolidayApp: (id) => apiCall(`/api/attendance/holiday-calendar/optional-apps/${id}`, { method: 'DELETE' }),
+
+  addHolidayCalendar: (data) => apiCall('/api/attendance/holiday-calendar/calendars', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listHolidayCalendars: () => apiCall('/api/attendance/holiday-calendar/calendars'),
+  updateHolidayCalendar: (id, data) => apiCall(`/api/attendance/holiday-calendar/calendars/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteHolidayCalendar: (id) => apiCall(`/api/attendance/holiday-calendar/calendars/${id}`, { method: 'DELETE' }),
+  linkHolidayToCalendar: (data) => apiCall('/api/attendance/holiday-calendar/calendars/link-holiday', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  unlinkHolidayFromCalendar: (calendarId, holidayId) => apiCall(`/api/attendance/holiday-calendar/calendars/${calendarId}/holidays/${holidayId}`, { method: 'DELETE' }),
+  getCalendarHolidays: (calendarId) => apiCall(`/api/attendance/holiday-calendar/calendars/${calendarId}/holidays`),
+
+  createHolidaySwap: (data) => apiCall('/api/attendance/holiday-calendar/swap-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listHolidaySwaps: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/holiday-calendar/swap-requests${qs ? `?${qs}` : ''}`);
+  },
+  updateHolidaySwap: (id, data) => apiCall(`/api/attendance/holiday-calendar/swap-requests/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  cancelHolidaySwap: (id) => apiCall(`/api/attendance/holiday-calendar/swap-requests/${id}/cancel`, { method: 'POST' }),
+
+  processHolidayCarryForward: (data) => apiCall('/api/attendance/holiday-calendar/carry-forward/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listHolidayCarryForward: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiCall(`/api/attendance/holiday-calendar/carry-forward${qs ? `?${qs}` : ''}`);
+  },
 };
 
 // ==========================================

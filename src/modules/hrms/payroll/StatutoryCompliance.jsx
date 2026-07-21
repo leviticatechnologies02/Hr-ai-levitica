@@ -12,6 +12,7 @@ import RemittanceModal from '../modal/RemittanceModal';
 import UANModal from '../modal/UANModal';
 import ViewDetailsModal from '../modal/ViewDetailsModal';
 import VPFModal from '../modal/VPFModal';
+import { statutoryComplianceAPI, employeeAPI } from '../../../shared/utils/api';
 
 const StatutoryCompliance = () => {
   const [activeSection, setActiveSection] = useState('pf');
@@ -131,6 +132,140 @@ const StatutoryCompliance = () => {
   });
 
   const itemsPerPage = 6;
+
+  // ------------------------------------------------------------------
+  // Backend (/api/payroll/statutory) ONLY implements PF-related features:
+  // config, eligibility rule, PF statements, PF remittance, ECR, VPF, UAN.
+  // ESI, Professional Tax, TDS/Form16/investment declarations, LWF,
+  // Gratuity-config, and Bonus-config have NO backend endpoints at all —
+  // esiConfig/ptConfig/tdsConfig/lwfConfig/gratuityConfig/bonusConfig and
+  // their "Calculate" buttons remain local-only preview calculators (they
+  // already only show a toast, never claim to save anything, so leaving
+  // them local isn't misleading). Only the 'pf' branches below are wired.
+  // ------------------------------------------------------------------
+  const [configId, setConfigId] = useState(null);
+  const [eligibilityRuleId, setEligibilityRuleId] = useState(null);
+
+  const mapConfig = (c) => ({
+    employeeContribution: c.pf_employee_rate,
+    employerContribution: c.pf_employer_rate,
+    epfContribution: c.eps_contribution_rate,
+    epsContribution: Math.max(0, (c.pf_employer_rate || 0) - (c.eps_contribution_rate || 0)),
+    edliContribution: c.edli_contribution_rate,
+    ceilingLimit: Number(c.pf_ceiling_limit) || 0,
+    autoCalculation: !!c.enable_basic_pf_calc,
+    uanMandatory: true,
+    vpfEnabled: !!c.enable_vpf,
+    vpfRate: c.default_vpf_rate,
+  });
+
+  const mapEligibility = (e) => ({
+    minimumSalary: Number(e?.minimum_salary) || 0,
+    maximumSalary: e?.maximum_salary != null ? Number(e.maximum_salary) : null,
+    employmentType: [
+      e?.allow_permanent && 'permanent',
+      e?.allow_contract && 'contract',
+      e?.allow_intern && 'intern',
+      e?.allow_part_time && 'part_time',
+    ].filter(Boolean),
+    probationPeriod: e?.probation_period_days || 0,
+    autoEnrollment: e?.auto_enroll_eligible ?? true,
+  });
+
+  const loadStatutoryData = () => {
+    Promise.all([
+      statutoryComplianceAPI.getConfig().catch((err) => { console.error('Failed to load statutory config:', err); return null; }),
+      statutoryComplianceAPI.getEligibilityRule().catch((err) => { console.error('Failed to load PF eligibility rule:', err); return null; }),
+      statutoryComplianceAPI.listPfStatements().catch((err) => { console.error('Failed to load PF statements:', err); return []; }),
+      statutoryComplianceAPI.listRemittance().catch((err) => { console.error('Failed to load PF remittance:', err); return []; }),
+      statutoryComplianceAPI.listEcrRecords().catch((err) => { console.error('Failed to load ECR records:', err); return []; }),
+      statutoryComplianceAPI.listVpfRecords().catch((err) => { console.error('Failed to load VPF records:', err); return []; }),
+      statutoryComplianceAPI.listUanRecords().catch((err) => { console.error('Failed to load UAN records:', err); return []; }),
+      employeeAPI.list().catch((err) => { console.error('Failed to load employees:', err); return []; }),
+    ]).then(([config, eligibility, pfStatementsData, remittanceData, ecrRecords, vpfRecords, uanRecords, employeesData]) => {
+      const employeesList = Array.isArray(employeesData) ? employeesData : [];
+      const employeesById = new Map(employeesList.map((e) => [e.id, e]));
+      setEmployees(employeesList);
+
+      if (config) {
+        setConfigId(config.id);
+        setPfConfig((prev) => ({ ...prev, ...mapConfig(config) }));
+      }
+      if (eligibility) {
+        setEligibilityRuleId(eligibility.id);
+        setPfConfig((prev) => ({ ...prev, eligibilityRules: mapEligibility(eligibility) }));
+      }
+
+      setPfStatements((Array.isArray(pfStatementsData) ? pfStatementsData : []).map((s) => {
+        const emp = employeesById.get(s.employee_id);
+        return {
+          id: s.id,
+          employeeId: emp?.employeeId || String(s.employee_id),
+          employeeDbId: s.employee_id,
+          employeeContribution: Number(s.employee_contribution) || 0,
+          employerContribution: Number(s.employer_contribution) || 0,
+          total: Number(s.total_pf) || 0,
+          status: s.status,
+          month: s.month,
+          year: s.year,
+        };
+      }));
+
+      setPfRemittances((Array.isArray(remittanceData) ? remittanceData : []).map((r) => ({
+        id: r.id,
+        month: `${r.month}/${r.year}`,
+        totalContribution: Number(r.total_contribution) || 0,
+        employeeContribution: Number(r.employee_contribution) || 0,
+        employerContribution: Number(r.employer_contribution) || 0,
+        challanNo: r.challan_number || '',
+        remittanceDate: r.remittance_date || '',
+        status: r.status,
+      })));
+
+      setEcrData((Array.isArray(ecrRecords) ? ecrRecords : []).map((e) => ({
+        id: e.id,
+        month: `${e.month}/${e.year}`,
+        totalEmployees: e.total_employees,
+        totalWages: Number(e.total_wages) || 0,
+        epfContribution: Number(e.epf_contribution) || 0,
+        epsContribution: Number(e.eps_contribution) || 0,
+        edliContribution: Number(e.edli_contribution) || 0,
+        status: e.status,
+        submittedDate: e.submitted_date || '',
+        rawMonth: e.month,
+        rawYear: e.year,
+      })));
+
+      setVpfData((Array.isArray(vpfRecords) ? vpfRecords : []).map((v) => {
+        const emp = employeesById.get(v.employee_id);
+        return {
+          id: v.id,
+          name: v.employee_name || emp?.name,
+          employeeId: emp?.employeeId || String(v.employee_id),
+          vpfRate: v.vpf_rate,
+          vpfAmount: Number(v.vpf_amount) || 0,
+          month: `${v.month}/${v.year}`,
+          status: v.status,
+        };
+      }));
+
+      setUanActivations((Array.isArray(uanRecords) ? uanRecords : []).map((u) => {
+        const emp = employeesById.get(u.employee_id);
+        return {
+          id: u.id,
+          name: u.employee_name || emp?.name,
+          employeeId: emp?.employeeId || String(u.employee_id),
+          uan: u.uan_number || '',
+          activationDate: u.activation_date || '',
+          status: u.status,
+        };
+      }));
+    });
+  };
+
+  useEffect(() => {
+    loadStatutoryData();
+  }, []);
 
   const openModal = (type, data = null) => {
     setModalState({ type, data, isOpen: true });
@@ -427,41 +562,72 @@ const StatutoryCompliance = () => {
   };
 
   const handleGenerateECR = (data) => {
-    const newECR = {
-      id: ecrData.length + 1,
-      month: data.month,
-      totalEmployees: employees.length,
-      totalWages: data.totalWages || employees.reduce((sum, emp) => sum + (emp.grossSalary || 0), 0),
-      epfContribution: data.epfContribution || kpis.totalPFContribution * 0.6667,
-      epsContribution: data.epsContribution || kpis.totalPFContribution * 0.3333,
-      edliContribution: data.edliContribution || kpis.totalPFContribution * 0.005,
-      status: 'generated',
-      submittedDate: new Date().toISOString().split('T')[0]
-    };
+    // ECRModal sends month as "March 2024", not "YYYY-MM" — parse that.
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const [monthName, yearStr] = (data.month || '').split(' ');
+    const monthIndex = monthNames.indexOf(monthName);
+    const month = monthIndex >= 0 ? monthIndex + 1 : new Date().getMonth() + 1;
+    const year = yearStr ? Number(yearStr) : new Date().getFullYear();
 
-    setEcrData([...ecrData, newECR]);
-    toast.success('ECR generated successfully!');
+    // Real server-side generation from actual PF statements on file for
+    // this month/year — previously this fabricated totalWages/contributions
+    // client-side from whatever local `employees`/`kpis` happened to hold.
+    statutoryComplianceAPI.generateEcr(month, year)
+      .then(() => loadStatutoryData())
+      .then(() => toast.success('ECR generated successfully!'))
+      .catch((err) => {
+        console.error('Error generating ECR:', err);
+        toast.error(err.message || 'Error generating ECR');
+      });
   };
 
   const handleAddRemittance = (data) => {
-    const newRemittance = {
-      id: remittanceType === 'pf' ? pfRemittances.length + 1 : esiRemittances.length + 1,
-      month: data.month,
-      totalContribution: parseFloat(data.totalContribution),
-      employeeContribution: parseFloat(data.employeeContribution) || parseFloat(data.totalContribution) / 2,
-      employerContribution: parseFloat(data.employerContribution) || parseFloat(data.totalContribution) / 2,
-      challanNo: data.challanNo || `CH${Math.floor(100000 + Math.random() * 900000)}`,
-      remittanceDate: data.remittanceDate || new Date().toISOString().split('T')[0],
-      status: 'paid'
-    };
-
-    if (remittanceType === 'pf') {
-      setPfRemittances([...pfRemittances, newRemittance]);
-    } else if (remittanceType === 'esi') {
+    if (remittanceType !== 'pf') {
+      // ESI remittance has no backend model at all under /api/payroll/
+      // statutory (that module is PF-only) — kept local-only rather than
+      // silently pretending it's saved.
+      const newRemittance = {
+        id: esiRemittances.length + 1,
+        month: data.month,
+        totalContribution: parseFloat(data.totalContribution),
+        employeeContribution: parseFloat(data.employeeContribution) || parseFloat(data.totalContribution) / 2,
+        employerContribution: parseFloat(data.employerContribution) || parseFloat(data.totalContribution) / 2,
+        challanNo: data.challanNo || `CH${Math.floor(100000 + Math.random() * 900000)}`,
+        remittanceDate: data.remittanceDate || new Date().toISOString().split('T')[0],
+        status: 'paid'
+      };
       setEsiRemittances([...esiRemittances, newRemittance]);
+      toast.warning('ESI remittance saved locally only — there is no backend support for ESI remittance yet.');
+      return;
     }
 
-    toast.success(`${remittanceType.toUpperCase()} remittance added successfully!`);
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const [monthName, yearStr] = (data.month || '').split(' ');
+    const monthIndex = monthNames.indexOf(monthName);
+    const month = monthIndex >= 0 ? monthIndex + 1 : new Date().getMonth() + 1;
+    const year = yearStr ? Number(yearStr) : new Date().getFullYear();
+    const totalContribution = parseFloat(data.totalContribution);
+    const employeeContribution = parseFloat(data.employeeContribution) || totalContribution / 2;
+    const employerContribution = parseFloat(data.employerContribution) || totalContribution / 2;
+
+    statutoryComplianceAPI.createRemittance({
+      month,
+      year,
+      total_contribution: totalContribution,
+      employee_contribution: employeeContribution,
+      employer_contribution: employerContribution,
+      challan_number: data.challanNo || undefined,
+      remittance_date: data.remittanceDate || new Date().toISOString().split('T')[0],
+      status: 'paid',
+    })
+      .then(() => {
+        toast.success('PF remittance added successfully!');
+        loadStatutoryData();
+      })
+      .catch((err) => {
+        console.error('Error adding PF remittance:', err);
+        toast.error(err.message || 'Error adding PF remittance');
+      });
   };
 
   const handleGenerateChallan = (data) => {
@@ -479,24 +645,20 @@ const StatutoryCompliance = () => {
   };
 
   const handleActivateUAN = (employee, data) => {
-    const newUAN = {
-      id: uanActivations.length + 1,
-      name: employee.name,
-      employeeId: employee.employeeId,
-      uan: data.uanNumber,
-      activationDate: data.activationDate || new Date().toISOString().split('T')[0],
-      status: 'active'
-    };
-
-    setUanActivations([...uanActivations, newUAN]);
-    
-    setEmployees(prev => prev.map(emp => 
-      emp.id === employee.id 
-        ? { ...emp, pfUAN: data.uanNumber }
-        : emp
-    ));
-
-    toast.success('UAN activated successfully!');
+    statutoryComplianceAPI.createUanRecord({
+      employee_id: employee.id,
+      uan_number: data.uanNumber,
+      activation_date: data.activationDate || new Date().toISOString().split('T')[0],
+      status: 'active',
+    })
+      .then(() => {
+        toast.success('UAN activated successfully!');
+        loadStatutoryData();
+      })
+      .catch((err) => {
+        console.error('Error activating UAN:', err);
+        toast.error(err.message || 'Error activating UAN');
+      });
   };
 
   const handleAddVPF = (data) => {
@@ -506,20 +668,29 @@ const StatutoryCompliance = () => {
       return;
     }
 
-    const vpfAmount = (employee.basicSalary * parseFloat(data.vpfRate)) / 100;
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const [monthName, yearStr] = (data.month || '').split(' ');
+    const monthIndex = monthNames.indexOf(monthName);
+    const now = new Date();
+    const month = monthIndex >= 0 ? monthIndex + 1 : now.getMonth() + 1;
+    const year = yearStr ? Number(yearStr) : now.getFullYear();
 
-    const newVPF = {
-      id: vpfData.length + 1,
-      name: employee.name,
-      employeeId: employee.employeeId,
-      vpfRate: parseFloat(data.vpfRate),
-      vpfAmount: vpfAmount,
-      month: data.month || 'March 2024',
-      status: 'active'
-    };
-
-    setVpfData([...vpfData, newVPF]);
-    toast.success('VPF added successfully!');
+    statutoryComplianceAPI.createVpfRecord({
+      employee_id: employee.id,
+      month,
+      year,
+      vpf_rate: parseFloat(data.vpfRate),
+      vpf_amount: (employee.basicSalary * parseFloat(data.vpfRate)) / 100,
+      status: 'active',
+    })
+      .then(() => {
+        toast.success('VPF added successfully!');
+        loadStatutoryData();
+      })
+      .catch((err) => {
+        console.error('Error adding VPF:', err);
+        toast.error(err.message || 'Error adding VPF');
+      });
   };
 
   const generateAndDownloadForm = (format) => {
@@ -587,9 +758,31 @@ const StatutoryCompliance = () => {
 
   const handleUpdateConfig = (section, key, value) => {
     switch(section) {
-      case 'pf':
+      case 'pf': {
         setPfConfig(prev => ({ ...prev, [key]: value }));
+        // Map the local field name back to the backend's field for the
+        // one-off keys that persist; only these 5 map to real config.
+        const backendKeyMap = {
+          employeeContribution: 'pf_employee_rate',
+          employerContribution: 'pf_employer_rate',
+          epfContribution: 'eps_contribution_rate',
+          edliContribution: 'edli_contribution_rate',
+          ceilingLimit: 'pf_ceiling_limit',
+          vpfEnabled: 'enable_vpf',
+          vpfRate: 'default_vpf_rate',
+        };
+        const backendKey = backendKeyMap[key];
+        if (backendKey && configId) {
+          statutoryComplianceAPI.updateConfig(configId, { [backendKey]: value })
+            .catch((err) => console.error('Error updating PF config:', err));
+        }
         break;
+      }
+      // NOTE: ESI/PT/TDS/LWF/Gratuity/Bonus config have no backend model at
+      // all (no such tables/endpoints exist under /api/payroll/statutory) —
+      // these remain local-only. The "Calculate" buttons tied to them are
+      // preview-only toasts that never claimed to persist, so this doesn't
+      // change their behavior, just makes it explicit.
       case 'esi':
         setEsiConfig(prev => ({ ...prev, [key]: value }));
         break;

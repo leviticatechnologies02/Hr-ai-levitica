@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
 import Modal from '../../../shared/components/Modal';
+import { attendanceAPI } from '../../../shared/utils/api';
 
 const HolidayCalendarModal = ({
   isOpen,
@@ -14,33 +15,67 @@ const HolidayCalendarModal = ({
   employeeGroups,
   showNotification
 }) => {
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!calendarForm.name || !calendarForm.location) {
       showNotification("Please fill all required fields", "warning");
       return;
     }
 
-    if (isEditCalendar) {
-      dispatch({
-        type: "UPDATE_CALENDAR",
-        payload: {
-          id: editingCalendarId,
-          ...calendarForm,
-        },
-      });
-      showNotification("Calendar updated successfully!", "success");
-    } else {
-      dispatch({
-        type: "ADD_CALENDAR",
-        payload: {
-          id: Date.now(),
-          ...calendarForm,
-        },
-      });
-      showNotification("Calendar added successfully!", "success");
+    setSaving(true);
+    try {
+      if (isEditCalendar) {
+        const updated = await attendanceAPI.updateHolidayCalendar(editingCalendarId, {
+          calendar_name: calendarForm.name,
+          location: calendarForm.location,
+          employee_groups: (calendarForm.employeeGroups || []).join(', ') || null,
+          is_default: calendarForm.isDefault,
+        });
+        dispatch({
+          type: "UPDATE_CALENDAR",
+          payload: {
+            id: updated.id,
+            name: updated.calendar_name,
+            location: updated.location,
+            employeeGroups: updated.employee_groups,
+            status: updated.status,
+            isDefault: updated.is_default,
+            description: updated.description,
+            holidayCount: updated.holiday_count,
+            createdAt: updated.created_at,
+          },
+        });
+        showNotification("Calendar updated successfully!", "success");
+      } else {
+        const created = await attendanceAPI.addHolidayCalendar({
+          calendar_name: calendarForm.name,
+          location: calendarForm.location,
+          employee_groups: (calendarForm.employeeGroups || []).join(', ') || 'All Groups',
+          is_default: calendarForm.isDefault || false,
+        });
+        dispatch({
+          type: "ADD_CALENDAR",
+          payload: {
+            id: created.id,
+            name: created.calendar_name,
+            location: created.location,
+            employeeGroups: created.employee_groups,
+            status: created.status,
+            isDefault: created.is_default,
+            description: created.description,
+            holidayCount: created.holiday_count,
+            createdAt: created.created_at,
+          },
+        });
+        showNotification("Calendar added successfully!", "success");
+      }
+      onClose();
+    } catch (err) {
+      showNotification(err.message || "Failed to save calendar", "error");
+    } finally {
+      setSaving(false);
     }
-
-    onClose();
   };
 
   return (

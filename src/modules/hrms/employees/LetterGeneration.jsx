@@ -1,146 +1,203 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Icon } from '@iconify/react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import StatCard from '../../../shared/components/StatCard';
 import LetterModal from '../modal/LetterModal';
-import EmailModal from '../modal/EmailModal';
-import ViewModal from '../modal/ViewModal';
-import BulkV2Modal from '../modal/BulkV2Modal';
+import { employeeAPI } from '../../../shared/utils/api';
+import { BASE_URL } from '../../../shared/constants/api.config';
+
+const authHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const letterAPI = {
+  dashboard: () => fetch(`${BASE_URL}/letter-generation/dashboard`).then(r => r.json()),
+  templates: () => fetch(`${BASE_URL}/letter-generation/templates`).then(r => r.json()),
+  list: () => fetch(`${BASE_URL}/letter-generation/generate`).then(r => r.json()),
+  generate: (payload) => fetch(`${BASE_URL}/letter-generation/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload),
+  }),
+  update: (id, payload) => fetch(`${BASE_URL}/letter-generation/archive/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload),
+  }),
+  remove: (id) => fetch(`${BASE_URL}/letter-generation/archive/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  }),
+  recordDownload: (id) => fetch(`${BASE_URL}/letter-generation/archive/${id}/download`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+  }),
+};
+
+// Backend status is a free string with only two conventions actually used
+// server-side: "DRAFT" (default on creation) and "ISSUED" (used by the
+// /archive filter). There's no "Sent"/"Signed" enum on the backend — we
+// derive the 4th UI state (Signed) from the separate is_signed boolean.
+const deriveStatus = (letter) => {
+  if (letter.is_signed) return 'Signed';
+  if ((letter.status || '').toUpperCase() === 'ISSUED') return 'Sent';
+  return 'Draft';
+};
+
+const BulkDeleteConfirm = ({ isOpen, onClose, onConfirm, selectedCount }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <h5 className="font-bold text-slate-800 mb-2">Delete {selectedCount} letter(s)?</h5>
+        <p className="text-sm text-slate-500 mb-4">This permanently deletes the selected letters. This can't be undone.</p>
+        <div className="flex justify-end gap-3">
+          <button className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50" onClick={onClose}>Cancel</button>
+          <button className="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700" onClick={onConfirm}>Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const LetterGeneration = () => {
   const [letters, setLetters] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedRows, setSelectedRows] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
 
-  const [modalState, setModalState] = useState({
-    type: null,
-    isOpen: false,
-    data: null
-  });
+  const [modalState, setModalState] = useState({ type: null, isOpen: false, data: null });
+  const [genEmployeeId, setGenEmployeeId] = useState('');
+  const [genTemplateId, setGenTemplateId] = useState('');
+  const [generating, setGenerating] = useState(false);
 
-  const [filters, setFilters] = useState({
-    search: '',
-    type: 'All',
-    status: 'All'
-  });
-
+  const [filters, setFilters] = useState({ search: '', type: 'All', status: 'All' });
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
-  useEffect(() => {
+  const employeeById = useMemo(() => {
+    const map = {};
+    employees.forEach((e) => { map[e.id] = e; });
+    return map;
+  }, [employees]);
+
+  const loadAll = useCallback(async () => {
     setIsLoading(true);
-    // TODO: Fetch letters data from API
-    setLetters([]);
-    setIsLoading(false);
+    setLoadError(null);
+    try {
+      const [lettersRes, templatesRes, employeesRes] = await Promise.all([
+        letterAPI.list(),
+        letterAPI.templates(),
+        employeeAPI.list(),
+      ]);
+      const mappedLetters = (lettersRes || []).map((l) => ({
+        id: l.id,
+        letterCode: l.letter_code,
+        employeeId_raw: l.employee_id,
+        letterType: l.letter_type,
+        date: l.letter_date,
+        subject: l.subject,
+        body: l.body,
+        status: deriveStatus(l),
+        rawStatus: l.status,
+        isSigned: l.is_signed,
+        verificationCode: l.verification_code,
+        downloadCount: l.download_count,
+      }));
+      setLetters(mappedLetters);
+      setTemplates((templatesRes || []).filter((t) => t.is_active));
+      setEmployees(employeesRes || []);
+    } catch (err) {
+      console.error(err);
+      setLoadError('Failed to load letters from the server');
+      toast.error('Failed to load letter data');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const openModal = (type, data = null) => {
-    setModalState({ type, isOpen: true, data });
-  };
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
-  const closeModal = () => {
-    setModalState({ type: null, isOpen: false, data: null });
-  };
+  const lettersWithNames = useMemo(
+    () => letters.map((l) => {
+      const emp = employeeById[l.employeeId_raw];
+      return {
+        ...l,
+        employeeName: emp?.name || `Employee #${l.employeeId_raw}`,
+        employeeCode: emp?.employeeId || l.employeeId_raw,
+        department: emp?.department || '',
+      };
+    }),
+    [letters, employeeById]
+  );
 
-  const showNotification = (message, type = 'success') => {
-    toast[type](message, { position: 'top-right', autoClose: 3000 });
-  };
+  const openModal = (type, data = null) => setModalState({ type, isOpen: true, data });
+  const closeModal = () => setModalState({ type: null, isOpen: false, data: null });
+  const showNotification = (message, type = 'success') => toast[type](message, { position: 'top-right', autoClose: 3000 });
 
   const kpis = useMemo(() => {
-    const total = letters.length;
-    const pending = letters.filter(l => l.status === 'Draft' || l.status === 'Pending').length;
-    const sent = letters.filter(l => l.status === 'Sent').length;
-    const signed = letters.filter(l => l.status === 'Signed').length;
-
+    const total = lettersWithNames.length;
+    const pending = lettersWithNames.filter((l) => l.status === 'Draft').length;
+    const sent = lettersWithNames.filter((l) => l.status === 'Sent').length;
+    const signed = lettersWithNames.filter((l) => l.status === 'Signed').length;
     return { total, pending, sent, signed };
-  }, [letters]);
+  }, [lettersWithNames]);
 
   const filteredData = useMemo(() => {
-    let filtered = letters;
-
+    let filtered = lettersWithNames;
     if (activeTab !== 'all') {
-      const statusMap = { 'drafts': 'Draft', 'sent': 'Sent', 'signed': 'Signed' };
-      if (statusMap[activeTab]) {
-        filtered = filtered.filter(l => l.status === statusMap[activeTab]);
-      }
+      const statusMap = { drafts: 'Draft', sent: 'Sent', signed: 'Signed' };
+      if (statusMap[activeTab]) filtered = filtered.filter((l) => l.status === statusMap[activeTab]);
     }
-
     if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(l =>
-        l.employeeName?.toLowerCase().includes(searchLower) ||
-        l.employeeId?.toLowerCase().includes(searchLower) ||
-        l.letterType?.toLowerCase().includes(searchLower)
+      const s = filters.search.toLowerCase();
+      filtered = filtered.filter((l) =>
+        l.employeeName?.toLowerCase().includes(s) ||
+        String(l.employeeCode)?.toLowerCase().includes(s) ||
+        l.letterType?.toLowerCase().includes(s)
       );
     }
-
-    if (filters.type !== 'All') {
-      filtered = filtered.filter(l => l.letterType === filters.type);
-    }
-
-    if (filters.status !== 'All') {
-      filtered = filtered.filter(l => l.status === filters.status);
-    }
-
+    if (filters.type !== 'All') filtered = filtered.filter((l) => l.letterType === filters.type);
+    if (filters.status !== 'All') filtered = filtered.filter((l) => l.status === filters.status);
     if (sortConfig.key) {
-      filtered.sort((a, b) => {
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
-        if (sortConfig.key === 'date') {
-          aVal = new Date(aVal).getTime();
-          bVal = new Date(bVal).getTime();
-        }
+      filtered = [...filtered].sort((a, b) => {
+        let aVal = a[sortConfig.key]; let bVal = b[sortConfig.key];
+        if (sortConfig.key === 'date') { aVal = new Date(aVal).getTime(); bVal = new Date(bVal).getTime(); }
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
-
     return filtered;
-  }, [letters, activeTab, filters, sortConfig]);
+  }, [lettersWithNames, activeTab, filters, sortConfig]);
 
   const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredData.slice(startIndex, startIndex + pageSize);
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
   }, [filteredData, currentPage, pageSize]);
 
   const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
 
-  const handleSelectRow = (id) => {
-    setSelectedRows(prev =>
-      prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedRows.length === paginatedData.length) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(paginatedData.map(l => l.id));
-    }
-  };
-
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
+  const handleSelectRow = (id) => setSelectedRows((prev) => (prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]));
+  const handleSelectAll = () => setSelectedRows(selectedRows.length === paginatedData.length ? [] : paginatedData.map((l) => l.id));
+  const handleSort = (key) => setSortConfig((prev) => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
+    return new Date(dateString).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Draft': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">Draft</span>;
-      case 'Pending': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Pending</span>;
       case 'Sent': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Sent</span>;
       case 'Signed': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Signed</span>;
       default: return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200">{status}</span>;
@@ -148,21 +205,116 @@ const LetterGeneration = () => {
   };
 
   const EmployeeAvatar = ({ name, size = 'sm' }) => {
-    const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+    const initials = name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : '??';
     const sizeClass = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
-    return (
-      <div className={`${sizeClass} bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-semibold flex-shrink-0`}>
-        {initials}
-      </div>
-    );
+    return <div className={`${sizeClass} bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-semibold flex-shrink-0`}>{initials}</div>;
+  };
+
+  const selectedGenEmployee = employees.find((e) => String(e.id) === String(genEmployeeId));
+  const selectedGenTemplate = templates.find((t) => String(t.id) === String(genTemplateId));
+
+  const handleOpenGenerate = () => {
+    if (!genEmployeeId || !genTemplateId) {
+      toast.warn('Pick an employee and a letter template first.');
+      return;
+    }
+    openModal('letter', {
+      name: selectedGenEmployee.name,
+      employeeId: selectedGenEmployee.employeeId || selectedGenEmployee.id,
+      designation: selectedGenEmployee.designation,
+      department: selectedGenEmployee.department,
+      manager: selectedGenEmployee.employmentInfo?.reportingManager?.direct || 'N/A',
+      confirmationDate: new Date().toISOString().split('T')[0],
+      confirmationEffectiveDate: new Date().toISOString().split('T')[0],
+    });
+  };
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const res = await letterAPI.generate({
+        template_id: Number(genTemplateId),
+        employee_id: Number(genEmployeeId),
+        letter_type: selectedGenTemplate.name,
+        letter_date: new Date().toISOString().split('T')[0],
+        // The backend has no template-merge/variable-substitution logic — the
+        // body it stores is exactly what's sent here, so this is the raw
+        // template text, not personalized for the employee.
+        subject: `${selectedGenTemplate.name} — ${selectedGenEmployee.name}`,
+        body: selectedGenTemplate.body_template,
+      });
+      if (!res.ok) throw new Error('Failed to generate letter');
+      showNotification('Letter generated (saved as Draft).');
+      closeModal();
+      setGenEmployeeId('');
+      setGenTemplateId('');
+      loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to generate letter');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleMarkAsSent = async (letter) => {
+    try {
+      const res = await letterAPI.update(letter.id, { status: 'ISSUED' });
+      if (!res.ok) throw new Error('Failed to update');
+      showNotification('Marked as sent.');
+      loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to mark as sent');
+    }
+  };
+
+  const handleDownload = async (letter) => {
+    try {
+      await letterAPI.recordDownload(letter.id);
+      const blob = new Blob([`${letter.subject}\n\n${letter.body}`], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `${letter.letterCode || 'letter'}.txt`; a.click();
+      URL.revokeObjectURL(url);
+      loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to record download');
+    }
+  };
+
+  const handleDelete = async (letter) => {
+    try {
+      const res = await letterAPI.remove(letter.id);
+      if (!res.ok) throw new Error('Failed to delete');
+      showNotification('Letter deleted.');
+      loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete letter');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(selectedRows.map((id) => letterAPI.remove(id)));
+      showNotification(`${selectedRows.length} letter(s) deleted.`);
+      setSelectedRows([]);
+      closeModal();
+      loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error('Bulk delete failed for one or more letters');
+    }
   };
 
   const renderStats = () => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <StatCard title="Total Generated" value={kpis.total} subtitle="All time" icon="heroicons:document-duplicate" color="blue" />
       <StatCard title="Pending" value={kpis.pending} subtitle="Drafts / Unsent" icon="heroicons:clock" color="orange" />
-      <StatCard title="Sent" value={kpis.sent} subtitle="Awaiting signature" icon="heroicons:paper-airplane" color="purple" />
-      <StatCard title="Signed" value={kpis.signed} subtitle="Successfully signed" icon="heroicons:check-badge" color="green" />
+      <StatCard title="Sent" value={kpis.sent} subtitle="Marked as issued" icon="heroicons:paper-airplane" color="purple" />
+      <StatCard title="Signed" value={kpis.signed} subtitle="Digitally signed" icon="heroicons:check-badge" color="green" />
     </div>
   );
 
@@ -172,21 +324,41 @@ const LetterGeneration = () => {
         { id: 'all', label: 'All Letters', icon: 'heroicons:document-text', count: kpis.total },
         { id: 'drafts', label: 'Drafts', icon: 'heroicons:pencil-square', count: kpis.pending },
         { id: 'sent', label: 'Sent', icon: 'heroicons:paper-airplane', count: kpis.sent },
-        { id: 'signed', label: 'Signed', icon: 'heroicons:check-badge', count: kpis.signed }
+        { id: 'signed', label: 'Signed', icon: 'heroicons:check-badge', count: kpis.signed },
       ].map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${activeTab === tab.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-        >
-          <Icon icon={tab.icon} className="w-4 h-4" />
-          {tab.label}
-          <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-            {tab.count}
-          </span>
+        <button key={tab.id} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${activeTab === tab.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          <Icon icon={tab.icon} className="w-4 h-4" />{tab.label}
+          <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>{tab.count}</span>
         </button>
       ))}
+    </div>
+  );
+
+  const renderGenerateBar = () => (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Employee</label>
+          <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white" value={genEmployeeId} onChange={(e) => setGenEmployeeId(e.target.value)}>
+            <option value="">Select employee…</option>
+            {employees.map((e) => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Letter Template</label>
+          <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white" value={genTemplateId} onChange={(e) => setGenTemplateId(e.target.value)}>
+            <option value="">Select template…</option>
+            {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          {templates.length === 0 && !isLoading && (
+            <p className="text-xs text-amber-600 mt-1">No active letter templates exist yet — create one on the backend first.</p>
+          )}
+        </div>
+        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center justify-center gap-2" onClick={handleOpenGenerate}>
+          <Icon icon="heroicons:plus" className="w-4 h-4" /> Generate Letter
+        </button>
+      </div>
     </div>
   );
 
@@ -195,34 +367,15 @@ const LetterGeneration = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="relative">
           <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="Search employee or letter type..."
-            className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          />
+          <input type="text" placeholder="Search employee or letter type..." className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
         </div>
-        <select
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
-          value={filters.type}
-          onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-        >
+        <select className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white" value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })}>
           <option value="All">All Types</option>
-          <option value="Offer Letter">Offer Letter</option>
-          <option value="Confirmation Letter">Confirmation Letter</option>
-          <option value="Promotion Letter">Promotion Letter</option>
-          <option value="Warning Letter">Warning Letter</option>
-          <option value="Relieving Letter">Relieving Letter</option>
+          {[...new Set(templates.map((t) => t.name))].map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
-        <select
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-        >
+        <select className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
           <option value="All">All Status</option>
           <option value="Draft">Draft</option>
-          <option value="Pending">Pending</option>
           <option value="Sent">Sent</option>
           <option value="Signed">Signed</option>
         </select>
@@ -234,37 +387,17 @@ const LetterGeneration = () => {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="border-b border-slate-200 bg-slate-50/50 px-4 py-3 flex justify-between items-center">
         <h5 className="font-bold text-slate-800 flex items-center gap-2">
-          <Icon icon="heroicons:document-duplicate" className="w-5 h-5 text-indigo-500" />
-          Letters Directory
+          <Icon icon="heroicons:document-duplicate" className="w-5 h-5 text-indigo-500" /> Letters Directory
         </h5>
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition flex items-center gap-2 disabled:opacity-50"
-            onClick={() => openModal('bulk')}
-            disabled={selectedRows.length === 0}
-          >
-            <Icon icon="heroicons:bars-3-bottom-left" className="w-4 h-4" /> Bulk Actions
-          </button>
-          <button
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
-            onClick={() => openModal('letter', { letterType: 'Offer Letter', name: 'New Employee', employeeId: 'TBD' })}
-          >
-            <Icon icon="heroicons:plus" className="w-4 h-4" /> Generate Letter
-          </button>
-        </div>
+        <button className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition flex items-center gap-2 disabled:opacity-50" onClick={() => openModal('bulk')} disabled={selectedRows.length === 0}>
+          <Icon icon="heroicons:bars-3-bottom-left" className="w-4 h-4" /> Bulk Delete ({selectedRows.length})
+        </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50/50 border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3 w-10">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                  checked={selectedRows.length === paginatedData.length && paginatedData.length > 0}
-                  onChange={handleSelectAll}
-                />
-              </th>
+              <th className="px-4 py-3 w-10"><input type="checkbox" className="w-4 h-4" checked={selectedRows.length === paginatedData.length && paginatedData.length > 0} onChange={handleSelectAll} /></th>
               <th className="px-4 py-3 text-left font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('employeeName')}>Employee</th>
               <th className="px-4 py-3 text-left font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('letterType')}>Letter Type</th>
               <th className="px-4 py-3 text-left font-semibold text-slate-600 cursor-pointer" onClick={() => handleSort('date')}>Generation Date</th>
@@ -273,32 +406,22 @@ const LetterGeneration = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {paginatedData.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12">
-                  <Icon icon="heroicons:document-magnifying-glass" className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                  <h6 className="text-slate-600 font-medium">No letters found</h6>
-                  <p className="text-sm text-slate-400">Generate a new letter or adjust your filters</p>
-                </td>
-              </tr>
+            {isLoading ? (
+              <tr><td colSpan={6} className="text-center py-12 text-slate-400">Loading…</td></tr>
+            ) : paginatedData.length === 0 ? (
+              <tr><td colSpan={6} className="text-center py-12">
+                <Icon icon="heroicons:document-magnifying-glass" className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                <h6 className="text-slate-600 font-medium">No letters found</h6>
+                <p className="text-sm text-slate-400">Generate a new letter or adjust your filters</p>
+              </td></tr>
             ) : (
-              paginatedData.map(item => (
+              paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                      checked={selectedRows.includes(item.id)}
-                      onChange={() => handleSelectRow(item.id)}
-                    />
-                  </td>
+                  <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4" checked={selectedRows.includes(item.id)} onChange={() => handleSelectRow(item.id)} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <EmployeeAvatar name={item.employeeName} />
-                      <div>
-                        <div className="font-medium text-slate-800">{item.employeeName}</div>
-                        <div className="text-xs text-slate-500">{item.employeeId} • {item.department}</div>
-                      </div>
+                      <div><div className="font-medium text-slate-800">{item.employeeName}</div><div className="text-xs text-slate-500">{item.employeeCode} • {item.department}</div></div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-slate-700 font-medium">{item.letterType}</td>
@@ -306,18 +429,12 @@ const LetterGeneration = () => {
                   <td className="px-4 py-3 text-center">{getStatusBadge(item.status)}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1.5">
-                      <button className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition" title="View" onClick={() => openModal('view', item)}>
-                        <Icon icon="heroicons:eye" className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition" title="Send Email" onClick={() => openModal('email', item)}>
-                        <Icon icon="heroicons:envelope" className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition" title="Download">
-                        <Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Delete">
-                        <Icon icon="heroicons:trash" className="w-4 h-4" />
-                      </button>
+                      <button className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition" title="View" onClick={() => openModal('view', item)}><Icon icon="heroicons:eye" className="w-4 h-4" /></button>
+                      {item.status === 'Draft' && (
+                        <button className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition" title="Mark as Sent" onClick={() => handleMarkAsSent(item)}><Icon icon="heroicons:paper-airplane" className="w-4 h-4" /></button>
+                      )}
+                      <button className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition" title="Download" onClick={() => handleDownload(item)}><Icon icon="heroicons:arrow-down-tray" className="w-4 h-4" /></button>
+                      <button className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Delete" onClick={() => handleDelete(item)}><Icon icon="heroicons:trash" className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -328,76 +445,79 @@ const LetterGeneration = () => {
       </div>
       {totalPages > 1 && (
         <div className="border-t border-slate-200 px-4 py-3 flex justify-between items-center">
-          <div className="text-sm text-slate-500">
-            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} entries
-          </div>
+          <div className="text-sm text-slate-500">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} entries</div>
           <div className="flex gap-1">
-            <button className="px-3 py-1 border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</button>
-            <button className="px-3 py-1 border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</button>
+            <button className="px-3 py-1 border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</button>
+            <button className="px-3 py-1 border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</button>
           </div>
         </div>
       )}
     </div>
   );
 
+  const renderViewPanel = () => {
+    if (!(modalState.isOpen && modalState.type === 'view' && modalState.data)) return null;
+    const l = modalState.data;
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={closeModal}>
+        <div className="bg-white rounded-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-between items-start mb-4">
+            <h5 className="font-bold text-slate-800">{l.letterType}</h5>
+            <button onClick={closeModal}><Icon icon="heroicons:x-mark" className="w-5 h-5 text-slate-400" /></button>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-slate-500">Letter Code:</span><span className="font-medium">{l.letterCode}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Employee:</span><span className="font-medium">{l.employeeName}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Date:</span><span className="font-medium">{formatDate(l.date)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Status:</span>{getStatusBadge(l.status)}</div>
+            <div className="flex justify-between"><span className="text-slate-500">Verification Code:</span><span className="font-medium">{l.verificationCode || 'N/A'}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Downloads:</span><span className="font-medium">{l.downloadCount}</span></div>
+            <div className="pt-2 border-t border-slate-100">
+              <div className="text-slate-500 mb-1">Subject:</div>
+              <div className="font-medium">{l.subject}</div>
+            </div>
+            <div>
+              <div className="text-slate-500 mb-1">Body:</div>
+              <div className="whitespace-pre-wrap text-slate-700 bg-slate-50 rounded-lg p-3 max-h-48 overflow-auto">{l.body}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="mx-auto max-w-7xl">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-xl">
-            <Icon icon="heroicons:document-text" className="w-5 h-5 text-indigo-600" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Letter Generation</h1>
-            <p className="text-sm text-slate-500">Generate, manage, and dispatch official HR letters</p>
-          </div>
+          <div className="flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-xl"><Icon icon="heroicons:document-text" className="w-5 h-5 text-indigo-600" /></div>
+          <div><h1 className="text-xl font-bold text-slate-900">Letter Generation</h1><p className="text-sm text-slate-500">Generate, manage, and dispatch official HR letters</p></div>
         </div>
       </div>
 
+      {loadError && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{loadError}</div>}
+
       {renderStats()}
       {renderTabs()}
+      {renderGenerateBar()}
       {renderFilters()}
       {renderTable()}
+      {renderViewPanel()}
 
       <LetterModal
         isOpen={modalState.isOpen && modalState.type === 'letter'}
         onClose={closeModal}
-        onGenerate={() => {
-          showNotification('Letter generated successfully!');
-          closeModal();
-        }}
+        onGenerate={handleGenerate}
         employee={modalState.data}
         formatDate={formatDate}
-        letterType={modalState.data?.letterType || 'Offer Letter'}
+        letterType={selectedGenTemplate?.name || 'Letter'}
+        generating={generating}
       />
 
-      <EmailModal
-        isOpen={modalState.isOpen && modalState.type === 'email'}
-        onClose={closeModal}
-        onSendEmail={() => {
-          showNotification('Email sent to employee!');
-          closeModal();
-        }}
-        selectedEmployee={modalState.data}
-        employee={modalState.data}
-      />
-
-      <ViewModal
-        isOpen={modalState.isOpen && modalState.type === 'view'}
-        onClose={closeModal}
-        employee={modalState.data}
-        formatDate={formatDate}
-        getStatusBadge={getStatusBadge}
-      />
-
-      <BulkV2Modal
+      <BulkDeleteConfirm
         isOpen={modalState.isOpen && modalState.type === 'bulk'}
         onClose={closeModal}
-        onSubmit={() => {
-          showNotification('Bulk action applied!');
-          setSelectedRows([]);
-          closeModal();
-        }}
+        onConfirm={handleBulkDelete}
         selectedCount={selectedRows.length}
       />
 
