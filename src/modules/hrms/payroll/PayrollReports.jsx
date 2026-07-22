@@ -8,6 +8,7 @@ import AddEditReportModal from '../modal/AddEditReportModal';
 import DeleteConfirmationModal from '../modal/DeleteConfirmationModal';
 import InsightDetailsModal from '../modal/InsightDetailsModal';
 import ReportBuilderModal from '../modal/ReportBuilderModal';
+import { payrollReportsAPI, employeeAPI } from '../../../shared/utils/api';
 
 const PayrollReports = () => {
   const [activeSection, setActiveSection] = useState('standard');
@@ -54,8 +55,6 @@ const PayrollReports = () => {
   const departments = ['All', 'Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations', 'IT', 'Product', 'Customer Support'];
 
   const [employeeData, setEmployeeData] = useState([]);
-  const [payrollTransactions, setPayrollTransactions] = useState([]);
-  const [complianceDeadlines, setComplianceDeadlines] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
 
   const [standardReports, setStandardReports] = useState([]);
@@ -66,6 +65,160 @@ const PayrollReports = () => {
   const [customReports, setCustomReports] = useState([]);
   const [availableColumns, setAvailableColumns] = useState([]);
   const [availableFilters, setAvailableFilters] = useState([]);
+  const [reportConfigId, setReportConfigId] = useState(null);
+
+  // ------------------------------------------------------------------
+  // NOTE: StandardReportItem has NO `id` field at all on the backend — it's
+  // a fixed, read-only catalogue (not individually creatable/editable/
+  // deletable). A synthetic key is generated here since the JSX keys rows
+  // by report.id. "Edit"/"Delete" on a standard report have nothing to
+  // call — only "Generate" (-> exportStandardReport, which creates a
+  // GeneratedReport) and the categories/search filters are real.
+  // ------------------------------------------------------------------
+  const mapStandardReport = (r, idx) => ({
+    id: `std-${idx}-${r.report_name}`,
+    name: r.report_name,
+    description: r.description,
+    category: r.category,
+    reportType: r.report_type,
+    frequency: r.frequency,
+    department: r.department || 'All',
+    status: r.status,
+    lastGenerated: r.last_generated_at,
+    isStandardCatalogueEntry: true,
+  });
+
+  const severityMap = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' };
+  const mapInsight = (i) => ({
+    id: i.id,
+    title: i.title,
+    description: i.description,
+    severity: severityMap[i.severity] || (i.severity || '').toLowerCase(),
+    department: i.department,
+    metricValue: i.metric_value,
+  });
+
+  const mapCompliance = (c) => ({
+    id: c.id,
+    name: c.report_name,
+    type: c.compliance_type,
+    complianceType: c.compliance_type,
+    frequency: c.frequency,
+    period: c.period_label,
+    dueDate: c.due_date,
+    isOverdue: c.is_overdue,
+    status: c.status,
+    autoGenerate: c.auto_generate,
+    filePath: c.file_path,
+    generatedAt: c.generated_at,
+    category: 'compliance',
+  });
+
+  const mapAnalytics = (a) => ({
+    id: a.id,
+    name: a.title,
+    description: a.description,
+    chartType: a.chart_type,
+    frequency: a.frequency,
+    metrics: a.metrics ? a.metrics.split(',') : [],
+    isActive: a.is_active,
+    isRealTime: a.is_real_time,
+    lastRefreshed: a.last_refreshed_at,
+    category: 'analytics',
+  });
+
+  const mapGenerated = (g) => ({
+    id: g.id,
+    reportName: g.report_name,
+    period: g.period_label || `${g.period_month || ''}/${g.period_year || ''}`,
+    generatedDate: g.generated_at,
+    generatedBy: g.generated_by_label || 'System',
+    format: g.format,
+    size: g.file_size_display || 'N/A',
+    downloadCount: g.download_count || 0,
+  });
+
+  const mapScheduled = (s) => ({
+    id: s.id,
+    reportName: s.report_name,
+    schedule: s.day_of_month ? `Day ${s.day_of_month} of every month` : (s.frequency || ''),
+    nextRun: s.next_run_at,
+    lastRun: s.last_run_at,
+    format: s.export_format,
+    recipients: s.recipients ? s.recipients.split(',') : [],
+    status: s.is_active ? 'active' : 'paused',
+    frequency: s.frequency,
+  });
+
+  const mapCustom = (c) => ({
+    id: c.id,
+    name: c.report_name,
+    description: c.description,
+    category: c.category,
+    dataSource: c.data_source,
+    columns: c.columns || [],
+    format: [c.export_pdf && 'pdf', c.export_excel && 'excel', c.export_csv && 'csv'].filter(Boolean),
+    schedule: c.schedule_frequency,
+    isActive: c.is_active,
+    dashboardWidget: c.add_as_dashboard_widget,
+    isCustom: true,
+  });
+
+  const loadReportsData = () => {
+    setIsLoading(true);
+    Promise.all([
+      payrollReportsAPI.listStandardReports().catch((err) => { console.error('Failed to load standard reports:', err); return null; }),
+      payrollReportsAPI.listAiInsights().catch((err) => { console.error('Failed to load AI insights:', err); return []; }),
+      payrollReportsAPI.listComplianceReports().catch((err) => { console.error('Failed to load compliance reports:', err); return []; }),
+      payrollReportsAPI.listAnalyticsDashboards().catch((err) => { console.error('Failed to load analytics dashboards:', err); return []; }),
+      payrollReportsAPI.listGeneratedReports().catch((err) => { console.error('Failed to load generated reports:', err); return []; }),
+      payrollReportsAPI.listScheduledReports().catch((err) => { console.error('Failed to load scheduled reports:', err); return []; }),
+      payrollReportsAPI.listCustomReports().catch((err) => { console.error('Failed to load custom reports:', err); return []; }),
+      payrollReportsAPI.getBuilderAvailableColumns().catch((err) => { console.error('Failed to load available columns:', err); return []; }),
+      payrollReportsAPI.getReportConfig().catch((err) => { console.error('Failed to load report config:', err); return null; }),
+      payrollReportsAPI.getDashboardKpi().catch((err) => { console.error('Failed to load dashboard KPI:', err); return null; }),
+      payrollReportsAPI.listOverdueCompliance().catch((err) => { console.error('Failed to load overdue compliance count:', err); return []; }),
+      employeeAPI.list().catch((err) => { console.error('Failed to load employees:', err); return []; }),
+    ]).then(([standardData, insightsData, complianceData, analyticsData, generatedData, scheduledData, customData, columnsData, config, kpiData, overdueData, employeesData]) => {
+      setStandardReports((standardData?.reports || []).map(mapStandardReport));
+      setAiInsights((Array.isArray(insightsData) ? insightsData : []).map(mapInsight));
+      setComplianceReports((Array.isArray(complianceData) ? complianceData : []).map(mapCompliance));
+      setAnalyticsDashboards((Array.isArray(analyticsData) ? analyticsData : []).map(mapAnalytics));
+      setGeneratedReports((Array.isArray(generatedData) ? generatedData : []).map(mapGenerated));
+      setScheduledReports((Array.isArray(scheduledData) ? scheduledData : []).map(mapScheduled));
+      setCustomReports((Array.isArray(customData) ? customData : []).map(mapCustom));
+      setAvailableColumns((Array.isArray(columnsData) ? columnsData : []).map((c) => ({
+        id: c.column_key,
+        name: c.column_label,
+        category: c.column_group,
+        type: c.data_type,
+        description: c.description,
+      })));
+      setDashboardKpi(kpiData);
+      setComplianceOverdueCount(Array.isArray(overdueData) ? overdueData.length : 0);
+      setEmployeeData(Array.isArray(employeesData) ? employeesData : []);
+      if (config) {
+        setReportConfigId(config.id);
+        setConfigSettings({
+          defaultFormat: config.default_format,
+          retentionPeriod: String(config.retention_months),
+          autoGenerate: config.auto_generate_scheduled,
+          emailNotification: config.email_notifications,
+        });
+      }
+    }).finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    loadReportsData();
+    // NOTE: availableFilters has no backend equivalent anywhere in the
+    // reports router — kept as a fixed local default rather than faked
+    // as a real endpoint response.
+    setAvailableFilters([
+      { id: 'department', name: 'Department', type: 'multi-select', options: departments.slice(1) },
+      { id: 'date_range', name: 'Date Range', type: 'date-range' }
+    ]);
+  }, []);
 
   const openModal = (type, data = null) => {
     setModalState({ type, isOpen: true, data });
@@ -142,23 +295,26 @@ const PayrollReports = () => {
     );
   };
 
-  const kpis = useMemo(() => {
-    const totalPayrollCost = payrollTransactions.reduce((sum, t) => sum + (t.grossSalary || 0), 0);
-    const statutoryDeductions = payrollTransactions.reduce((sum, t) =>
-      sum + (t.pf || 0) + (t.esi || 0) + (t.pt || 0) + (t.tds || 0), 0);
-    const avgSalary = employeeData.length > 0 ? totalPayrollCost / employeeData.length : 0;
+  const [dashboardKpi, setDashboardKpi] = useState(null);
+  const [complianceOverdueCount, setComplianceOverdueCount] = useState(0);
 
+  const kpis = useMemo(() => {
     return {
       totalReports: standardReports.length + complianceReports.length + analyticsDashboards.length + customReports.length,
       generatedCount: generatedReports.length,
       scheduledCount: scheduledReports.length,
-      overdueCompliance: complianceDeadlines.filter(d => new Date(d.dueDate) < new Date() && d.status !== 'submitted').length,
-      totalPayrollCost,
-      avgSalary,
-      statutoryDeductions,
-      employeeCount: employeeData.length
+      overdueCompliance: complianceOverdueCount,
+      totalPayrollCost: dashboardKpi ? Number(dashboardKpi.total_payroll_cost) : 0,
+      payrollCostChangePct: dashboardKpi?.payroll_cost_change_pct,
+      avgSalary: dashboardKpi ? Number(dashboardKpi.average_salary) : 0,
+      avgSalaryYoyPct: dashboardKpi?.average_salary_yoy_pct,
+      statutoryDeductions: dashboardKpi ? Number(dashboardKpi.statutory_deductions) : 0,
+      statutoryDeductionsPct: dashboardKpi?.statutory_deductions_pct,
+      complianceStatusPct: dashboardKpi?.compliance_status_pct,
+      complianceLabel: dashboardKpi?.compliance_label,
+      employeeCount: employeeData.length,
     };
-  }, [employeeData, payrollTransactions, standardReports, complianceReports, analyticsDashboards, customReports, generatedReports, scheduledReports, complianceDeadlines]);
+  }, [employeeData, dashboardKpi, complianceOverdueCount, standardReports, complianceReports, analyticsDashboards, customReports, generatedReports, scheduledReports]);
 
   const getFilteredData = () => {
     let data = [];
@@ -216,33 +372,6 @@ const PayrollReports = () => {
     currentPage * itemsPerPage
   );
 
-  const loadInitialData = () => {
-    setEmployeeData([]);
-    setStandardReports([]);
-    setComplianceReports([]);
-    setAnalyticsDashboards([]);
-    setGeneratedReports([]);
-    setScheduledReports([]);
-    setAiInsights([]);
-    setAvailableColumns([
-      { id: 'emp_id', name: 'Employee ID', category: 'Basic', type: 'text' },
-      { id: 'name', name: 'Name', category: 'Basic', type: 'text' },
-      { id: 'department', name: 'Department', category: 'Basic', type: 'text' },
-      { id: 'basic_salary', name: 'Basic Salary', category: 'Salary', type: 'currency' },
-      { id: 'gross_salary', name: 'Gross Salary', category: 'Salary', type: 'currency' },
-      { id: 'net_salary', name: 'Net Salary', category: 'Salary', type: 'currency' }
-    ]);
-    setAvailableFilters([
-      { id: 'department', name: 'Department', type: 'multi-select', options: departments.slice(1) },
-      { id: 'date_range', name: 'Date Range', type: 'date-range' }
-    ]);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
   const handleAddReport = () => {
     setIsEditMode(false);
     setReportForm({
@@ -278,32 +407,66 @@ const PayrollReports = () => {
   };
 
   const handleSaveReport = (data) => {
-    const payload = { ...data, id: reportForm.id || `RPT_${Date.now()}`, lastModified: new Date().toISOString() };
-
-    switch (payload.category) {
-      case 'standard':
-        setStandardReports(prev => {
-          const exists = prev.find(r => r.id === payload.id);
-          return exists ? prev.map(r => r.id === payload.id ? payload : r) : [...prev, payload];
-        });
-        break;
-      case 'compliance':
-        setComplianceReports(prev => {
-          const exists = prev.find(r => r.id === payload.id);
-          return exists ? prev.map(r => r.id === payload.id ? payload : r) : [...prev, payload];
-        });
-        break;
-      case 'analytics':
-        setAnalyticsDashboards(prev => {
-          const exists = prev.find(r => r.id === payload.id);
-          return exists ? prev.map(r => r.id === payload.id ? payload : r) : [...prev, payload];
-        });
-        break;
+    if (data.category === 'standard') {
+      // StandardReportItem has no id on the backend at all — it's a fixed,
+      // read-only catalogue. There's no create/edit endpoint for it.
+      toast.warning('Standard reports are a fixed catalogue and cannot be added or edited — only generated.');
+      closeModal();
+      return;
     }
 
-    closeModal();
-    showNotification(isEditMode ? 'Report updated successfully!' : 'Report added successfully!', 'success');
-    setActiveSection(payload.category);
+    if (data.category === 'compliance') {
+      const payload = {
+        report_name: data.name,
+        compliance_type: data.complianceType || 'PF',
+        frequency: data.frequency,
+        period_label: data.period || undefined,
+        due_date: data.dueDate || undefined,
+        auto_generate: data.autoGenerate !== false,
+      };
+      const request = isEditMode && reportForm.id
+        ? payrollReportsAPI.updateComplianceReport(reportForm.id, { period_label: payload.period_label })
+        : payrollReportsAPI.createComplianceReport(payload);
+
+      request
+        .then(() => {
+          closeModal();
+          showNotification(isEditMode ? 'Report updated successfully!' : 'Report added successfully!', 'success');
+          setActiveSection('compliance');
+          loadReportsData();
+        })
+        .catch((err) => {
+          console.error('Error saving compliance report:', err);
+          showNotification(err.message || 'Error saving report', 'error');
+        });
+      return;
+    }
+
+    if (data.category === 'analytics') {
+      const payload = {
+        title: data.name,
+        description: data.description || undefined,
+        chart_type: data.chartType || 'bar',
+        frequency: data.frequency,
+        metrics: data.metrics || undefined,
+      };
+      const request = isEditMode && reportForm.id
+        ? payrollReportsAPI.updateAnalyticsDashboard(reportForm.id, payload)
+        : payrollReportsAPI.createAnalyticsDashboard(payload);
+
+      request
+        .then(() => {
+          closeModal();
+          showNotification(isEditMode ? 'Dashboard updated successfully!' : 'Dashboard added successfully!', 'success');
+          setActiveSection('analytics');
+          loadReportsData();
+        })
+        .catch((err) => {
+          console.error('Error saving analytics dashboard:', err);
+          showNotification(err.message || 'Error saving dashboard', 'error');
+        });
+      return;
+    }
   };
 
   const handleDeleteReport = (reportId, category, reportName = '') => {
@@ -314,57 +477,77 @@ const PayrollReports = () => {
   const confirmDeleteReport = () => {
     const { id, category } = reportToDelete;
 
-    const setters = {
-      'standard': setStandardReports,
-      'compliance': setComplianceReports,
-      'analytics': setAnalyticsDashboards,
-      'scheduled': setScheduledReports,
-      'custom': setCustomReports
+    const deleters = {
+      'compliance': payrollReportsAPI.deleteComplianceReport,
+      'analytics': payrollReportsAPI.deleteAnalyticsDashboard,
+      'scheduled': payrollReportsAPI.deleteScheduledReport,
+      'custom': payrollReportsAPI.deleteCustomReport,
     };
 
-    const setter = setters[category];
-    if (setter) {
-      setter(prev => prev.filter(r => r.id !== id));
+    const deleter = deleters[category];
+    if (!deleter) {
+      closeModal();
+      setDeleting(false);
+      showNotification('This report type cannot be deleted (fixed catalogue entry).', 'warning');
+      return;
     }
 
-    closeModal();
-    setDeleting(false);
-    showNotification('Report deleted successfully!', 'success');
+    deleter(id)
+      .then(() => {
+        closeModal();
+        setDeleting(false);
+        showNotification('Report deleted successfully!', 'success');
+        loadReportsData();
+      })
+      .catch((err) => {
+        console.error('Error deleting report:', err);
+        setDeleting(false);
+        showNotification(err.message || 'Error deleting report', 'error');
+      });
   };
 
   const handleGenerateReport = (report) => {
     setIsLoading(true);
-    setTimeout(() => {
-      const newGenerated = {
-        id: `GR_${Date.now()}`,
-        reportName: report.name || report.reportName,
-        period: 'Current Month',
-        generatedDate: new Date().toISOString(),
-        generatedBy: 'System',
-        format: Array.isArray(report.format) ? report.format[0] : report.format,
-        size: `${(Math.random() * 2 + 0.5).toFixed(1)} MB`,
-        downloadCount: 0
-      };
-      setGeneratedReports(prev => [newGenerated, ...prev]);
-      setIsLoading(false);
-      showNotification(`Report generated successfully!`, 'success');
-    }, 1500);
+    payrollReportsAPI.exportStandardReport({
+      report_name: report.name,
+      format: 'PDF',
+    })
+      .then(() => {
+        showNotification('Report generation initiated!', 'success');
+        loadReportsData();
+      })
+      .catch((err) => {
+        console.error('Error generating report:', err);
+        showNotification(err.message || 'Error generating report', 'error');
+      })
+      .finally(() => setIsLoading(false));
   };
 
   const handleDownloadGeneratedReport = (report) => {
     setIsLoading(true);
-    setTimeout(() => {
-      setGeneratedReports(prev =>
-        prev.map(r => r.id === report.id ? { ...r, downloadCount: (r.downloadCount || 0) + 1 } : r)
-      );
-      const sampleData = [{ 'Report Name': report.reportName, 'Period': report.period, 'Generated Date': formatDate(report.generatedDate) }];
-      const ws = XLSX.utils.json_to_sheet(sampleData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Report');
-      XLSX.writeFile(wb, `${report.reportName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      setIsLoading(false);
-      showNotification('Report downloaded successfully!', 'success');
-    }, 1000);
+    // NOTE: the backend's /download endpoint only returns JSON metadata and
+    // increments download_count — there's no real file storage/content
+    // behind file_path. This calls it for real (so the count is genuinely
+    // tracked server-side) then builds an export from that real metadata,
+    // rather than either faking a file entirely client-side or pretending
+    // actual report content exists when it doesn't.
+    payrollReportsAPI.downloadGeneratedReport(report.id)
+      .then((meta) => {
+        setGeneratedReports(prev =>
+          prev.map(r => r.id === report.id ? { ...r, downloadCount: meta?.download_count ?? (r.downloadCount || 0) + 1 } : r)
+        );
+        const sampleData = [{ 'Report Name': meta?.report_name || report.reportName, 'Period': report.period, 'Format': meta?.format || report.format, 'Generated Date': formatDate(report.generatedDate) }];
+        const ws = XLSX.utils.json_to_sheet(sampleData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Report');
+        XLSX.writeFile(wb, `${(report.reportName || 'report').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        showNotification('Report downloaded successfully!', 'success');
+      })
+      .catch((err) => {
+        console.error('Error downloading report:', err);
+        showNotification(err.message || 'Error downloading report', 'error');
+      })
+      .finally(() => setIsLoading(false));
   };
 
   const handleScheduleReport = (report) => {
@@ -383,10 +566,17 @@ const PayrollReports = () => {
   };
 
   const handleToggleScheduleStatus = (report) => {
-    setScheduledReports(prev =>
-      prev.map(r => r.id === report.id ? { ...r, status: r.status === 'active' ? 'paused' : 'active' } : r)
-    );
-    showNotification(`Schedule ${report.status === 'active' ? 'paused' : 'activated'}`, 'info');
+    payrollReportsAPI.toggleScheduledReport(report.id)
+      .then(() => {
+        setScheduledReports(prev =>
+          prev.map(r => r.id === report.id ? { ...r, status: r.status === 'active' ? 'paused' : 'active' } : r)
+        );
+        showNotification(`Schedule ${report.status === 'active' ? 'paused' : 'activated'}`, 'info');
+      })
+      .catch((err) => {
+        console.error('Error toggling schedule status:', err);
+        showNotification(err.message || 'Error updating schedule', 'error');
+      });
   };
 
   const handleExportData = (format = 'excel') => {
@@ -405,14 +595,45 @@ const PayrollReports = () => {
     }
   };
 
+  // No "Save" action existed anywhere for these settings before — the
+  // toggles/inputs only ever updated local React state, so every change
+  // was silently lost on refresh. updateReportConfig() is real and
+  // verified; this just wires the missing button to it.
+  const handleSaveConfiguration = () => {
+    payrollReportsAPI.updateReportConfig({
+      default_format: configSettings.defaultFormat,
+      retention_months: parseInt(configSettings.retentionPeriod, 10) || 12,
+      auto_generate_scheduled: configSettings.autoGenerate,
+      email_notifications: configSettings.emailNotification,
+    })
+      .then((config) => {
+        if (config) setReportConfigId(config.id);
+        showNotification('Configuration saved successfully!', 'success');
+      })
+      .catch((err) => {
+        console.error('Error saving configuration:', err);
+        showNotification(err.message || 'Error saving configuration', 'error');
+      });
+  };
+
   const handleResetConfiguration = () => {
-    setConfigSettings({
-      defaultFormat: 'PDF',
-      retentionPeriod: '12',
-      autoGenerate: true,
-      emailNotification: true
-    });
-    showNotification('Configuration reset to default values!', 'success');
+    payrollReportsAPI.resetReportConfig()
+      .then((config) => {
+        if (config) {
+          setReportConfigId(config.id);
+          setConfigSettings({
+            defaultFormat: config.default_format,
+            retentionPeriod: String(config.retention_months),
+            autoGenerate: config.auto_generate_scheduled,
+            emailNotification: config.email_notifications,
+          });
+        }
+        showNotification('Configuration reset to default values!', 'success');
+      })
+      .catch((err) => {
+        console.error('Error resetting configuration:', err);
+        showNotification(err.message || 'Error resetting configuration', 'error');
+      });
   };
 
   const handleViewInsightDetails = (insight) => {
@@ -420,23 +641,41 @@ const PayrollReports = () => {
   };
 
   const handleCreateCustomReport = (data) => {
-    const newReport = {
-      id: `CUSTOM_${Date.now()}`,
-      name: data.name,
-      description: data.description,
-      category: data.category,
-      columns: data.selectedColumns || [],
-      filters: data.selectedFilters || [],
-      format: data.format || ['pdf', 'excel'],
-      schedule: data.schedule || 'none',
-      createdDate: new Date().toISOString(),
-      isCustom: true,
-      dashboardWidget: data.dashboardWidget || false
-    };
-    setCustomReports(prev => [...prev, newReport]);
-    closeModal();
-    showNotification('Custom report created successfully!', 'success');
-    setActiveSection('configure');
+    const columns = (data.selectedColumns || []).map((colId, idx) => {
+      const col = availableColumns.find((c) => c.id === colId);
+      return {
+        column_key: colId,
+        column_label: col?.name || colId,
+        column_group: col?.category || 'Basic',
+        data_type: col?.type || 'text',
+        sort_order: idx,
+        is_selected: true,
+      };
+    });
+
+    payrollReportsAPI.createCustomReport({
+      report_name: data.name,
+      description: data.description || undefined,
+      category: data.category || 'salary',
+      data_source: data.dataSource || 'payroll_data',
+      columns,
+      department_filter: (data.selectedFilters && data.selectedFilters.length) ? data.selectedFilters : undefined,
+      export_pdf: (data.format || []).includes('pdf'),
+      export_excel: (data.format || []).includes('excel'),
+      export_csv: (data.format || []).includes('csv'),
+      schedule_frequency: data.schedule || 'dont_schedule',
+      add_as_dashboard_widget: !!data.dashboardWidget,
+    })
+      .then(() => {
+        closeModal();
+        showNotification('Custom report created successfully!', 'success');
+        setActiveSection('configure');
+        loadReportsData();
+      })
+      .catch((err) => {
+        console.error('Error creating custom report:', err);
+        showNotification(err.message || 'Error creating custom report', 'error');
+      });
   };
 
   const renderStats = () => (
@@ -1065,6 +1304,12 @@ const PayrollReports = () => {
               />
               <span className="text-sm text-slate-700">Email notifications for completed reports</span>
             </label>
+            <button
+              className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition"
+              onClick={handleSaveConfiguration}
+            >
+              Save Configuration
+            </button>
           </div>
         </div>
       </div>

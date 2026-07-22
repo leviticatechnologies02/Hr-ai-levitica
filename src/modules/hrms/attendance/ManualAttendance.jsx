@@ -7,6 +7,7 @@ import Breadcrump from "../../../shared/components/Breadcrump";
 // Import modularized modals
 import DownloadManualAttendanceModal from "../modal/DownloadManualAttendanceModal";
 import UploadManualAttendanceModal from "../modal/UploadManualAttendanceModal";
+import { attendanceAPI } from "../../../shared/utils/api";
 
 const ManualAttendance = () => {
   // Attendance data - will be populated from API
@@ -58,25 +59,26 @@ const ManualAttendance = () => {
     fetchAttendanceData(newPeriod, false);
   };
 
+  const mapRowFromBackend = (r) => ({
+    id: r.employee_id,
+    employeeId: r.employee_id,
+    code: r.employee_code,
+    name: r.employee_name,
+    P: r.P, A: r.A, H: r.H, W: r.W, CO: r.CO, CL: r.CL, LW: r.LW,
+  });
+
   const fetchAttendanceData = async (period, showToast = true) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await api.getManualAttendance({ period });
-      // setAttendance(response.data);
+      const rows = await attendanceAPI.listManualAttendance({ period, page: 1, page_size: 200 });
+      setAttendance((rows || []).map(mapRowFromBackend));
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // For demo purposes, set empty array or you can add sample data for testing
-      setAttendance([]);
-
-      // Only show toast if not initial load and showToast is true
       if (!isInitialLoad && showToast) {
         toast.info(`Loaded attendance for ${period}`);
       }
     } catch (error) {
-      toast.error("Failed to load attendance data");
+      toast.error(error.message || "Failed to load attendance data");
+      setAttendance([]);
     } finally {
       setIsLoading(false);
       setIsInitialLoad(false);
@@ -96,18 +98,23 @@ const ManualAttendance = () => {
     if (!emp) return;
 
     try {
-      // TODO: Replace with actual API call
-      // await api.updateManualAttendance(emp);
+      const [mon, year] = financialYear.split("-");
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      await attendanceAPI.saveManualAttendance({
+        employee_id: emp.employeeId,
+        month: months.indexOf(mon) + 1,
+        year: Number(year),
+        P: emp.P, A: emp.A, H: emp.H, W: emp.W, CO: emp.CO, CL: emp.CL, LW: emp.LW,
+      });
       toast.success(`Attendance saved for ${emp.name}`);
     } catch (error) {
-      toast.error("Failed to save attendance");
+      toast.error(error.message || "Failed to save attendance");
     }
   };
 
   const handleDownloadSubmit = async (format) => {
     try {
-      // TODO: Replace with actual API call
-      // await api.downloadManualAttendance({ period: financialYear, format });
+      window.open(attendanceAPI.downloadManualAttendanceUrl({ period: financialYear }), "_blank");
       toast.success(`Attendance downloaded successfully in ${format.toUpperCase()} format!`);
     } catch (error) {
       toast.error("Failed to download attendance");
@@ -115,18 +122,43 @@ const ManualAttendance = () => {
   };
 
   const handleUploadSubmit = async (file) => {
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     try {
-      // TODO: Replace with actual API call
-      // const formData = new FormData();
-      // formData.append('file', file);
-      // formData.append('period', financialYear);
-      // await api.uploadManualAttendance(formData);
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) throw new Error("File has no data rows");
 
-      toast.success(`File "${file.name}" uploaded successfully!`);
-      // Refresh attendance data after upload
+      const headers = lines[0].split(",").map((h) => h.trim());
+      const codeIdx = headers.findIndex((h) => h.toLowerCase().includes("employee code"));
+      const colIdx = {};
+      ["P", "A", "H", "W", "CO", "CL", "LW"].forEach((col) => {
+        colIdx[col] = headers.findIndex((h) => h.trim().toUpperCase() === col);
+      });
+
+      if (codeIdx === -1) {
+        throw new Error('CSV must have an "Employee Code" column');
+      }
+
+      const rows = lines.slice(1).map((line) => {
+        const cells = line.split(",").map((c) => c.trim());
+        const row = { employee_code: cells[codeIdx] };
+        ["P", "A", "H", "W", "CO", "CL", "LW"].forEach((col) => {
+          row[col] = colIdx[col] !== -1 ? Number(cells[colIdx[col]]) || 0 : 0;
+        });
+        return row;
+      }).filter((r) => r.employee_code);
+
+      const [mon, year] = financialYear.split("-");
+      const result = await attendanceAPI.uploadManualAttendance({
+        month: months.indexOf(mon) + 1,
+        year: Number(year),
+        rows,
+      });
+
+      toast.success(result.message || `File "${file.name}" uploaded successfully!`);
       fetchAttendanceData(financialYear, true);
     } catch (error) {
-      toast.error("Failed to upload file");
+      toast.error(error.message || "Failed to upload file");
     }
   };
 
