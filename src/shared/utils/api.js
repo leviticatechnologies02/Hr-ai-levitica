@@ -1843,6 +1843,125 @@ exportLoans: () =>
 };
 
 // ==========================================
+// PAYROLL REPORTS APIs
+// Backend router: routers/Payroll/payroll_reports.py, mounted in main.py as
+// app.include_router(payroll_rpt.router, prefix="/api/payroll") — the
+// router's own prefix is "/payroll-reports", so every real path here is
+// /api/payroll/payroll-reports/... (yes, "payroll" appears twice; that's
+// the actual mount, not a typo below).
+// PayrollReports.jsx was already written against this exact interface but
+// this object didn't exist yet, which broke the production build
+// ("payrollReportsAPI is not exported"). Every method below is a real,
+// registered endpoint — none of this is a stub.
+// ==========================================
+export const payrollReportsAPI = {
+  // ---- Dashboard ----
+  getDashboardKpi: () => apiCall('/api/payroll/payroll-reports/dashboard/kpi'),
+  listAiInsights: () => apiCall('/api/payroll/payroll-reports/dashboard/insights'),
+  createAiInsight: (data) => apiCall('/api/payroll/payroll-reports/dashboard/insights', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  dismissAiInsight: (insightId, data) => apiCall(`/api/payroll/payroll-reports/dashboard/insights/${insightId}/dismiss`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+
+  // ---- Standard Reports tab ----
+  listStandardReports: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.search) q.append('search', params.search);
+    if (params.category) q.append('category', params.category);
+    if (params.department) q.append('department', params.department);
+    if (params.frequency) q.append('frequency', params.frequency);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/payroll-reports/standard/${qs ? `?${qs}` : ''}`);
+  },
+  getStandardReportCategories: () => apiCall('/api/payroll/payroll-reports/standard/categories'),
+  exportStandardReport: (data) => apiCall('/api/payroll/payroll-reports/standard/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+
+  // ---- Compliance tab ----
+  listComplianceReports: (complianceType) => apiCall(`/api/payroll/payroll-reports/compliance/${complianceType ? `?compliance_type=${complianceType}` : ''}`),
+  listOverdueCompliance: () => apiCall('/api/payroll/payroll-reports/compliance/overdue'),
+  createComplianceReport: (data) => apiCall('/api/payroll/payroll-reports/compliance/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateComplianceReport: (reportId, data) => apiCall(`/api/payroll/payroll-reports/compliance/${reportId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  generateComplianceReport: (reportId) => apiCall(`/api/payroll/payroll-reports/compliance/${reportId}/generate`, { method: 'PATCH' }),
+  deleteComplianceReport: (reportId) => apiCall(`/api/payroll/payroll-reports/compliance/${reportId}`, { method: 'DELETE' }),
+
+  // ---- Analytics tab ----
+  listAnalyticsDashboards: () => apiCall('/api/payroll/payroll-reports/analytics/'),
+  createAnalyticsDashboard: (data) => apiCall('/api/payroll/payroll-reports/analytics/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateAnalyticsDashboard: (dashboardId, data) => apiCall(`/api/payroll/payroll-reports/analytics/${dashboardId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteAnalyticsDashboard: (dashboardId) => apiCall(`/api/payroll/payroll-reports/analytics/${dashboardId}`, { method: 'DELETE' }),
+
+  // ---- Generated tab ----
+  listGeneratedReports: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.reportName) q.append('report_name', params.reportName);
+    if (params.format) q.append('format', params.format);
+    if (params.skip != null) q.append('skip', params.skip);
+    if (params.limit != null) q.append('limit', params.limit);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/payroll-reports/generated/${qs ? `?${qs}` : ''}`);
+  },
+  recordGeneratedReport: (data) => apiCall('/api/payroll/payroll-reports/generated/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  // NOTE: this only returns JSON metadata and increments download_count server-side
+  // — there's no real file storage behind file_path, so there's nothing to stream.
+  downloadGeneratedReport: (reportId) => apiCall(`/api/payroll/payroll-reports/generated/${reportId}/download`),
+  deleteGeneratedReport: (reportId) => apiCall(`/api/payroll/payroll-reports/generated/${reportId}`, { method: 'DELETE' }),
+
+  // ---- Scheduled tab ----
+  listScheduledReports: (isActive) => apiCall(`/api/payroll/payroll-reports/scheduled/${isActive != null ? `?is_active=${isActive}` : ''}`),
+  createScheduledReport: (data) => apiCall('/api/payroll/payroll-reports/scheduled/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateScheduledReport: (scheduleId, data) => apiCall(`/api/payroll/payroll-reports/scheduled/${scheduleId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  toggleScheduledReport: (scheduleId) => apiCall(`/api/payroll/payroll-reports/scheduled/${scheduleId}/toggle`, { method: 'PATCH' }),
+  deleteScheduledReport: (scheduleId) => apiCall(`/api/payroll/payroll-reports/scheduled/${scheduleId}`, { method: 'DELETE' }),
+
+  // ---- Configuration tab ----
+  getReportConfig: () => apiCall('/api/payroll/payroll-reports/config/'),
+  updateReportConfig: (data) => apiCall('/api/payroll/payroll-reports/config/', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  exportReportConfig: () => apiCall('/api/payroll/payroll-reports/config/export'),
+  resetReportConfig: (updatedBy) => apiCall(`/api/payroll/payroll-reports/config/reset${updatedBy != null ? `?updated_by=${updatedBy}` : ''}`, { method: 'POST' }),
+
+  // ---- Report Builder (custom reports) ----
+  getBuilderAvailableColumns: () => apiCall('/api/payroll/payroll-reports/builder/available-columns'),
+  createCustomReport: (data) => apiCall('/api/payroll/payroll-reports/builder/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listCustomReports: (isActive = true, category) => {
+    const q = new URLSearchParams();
+    q.append('is_active', isActive);
+    if (category) q.append('category', category);
+    return apiCall(`/api/payroll/payroll-reports/builder/?${q.toString()}`);
+  },
+  getCustomReport: (reportId) => apiCall(`/api/payroll/payroll-reports/builder/${reportId}`),
+  updateCustomReport: (reportId, data) => apiCall(`/api/payroll/payroll-reports/builder/${reportId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteCustomReport: (reportId) => apiCall(`/api/payroll/payroll-reports/builder/${reportId}`, { method: 'DELETE' }),
+  getCustomReportColumns: (reportId) => apiCall(`/api/payroll/payroll-reports/builder/${reportId}/columns`),
+  exportCustomReportCsv: (reportId) => apiCall(`/api/payroll/payroll-reports/builder/${reportId}/export/csv`),
+
+  // ---- Data reports (used by other payroll-reports pages/widgets) ----
+  getMonthlySummary: (month, year) => apiCall(`/api/payroll/payroll-reports/data/monthly-summary${month || year ? `?${new URLSearchParams({ ...(month && { month }), ...(year && { year }) }).toString()}` : ''}`),
+  getDepartmentWise: () => apiCall('/api/payroll/payroll-reports/data/department-wise'),
+  getLocationWise: () => apiCall('/api/payroll/payroll-reports/data/location-wise'),
+  getGradeWise: () => apiCall('/api/payroll/payroll-reports/data/grade-wise'),
+  getSalaryComponents: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.payrollRunId) q.append('payroll_run_id', params.payrollRunId);
+    if (params.month) q.append('month', params.month);
+    if (params.year) q.append('year', params.year);
+    const qs = q.toString();
+    return apiCall(`/api/payroll/payroll-reports/data/salary-components${qs ? `?${qs}` : ''}`);
+  },
+  getBankTransferSummary: () => apiCall('/api/payroll/payroll-reports/data/bank-transfer-summary'),
+  getPfRemittance: (month, year) => apiCall(`/api/payroll/payroll-reports/data/pf-remittance${month || year ? `?${new URLSearchParams({ ...(month && { month }), ...(year && { year }) }).toString()}` : ''}`),
+  getEsiRemittance: (month, year) => apiCall(`/api/payroll/payroll-reports/data/esi-remittance${month || year ? `?${new URLSearchParams({ ...(month && { month }), ...(year && { year }) }).toString()}` : ''}`),
+  getTdsReport: (month, year) => apiCall(`/api/payroll/payroll-reports/data/tds${month || year ? `?${new URLSearchParams({ ...(month && { month }), ...(year && { year }) }).toString()}` : ''}`),
+  getPtDeduction: (month, year) => apiCall(`/api/payroll/payroll-reports/data/professional-tax${month || year ? `?${new URLSearchParams({ ...(month && { month }), ...(year && { year }) }).toString()}` : ''}`),
+  getPayrollVariance: () => apiCall('/api/payroll/payroll-reports/data/variance'),
+  getCostCenter: () => apiCall('/api/payroll/payroll-reports/data/cost-center'),
+  getHeadcountTrends: () => apiCall('/api/payroll/payroll-reports/data/headcount-trends'),
+  exportPfRemittanceCsv: (month, year) => apiCall(`/api/payroll/payroll-reports/data/pf-remittance/export/csv${month || year ? `?${new URLSearchParams({ ...(month && { month }), ...(year && { year }) }).toString()}` : ''}`),
+  exportTdsCsv: (month, year) => apiCall(`/api/payroll/payroll-reports/data/tds/export/csv${month || year ? `?${new URLSearchParams({ ...(month && { month }), ...(year && { year }) }).toString()}` : ''}`),
+  exportDepartmentWiseCsv: () => apiCall('/api/payroll/payroll-reports/data/department-wise/export/csv'),
+
+  // ---- Page-level export ----
+  exportAllData: (data) => apiCall('/api/payroll/payroll-reports/export-data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+};
+
+// ==========================================
 // HR OPERATIONS APIs
 // ==========================================
 export const hrOpsAPI = {
@@ -2362,6 +2481,7 @@ const apiServices = {
   employeeAPI,
   attendanceAPI,
   payrollAPI,
+  payrollReportsAPI,
   hrOpsAPI,
   reportsAPI,
   formsAPI,
