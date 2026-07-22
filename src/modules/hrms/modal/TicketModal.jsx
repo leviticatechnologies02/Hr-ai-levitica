@@ -3,6 +3,11 @@ import { Icon } from '@iconify/react';
 import Modal from '../../../shared/components/Modal';
 
 const TicketModal = ({ isOpen, onClose, onSubmit, newTicket, setNewTicket }) => {
+  const CATEGORIES = [
+    'Payroll queries', 'Leave and attendance issues', 'Policy clarifications',
+    'IT access issues', 'Document requests', 'Reimbursement queries',
+    'Personal data updates', 'General HR queries', 'Grievances and complaints',
+  ];
   const [formData, setFormData] = useState(newTicket);
 
   useEffect(() => {
@@ -40,11 +45,8 @@ const TicketModal = ({ isOpen, onClose, onSubmit, newTicket, setNewTicket }) => 
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               required
             >
-              <option value="technical">Technical</option>
-              <option value="access">Access</option>
-              <option value="software">Software</option>
-              <option value="hardware">Hardware</option>
-              <option value="other">Other</option>
+              <option value="">Select a category…</option>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
@@ -55,9 +57,10 @@ const TicketModal = ({ isOpen, onClose, onSubmit, newTicket, setNewTicket }) => 
               onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
               required
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
             </select>
           </div>
         </div>

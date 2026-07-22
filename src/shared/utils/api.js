@@ -2460,6 +2460,65 @@ export const statutoryComplianceAPI = {
   activateUan: (uanId) => apiCall(`/api/payroll/statutory/uan/${uanId}/activate`, { method: 'POST' }),
 };
 
+ 
+// ==========================================
+// PAYROLL REPORTS (Reports module) — /api/reports/payroll
+// Distinct from payrollReportsAPI (/api/payroll/payroll-reports) above.
+// IMPORTANT: stats(), listCatalogue(), getCategorySummary(), and
+// getRecentActivity() are backend-hardcoded placeholders as of this
+// backend version — e.g. get_payroll_report_stats() always returns
+// total_reports=25 as a literal, list() returns a static Python array
+// with the same fake status="New"/last_generated="2024-01-15" for every
+// entry regardless of real data, and recent-activity returns 4 fixed
+// canned entries. Wiring the frontend to them is correct (they're real
+// endpoints, not 404s) but they won't reflect actual usage until the
+// backend itself implements real queries — that's backend work, not
+// something fixable from here.
+// Also note: pf_employer in getPfRemittance()'s response appears to be a
+// backend bug — it's set to the same value as pf_employee (a likely
+// copy-paste error in the router), not a real employer contribution.
+// ==========================================
+export const reportsPayrollAPI = {
+  getStats: () => apiCall('/api/reports/payroll/stats'),
+  listCatalogue: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.category) q.append('category', params.category);
+    if (params.reportType) q.append('report_type', params.reportType);
+    if (params.frequency) q.append('frequency', params.frequency);
+    const qs = q.toString();
+    return apiCall(`/api/reports/payroll/list${qs ? `?${qs}` : ''}`);
+  },
+  getCategorySummary: () => apiCall('/api/reports/payroll/category-summary'),
+  getRecentActivity: () => apiCall('/api/reports/payroll/recent-activity'),
+ 
+  getMonthlyPayrollSummary: (month, year) => {
+    const q = new URLSearchParams();
+    if (month) q.append('month', month);
+    if (year) q.append('year', year);
+    const qs = q.toString();
+    return apiCall(`/api/reports/payroll/monthly-payroll-summary${qs ? `?${qs}` : ''}`);
+  },
+  getDepartmentWisePayroll: () => apiCall('/api/reports/payroll/department-wise-payroll'),
+  getGradeWiseSalary: () => apiCall('/api/reports/payroll/grade-wise-salary'),
+  getBankTransferSummary: () => apiCall('/api/reports/payroll/bank-transfer-summary'),
+  getLoanOutstanding: () => apiCall('/api/reports/payroll/loan-outstanding'),
+  getPfRemittance: (month, year) => {
+    const q = new URLSearchParams();
+    if (month) q.append('month', month);
+    if (year) q.append('year', year);
+    const qs = q.toString();
+    return apiCall(`/api/reports/payroll/pf-remittance${qs ? `?${qs}` : ''}`);
+  },
+  getTdsReport: (month, year) => {
+    const q = new URLSearchParams();
+    if (month) q.append('month', month);
+    if (year) q.append('year', year);
+    const qs = q.toString();
+    return apiCall(`/api/reports/payroll/tds-report${qs ? `?${qs}` : ''}`);
+  },
+  getPayrollVariance: () => apiCall('/api/reports/payroll/payroll-variance'),
+};
+
 const apiServices = {
   authAPI,
   jobAPI,
@@ -2493,6 +2552,7 @@ const apiServices = {
   reimbursementAPI,
   finalSettlementAPI,
   statutoryComplianceAPI,
+  reportsPayrollAPI,
 };
 
 export default apiServices;

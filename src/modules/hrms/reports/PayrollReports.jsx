@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import RecruiterDashboardLayout from "../../../app/layouts/RecruiterDashboardLayout";
 
+import { reportsPayrollAPI } from '../../../shared/utils/api';
+
 const PayrollReports = () => {
   const [selectedReports, setSelectedReports] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,8 +64,62 @@ const PayrollReports = () => {
     format: 'pdf'
   });
 
-  // Enhanced reports data with more details
-  const reports = [];
+  // Backend PayrollReportItem -> local UI shape. Backend has no id field
+  // at all (it's a fixed server-side catalogue), so one is synthesized
+  // from the report name.
+  const [reports, setReports] = useState([]);
+  const [reportStats, setReportStats] = useState(null);
+  const [categorySummaries, setCategorySummaries] = useState([]);
+
+  const mapReport = (r) => ({
+    id: r.report_name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    name: r.report_name,
+    description: r.description,
+    category: r.category,
+    type: r.type,
+    frequency: r.frequency,
+    status: r.status,
+    lastGenerated: r.last_generated,
+    columns: [],
+    dataSize: 'N/A',
+  });
+
+  // Only these 8 catalogue entries have a real underlying data endpoint —
+  // everything else in the catalogue is a name/description only, with no
+  // live data behind it anywhere in the backend.
+  const REPORT_DATA_SOURCES = {
+    'Monthly Payroll Summary': { fetch: reportsPayrollAPI.getMonthlyPayrollSummary, columns: ['run_id', 'month', 'year', 'total_employees', 'total_gross', 'total_deductions', 'total_net_pay', 'status', 'run_date'] },
+    'Department-wise Payroll Cost': { fetch: reportsPayrollAPI.getDepartmentWisePayroll, columns: ['department', 'headcount', 'total_gross', 'total_deductions', 'total_net_pay'] },
+    'Grade-wise Salary Analysis': { fetch: reportsPayrollAPI.getGradeWiseSalary, columns: ['grade', 'headcount', 'avg_ctc'] },
+    'Bank-wise Payment Summary': { fetch: reportsPayrollAPI.getBankTransferSummary, columns: ['bank_name', 'transaction_count', 'total_amount', 'failed_count'] },
+    'Loan Outstanding Report': { fetch: reportsPayrollAPI.getLoanOutstanding, columns: ['employee_id', 'loan_type', 'amount', 'approved_amount', 'emi_amount', 'total_installments', 'paid_installments', 'outstanding'] },
+    'PF Remittance Report': { fetch: reportsPayrollAPI.getPfRemittance, columns: ['employee_id', 'employee_name', 'department', 'basic', 'pf_employee', 'pf_employer', 'total_pf'] },
+    'TDS Deduction Report': { fetch: reportsPayrollAPI.getTdsReport, columns: ['employee_id', 'employee_name', 'gross_salary', 'tds_deducted'] },
+    'Payroll Variance Report': { fetch: reportsPayrollAPI.getPayrollVariance, columns: ['month', 'year', 'total_gross', 'total_net_pay', 'gross_variance', 'net_variance'] },
+  };
+
+  const loadPayrollReportsData = () => {
+    Promise.all([
+      reportsPayrollAPI.listReports().catch((err) => { console.error('Failed to load report catalogue:', err); return []; }),
+      reportsPayrollAPI.getStats().catch((err) => { console.error('Failed to load report stats:', err); return null; }),
+      reportsPayrollAPI.getCategorySummary().catch((err) => { console.error('Failed to load category summary:', err); return []; }),
+      reportsPayrollAPI.getRecentActivity().catch((err) => { console.error('Failed to load recent activity:', err); return []; }),
+    ]).then(([reportsData, stats, categoryData, activityData]) => {
+      setReports((Array.isArray(reportsData) ? reportsData : []).map(mapReport));
+      setReportStats(stats);
+      setCategorySummaries(Array.isArray(categoryData) ? categoryData : []);
+      setRecentActivity((Array.isArray(activityData) ? activityData : []).map((a) => ({
+        id: `${a.report_name}-${a.time}`,
+        action: a.action,
+        reportName: a.report_name,
+        timestamp: a.time,
+      })));
+    });
+  };
+
+  useEffect(() => {
+    loadPayrollReportsData();
+  }, []);
 
   // ADDED: Show notification function
   const showNotification = (message, type = 'info') => {
@@ -202,6 +258,12 @@ const PayrollReports = () => {
   };
 
   // ADDED: Open schedule modal
+  // NOTE: Schedule / Share / Delete have NO backend support whatsoever —
+  // there is no scheduling, sharing, or deletion concept anywhere in
+  // routers/Reports/payroll_reports.py (it's a read-only catalogue + 8
+  // data endpoints). Whatever these modals do on "confirm" is local-only
+  // and cannot persist; flagging here rather than at each modal since none
+  // of the three do anything real regardless of which one opens.
   const handleOpenScheduleModal = (reportId = null) => {
     if (reportId) {
       const report = reports.find(r => r.id === reportId);
@@ -228,7 +290,11 @@ const PayrollReports = () => {
     setShowDeleteModal(true);
   };
 
-  // FIXED: Enhanced generate report function
+  // NOTE: there is no generate/create endpoint anywhere on this backend —
+  // /list is a fixed, read-only catalogue. This can't actually trigger
+  // report generation server-side; it only logs a local "activity" entry
+  // (recent-activity has no POST either, so this never persists beyond
+  // the current session) rather than pretending a real report got produced.
   const handleGenerateReport = async (reportId = null, options = generateOptions) => {
     const reportsToGenerate = reportId ? [reportId] : selectedReports;
     
@@ -239,31 +305,19 @@ const PayrollReports = () => {
 
     setGeneratingReport(reportId);
     if (!reportId) setBulkGenerating(true);
-    
-    showNotification(`Generating ${reportsToGenerate.length} report${reportsToGenerate.length > 1 ? 's' : ''}...`, 'info');
 
-    try {
-      // Simulate API call with delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    reportsToGenerate.forEach(id => {
+      const report = reports.find(r => r.id === id);
+      if (report) {
+        addToRecentActivity('Generated (local only — no backend generation exists)', report.name);
+      }
+    });
 
-      reportsToGenerate.forEach(id => {
-        const report = reports.find(r => r.id === id);
-        if (report) {
-          addToRecentActivity('Generated', report.name);
-        }
-      });
+    setGeneratingReport(null);
+    setBulkGenerating(false);
+    setShowGenerateModal(false);
 
-      setGeneratingReport(null);
-      setBulkGenerating(false);
-      setShowGenerateModal(false);
-      
-      showNotification(`Successfully generated ${reportsToGenerate.length} report${reportsToGenerate.length > 1 ? 's' : ''}!`, 'success');
-    } catch (error) {
-      console.error('Generate error:', error);
-      setGeneratingReport(null);
-      setBulkGenerating(false);
-      showNotification('Failed to generate reports. Please try again.', 'danger');
-    }
+    showNotification(`Note: this backend has no report-generation endpoint — logged locally only, no report was actually produced server-side.`, 'warning');
   };
 
   // FIXED: Enhanced export function
@@ -276,65 +330,61 @@ const PayrollReports = () => {
     try {
       showNotification(`Preparing export for ${selectedReports.length} reports...`, 'info');
 
-      const data = selectedReports.map(id => {
+      const dataBundles = await Promise.all(selectedReports.map(async (id) => {
         const report = reports.find(r => r.id === id);
-        return {
-          name: report.name,
-          category: report.category,
-          type: report.type,
-          frequency: report.frequency,
-          lastGenerated: report.lastGenerated,
-          description: report.description,
-          columns: report.columns,
-          dataSize: report.dataSize
-        };
-      });
+        if (!report) return null;
+        const source = REPORT_DATA_SOURCES[report.name];
+        let rows = null;
+        if (source) {
+          try {
+            rows = await source.fetch();
+          } catch (err) {
+            console.error(`Failed to fetch live data for ${report.name}:`, err);
+          }
+        }
+        return { report, rows };
+      }));
 
       let content, filename, mimeType;
 
-      switch(format) {
-        case 'csv':
-          const csvRows = data.map(report => [
-            report.name,
-            report.category,
-            report.type,
-            report.frequency,
-            report.lastGenerated,
-            report.description,
-            report.columns.join(';'),
-            report.dataSize
-          ]);
-          content = [
-            ['Report Name', 'Category', 'Type', 'Frequency', 'Last Generated', 'Description', 'Columns', 'Data Size'],
-            ...csvRows
-          ].map(row => row.join(',')).join('\n');
+      switch (format) {
+        case 'csv': {
+          const sections = dataBundles.filter(Boolean).map(({ report, rows }) => {
+            const header = `# ${report.name} (${report.category} / ${report.type} / ${report.frequency})`;
+            if (Array.isArray(rows) && rows.length > 0) {
+              const cols = Object.keys(rows[0]);
+              const csvHeader = cols.join(',');
+              const csvRows = rows.map((row) => cols.map((c) => row[c]).join(','));
+              return [header, csvHeader, ...csvRows].join('\n');
+            }
+            return `${header}\n# No live data source available for this report type — catalogue entry only.`;
+          });
+          content = sections.join('\n\n');
           filename = `payroll-reports-${new Date().toISOString().split('T')[0]}.csv`;
           mimeType = 'text/csv';
           break;
+        }
 
-        case 'json':
-          content = JSON.stringify(data, null, 2);
+        case 'json': {
+          content = JSON.stringify(dataBundles.filter(Boolean).map(({ report, rows }) => ({
+            name: report.name,
+            category: report.category,
+            type: report.type,
+            frequency: report.frequency,
+            lastGenerated: report.lastGenerated,
+            description: report.description,
+            hasLiveData: !!(rows && rows.length),
+            data: rows || null,
+          })), null, 2);
           filename = `payroll-reports-${new Date().toISOString().split('T')[0]}.json`;
           mimeType = 'application/json';
           break;
+        }
 
-        case 'excel':
-          // Simulate Excel export
-          content = "Excel file would be generated here";
-          filename = `payroll-reports-${new Date().toISOString().split('T')[0]}.xlsx`;
-          mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-          break;
-
-        case 'pdf':
-          // Simulate PDF export
-          content = "PDF file would be generated here";
-          filename = `payroll-reports-${new Date().toISOString().split('T')[0]}.pdf`;
-          mimeType = 'application/pdf';
-          break;
+        default:
+          showNotification(`${format.toUpperCase()} export isn't implemented for real data yet — use CSV or JSON.`, 'warning');
+          return;
       }
-
-      // Simulate file creation delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const blob = new Blob([content], { type: mimeType });
       const url = window.URL.createObjectURL(blob);
@@ -364,16 +414,26 @@ const PayrollReports = () => {
     showNotification(`Downloading ${report.name}...`, 'info');
 
     try {
-      // Simulate download delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const source = REPORT_DATA_SOURCES[report.name];
+      let content;
 
-      // Create a dummy file for download
-      const content = `Report: ${report.name}\nCategory: ${report.category}\nType: ${report.type}\nFrequency: ${report.frequency}\nLast Generated: ${report.lastGenerated}\nDescription: ${report.description}`;
-      const blob = new Blob([content], { type: 'text/plain' });
+      if (source) {
+        const rows = await source.fetch();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const cols = Object.keys(rows[0]);
+          content = [cols.join(','), ...rows.map((row) => cols.map((c) => row[c]).join(','))].join('\n');
+        } else {
+          content = `Report: ${report.name}\nNo data currently available for this period.`;
+        }
+      } else {
+        content = `Report: ${report.name}\nCategory: ${report.category}\nType: ${report.type}\nFrequency: ${report.frequency}\nLast Generated: ${report.lastGenerated}\nDescription: ${report.description}\n\nNote: this report type has no live data source in the backend yet — this is catalogue metadata only.`;
+      }
+
+      const blob = new Blob([content], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${report.name.replace(/\s+/g, '_')}.txt`;
+      a.download = `${report.name.replace(/\s+/g, '_')}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
