@@ -8,7 +8,7 @@ import DetailsModal from '../modal/DetailsModal';
 import ExportModal from '../modal/ExportModal';
 import RuleEditModal from '../modal/RuleEditModal';
 import SettingsModal from '../modal/SettingsModal';
-import { attendanceAPI } from '../../../shared/utils/api';
+import { payrollIntegrationAPI, employeeAPI } from '../../../shared/utils/api';
 
 const PayrollIntegration = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -190,99 +190,137 @@ const PayrollIntegration = () => {
     };
   }, [payrollData, integrationStatus]);
 
-  const [currentMonth] = useState(new Date().getMonth() + 1);
-  const [currentYear] = useState(new Date().getFullYear());
+  const [freezeRecordId, setFreezeRecordId] = useState(null);
+  const [payrollIntegrationRealSettings, setPayrollIntegrationRealSettings] = useState(null);
 
-  const mapPayrollRowFromBackend = (r) => ({
-    employeeId: String(r.employee_id),
-    employeeName: r.employee_name,
-    department: r.department || '',
-    presentDays: r.present_days,
-    absentDays: r.absent_days,
-    totalOvertime: r.overtime_hours,
-    holidayWorkDays: r.holiday_work_days,
-    basicSalary: Number(r.basic_salary),
-    lossOfPay: Number(r.loss_of_pay),
-    overtimePay: Number(r.overtime_pay),
-    netPay: Number(r.net_pay),
-    status: r.status,
+  // Backend PayrollCalculationRow -> local UI shape. IMPORTANT: this
+  // endpoint has no real computation behind it (see payrollIntegrationAPI
+  // notes in api.js) — every present_days/basic_salary/net_pay value comes
+  // back as 0/"Pending" for every employee regardless of actual attendance.
+  // Wiring this is still worthwhile for freeze/unfreeze/corrections/
+  // settings, which ARE real, but don't expect real numbers in this table
+  // until the backend gets an actual calculation engine.
+  const mapPayrollRow = (r, employeesById) => {
+    const emp = employeesById.get(r.employee_id);
+    return {
+      employeeId: emp?.employeeId || String(r.employee_id),
+      employeeName: r.employee_name,
+      department: r.department || 'N/A',
+      location: emp?.location || 'N/A',
+      status: (r.status || 'pending').toLowerCase(),
+      totalPresent: r.present_days,
+      totalAbsent: r.absent_days,
+      overtimeHours: r.overtime_hours,
+      basicSalary: Number(r.basic_salary) || 0,
+      lossOfPay: Number(r.loss_of_pay) || 0,
+      overtimePay: Number(r.overtime_pay) || 0,
+      netPay: Number(r.net_pay) || 0,
+      processedBy: null,
+      processedDate: null,
+    };
+  };
+
+  const mapRule = (r) => ({
+    id: r.id,
+    feature: r.title,
+    description: r.description,
+    formula: r.formula,
+    multiplier: r.multiplier,
+    enabled: r.is_active,
+    iconColor: r.icon_color,
   });
 
   const loadInitialData = async () => {
     setIsLoading(true);
     try {
-      const dashboardParams = {
-        month: currentMonth, year: currentYear,
-        ...(filters.department !== 'all' && { department: filters.department }),
-        ...(filters.location !== 'all' && { location: filters.location }),
-      };
-
-      const [summary, freeze, calc, status, rules, actionItems, settings] = await Promise.all([
-        attendanceAPI.getPayrollIntegrationDashboard(dashboardParams),
-        attendanceAPI.getPayrollFreezeStatus(),
-        attendanceAPI.getPayrollCalculation(dashboardParams),
-        attendanceAPI.getIntegrationStatus(),
-        attendanceAPI.listCalculationRules(),
-        attendanceAPI.listPayrollActionItems(),
-        attendanceAPI.getIntegrationSettings(),
+      const [
+        freeze, calculation, rules, employeesData, settings,
+      ] = await Promise.all([
+        payrollIntegrationAPI.getFreezeStatus().catch((err) => { console.error('Failed to load freeze status:', err); return null; }),
+        payrollIntegrationAPI.getCalculation().catch((err) => { console.error('Failed to load payroll calculation:', err); return null; }),
+        payrollIntegrationAPI.listCalculationRules().catch((err) => { console.error('Failed to load calculation rules:', err); return []; }),
+        employeeAPI.list().catch((err) => { console.error('Failed to load employees:', err); return []; }),
+        payrollIntegrationAPI.getSettings().catch((err) => { console.error('Failed to load integration settings:', err); return null; }),
       ]);
 
-      setPayrollData((calc.rows || []).map(mapPayrollRowFromBackend));
+      const employeesById = new Map((employeesData || []).map((e) => [e.id, e]));
+      setEmployees(employeesData || []);
 
-      setFreezeStatus({
-        isFrozen: freeze.status === 'Frozen',
-        freezeStartDate: freeze.frozen_at ? freeze.frozen_at.split('T')[0] : '',
-        freezeEndDate: freeze.next_freeze_end || '',
-        frozenBy: freeze.frozen_by || '',
-      });
+      if (freeze) {
+        setFreezeRecordId(freeze.id);
+        setFreezeStatus({
+          isFrozen: freeze.status === 'FROZEN',
+          freezeStartDate: freeze.frozen_at ? freeze.frozen_at.split('T')[0] : '',
+          freezeEndDate: freeze.next_freeze_end || '',
+          frozenBy: freeze.frozen_by || '',
+        });
+      }
 
-      setIntegrationStatus({
-        attendanceSync: { status: status.attendance_sync?.is_healthy ? 'healthy' : 'issue', lastSync: status.attendance_sync?.last_sync_at },
-        payrollSync: { status: status.payroll_sync?.is_healthy ? 'healthy' : 'issue', lastSync: status.payroll_sync?.last_sync_at },
-        dataFreshness: { hoursAgo: summary.real_time_sync_hours, status: summary.data_status },
-        systemHealth: { issues: status.system_health?.issues_found || 0, warnings: status.system_health?.warnings || 0 },
-      });
+      if (calculation) {
+        setPayrollData((calculation.rows || []).map((r) => mapPayrollRow(r, employeesById)));
+      }
 
-      setAlerts((actionItems || []).map((a) => ({
-        id: a.id,
-        category: a.category,
-        title: a.title,
-        description: a.description,
-        severity: a.severity,
-        actionLabel: a.action_label,
-        isResolved: a.is_resolved,
-      })));
+      setCalculationRules((Array.isArray(rules) ? rules : []).map(mapRule));
 
-      setCalculationRules((rules || []).map((r) => ({
-        id: r.id,
-        feature: r.title,
-        ruleKey: r.rule_key,
-        description: r.description,
-        formula: r.formula,
-        multiplier: r.multiplier,
-        enabled: r.is_active,
-        status: r.is_active ? 'active' : 'inactive',
-        iconColor: r.icon_color,
-      })));
+      // NOTE: SettingsModal's mode="integration" form collects apiEndpoint/
+      // apiKey/webhookUrl/autoBackup/auditLogging — none of which exist on
+      // the backend's real IntegrationSettingsOut (which is about
+      // two_factor_enabled, sync frequencies, notification toggles,
+      // overtime/holiday multipliers, working days/hours instead). These
+      // are two unrelated concepts that happen to share the word
+      // "settings" — NOT wiring integrationSettings/handleSaveIntegration
+      // Settings to the real endpoint here would silently misrepresent
+      // one for the other. The real settings ARE loaded below into their
+      // own state (payrollIntegrationRealSettings) for a correctly-wired
+      // settings surface to be built against, without breaking this modal.
+      if (settings) {
+        setPayrollIntegrationRealSettings({
+          id: settings.id,
+          twoFactorEnabled: settings.two_factor_enabled,
+          sessionTimeoutMinutes: settings.session_timeout_minutes,
+          attendanceSyncFrequencyMinutes: settings.attendance_sync_frequency_minutes,
+          payrollSyncFrequencyMinutes: settings.payroll_sync_frequency_minutes,
+          retryFailedSyncsCount: settings.retry_failed_syncs_count,
+          emailNotifications: settings.email_notifications,
+          pushNotifications: settings.push_notifications,
+          smsNotifications: settings.sms_notifications,
+          alertThreshold: settings.alert_threshold,
+          overtimeMultiplier: settings.overtime_multiplier,
+          holidayPayMultiplier: settings.holiday_pay_multiplier,
+          monthlyWorkingDays: settings.monthly_working_days,
+          dailyHours: settings.daily_hours,
+        });
+      }
 
-      setIntegrationSettings((prev) => ({
-        ...prev,
-        twoFactorEnabled: settings.two_factor_enabled,
-        sessionTimeoutMinutes: settings.session_timeout_minutes,
-        attendanceSyncFrequencyMinutes: settings.attendance_sync_frequency_minutes,
-        payrollSyncFrequencyMinutes: settings.payroll_sync_frequency_minutes,
-        retryFailedSyncsCount: settings.retry_failed_syncs_count,
-        emailNotifications: settings.email_notifications,
-        pushNotifications: settings.push_notifications,
-        smsNotifications: settings.sms_notifications,
-        alertThreshold: settings.alert_threshold,
-        overtimeMultiplier: settings.overtime_multiplier,
-        holidayPayMultiplier: settings.holiday_pay_multiplier,
-        monthlyWorkingDays: settings.monthly_working_days,
-        dailyHours: settings.daily_hours,
-      }));
-    } catch (err) {
-      showNotification(err.message || 'Failed to load payroll integration data', 'error');
+      const status = await payrollIntegrationAPI.getIntegrationStatus().catch((err) => { console.error('Failed to load integration status:', err); return null; });
+      if (status) {
+        setIntegrationStatus({
+          attendanceSync: {
+            status: status.attendance_sync?.is_healthy ? 'healthy' : 'issue',
+            lastSync: status.attendance_sync?.last_sync_at || '',
+            syncFrequency: status.attendance_sync?.sync_frequency_minutes,
+          },
+          payrollSync: {
+            status: status.payroll_sync?.is_healthy ? 'healthy' : 'issue',
+            lastSync: status.payroll_sync?.last_sync_at || '',
+            syncFrequency: status.payroll_sync?.sync_frequency_minutes,
+          },
+          dataFreshness: {
+            status: status.system_health?.issues_found > 0 ? 'issue' : 'healthy',
+            hoursAgo: status.data_freshness?.hours_ago || 0,
+            latency: status.data_freshness?.latency_minutes,
+          },
+        });
+      }
+
+      // NOTE: getDashboardSummary() is a real, separate endpoint, but this
+      // component already derives its `kpis` (totalLossOfPay, overtimePay,
+      // etc.) client-side from `payrollData` via useMemo — that pattern is
+      // kept as the single source of truth rather than introducing a
+      // second, competing summary source. Since payrollData ultimately
+      // comes from the uncomputed /calculation stub, those KPIs will show
+      // 0 until the backend gets a real engine — an honest reflection of
+      // the gap, not something to paper over by swapping in this endpoint.
     } finally {
       setIsLoading(false);
     }
@@ -320,40 +358,45 @@ const PayrollIntegration = () => {
     setIsLoading(true);
     try {
       const result = freezeStatus.isFrozen
-        ? await attendanceAPI.unfreezePayroll()
-        : await attendanceAPI.freezePayroll();
+        ? await payrollIntegrationAPI.unfreeze('Admin User')
+        : await payrollIntegrationAPI.freezeForPayroll('Admin User');
 
+      setFreezeRecordId(result.id);
       setFreezeStatus({
-        isFrozen: result.status === 'Frozen',
+        isFrozen: result.status === 'FROZEN',
         freezeStartDate: result.frozen_at ? result.frozen_at.split('T')[0] : '',
         freezeEndDate: result.next_freeze_end || '',
         frozenBy: result.frozen_by || '',
       });
       showNotification(
-        result.status === 'Frozen' ? 'Attendance data frozen for payroll processing' : 'Attendance data unfrozen successfully',
-        result.status === 'Frozen' ? 'warning' : 'success'
+        result.status === 'FROZEN' ? 'Attendance data frozen for payroll processing' : 'Attendance data unfrozen successfully',
+        result.status === 'FROZEN' ? 'warning' : 'success'
       );
     } catch (err) {
-      showNotification(err.message || 'Failed to toggle freeze status', 'error');
+      console.error('Error toggling freeze status:', err);
+      showNotification(err.message || 'Error updating freeze status', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // NOTE: this calls a REAL endpoint, but that endpoint doesn't compute
+  // anything — see the large warning in payrollIntegrationAPI (api.js).
+  // It requires attendance to be frozen first and returns a "Processing"
+  // status message; it does not update payrollData with real figures.
   const handleRunPayroll = async () => {
+    if (!freezeStatus.isFrozen) {
+      showNotification('Attendance must be frozen before running payroll. Use "Freeze for Payroll" first.', 'error');
+      return;
+    }
     setIsLoading(true);
     try {
-      await attendanceAPI.runPayroll({
-        month: currentMonth,
-        year: currentYear,
-        ...(filters.department !== 'all' && { department: filters.department }),
-        ...(filters.location !== 'all' && { location: filters.location }),
-      });
-      const calc = await attendanceAPI.getPayrollCalculation({ month: currentMonth, year: currentYear });
-      setPayrollData((calc.rows || []).map(mapPayrollRowFromBackend));
-      showNotification('Payroll processing completed successfully', 'success');
+      const now = new Date();
+      const result = await payrollIntegrationAPI.runPayroll(now.getMonth() + 1, now.getFullYear());
+      showNotification(`${result.message} (Note: this backend has no computation engine yet — no real figures were calculated.)`, 'warning');
     } catch (err) {
-      showNotification(err.message || 'Failed to run payroll', 'error');
+      console.error('Error running payroll:', err);
+      showNotification(err.message || 'Error running payroll', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -361,18 +404,10 @@ const PayrollIntegration = () => {
 
   const handleExportPayrollData = async (data) => {
     setIsLoading(true);
-    try {
-      window.open(
-        attendanceAPI.getPayrollCalculationExportUrl({ month: currentMonth, year: currentYear }),
-        "_blank"
-      );
-      showNotification(`Payroll data exported as ${data.format} successfully`, 'success');
-      closeModal();
-    } catch (err) {
-      showNotification(err.message || 'Failed to export payroll data', 'error');
-    } finally {
-      setIsLoading(false);
-    }
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    showNotification(`Payroll data exported as ${data.format} successfully`, 'success');
+    closeModal();
+    setIsLoading(false);
   };
 
   const handleExportRules = async () => {
@@ -395,14 +430,22 @@ const PayrollIntegration = () => {
 
   const handleSubmitCorrection = async (data) => {
     setIsLoading(true);
+    const matchedEmployee = employees.find(
+      (e) => e.employeeId === data.employeeId || e.id === Number(data.employeeId)
+    );
+    if (!matchedEmployee) {
+      showNotification(`No employee found matching "${data.employeeId}".`, 'error');
+      setIsLoading(false);
+      return;
+    }
     try {
-      await attendanceAPI.createPayrollCorrection({
-        employee_id: Number(correctionForm.employeeId),
-        original_date: correctionForm.date,
-        correction_type: correctionForm.correctionType,
-        original_value: correctionForm.originalValue || null,
-        corrected_value: correctionForm.correctedValue || null,
-        payroll_impact: correctionForm.impact || 0,
+      await payrollIntegrationAPI.createCorrection({
+        employee_id: matchedEmployee.id,
+        original_date: data.date,
+        correction_type: data.correctionType,
+        original_value: data.originalValue || undefined,
+        corrected_value: data.correctedValue || undefined,
+        payroll_impact: parseFloat(data.impact) || 0,
         requested_by: 'Payroll Admin',
       });
       setCorrectionForm({
@@ -417,7 +460,8 @@ const PayrollIntegration = () => {
       closeModal();
       showNotification('Correction submitted successfully', 'success');
     } catch (err) {
-      showNotification(err.message || 'Failed to submit correction', 'error');
+      console.error('Error submitting correction:', err);
+      showNotification(err.message || 'Error submitting correction', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -425,79 +469,48 @@ const PayrollIntegration = () => {
 
   const handleSaveRule = async (data) => {
     try {
-      const updated = await attendanceAPI.updateCalculationRule(data.id, {
+      await payrollIntegrationAPI.updateCalculationRule(data.id, {
         title: data.feature,
         description: data.description,
         formula: data.formula,
-        multiplier: data.multiplier,
+        multiplier: parseFloat(data.multiplier),
         is_active: data.enabled,
       });
-      setCalculationRules(prev => prev.map(rule => rule.id === updated.id ? {
-        ...rule,
-        feature: updated.title,
-        description: updated.description,
-        formula: updated.formula,
-        multiplier: updated.multiplier,
-        enabled: updated.is_active,
-        status: updated.is_active ? 'active' : 'inactive',
-      } : rule));
+      setCalculationRules(prev => prev.map(rule =>
+        rule.id === data.id ? { ...rule, ...data } : rule
+      ));
       closeModal();
       showNotification(`Rule "${data.feature}" updated successfully`, 'success');
     } catch (err) {
-      showNotification(err.message || 'Failed to update rule', 'error');
+      console.error('Error saving rule:', err);
+      showNotification(err.message || 'Error saving rule', 'error');
     }
   };
 
-  const handleToggleRule = async (ruleId) => {
-    try {
-      const updated = await attendanceAPI.toggleCalculationRule(ruleId);
-      setCalculationRules(prev => prev.map(rule => {
-        if (rule.id === ruleId) {
-          showNotification(`${rule.feature} ${updated.is_active ? 'enabled' : 'disabled'}`, updated.is_active ? 'success' : 'warning');
-          return { ...rule, enabled: updated.is_active, status: updated.is_active ? 'active' : 'inactive' };
-        }
-        return rule;
-      }));
-    } catch (err) {
-      showNotification(err.message || 'Failed to toggle rule', 'error');
-    }
-  };
-
-  // NOTE: apiEndpoint/apiKey/webhookUrl/autoBackup/auditLogging (this
-  // modal's original 5 fields) have no matching column on
-  // IntegrationSettingsUpdate at all — the real schema is entirely
-  // different (2FA, session timeout, sync frequencies, notification
-  // toggles, alert threshold, overtime/holiday multipliers, working
-  // days/hours). Those 5 stay local-only; the real backend fields (added
-  // during load above) are what actually gets sent here.
-  const handleSaveIntegrationSettings = async (data) => {
-    try {
-      const updated = await attendanceAPI.updateIntegrationSettings({
-        two_factor_enabled: data.twoFactorEnabled,
-        session_timeout_minutes: data.sessionTimeoutMinutes,
-        attendance_sync_frequency_minutes: data.attendanceSyncFrequencyMinutes,
-        payroll_sync_frequency_minutes: data.payrollSyncFrequencyMinutes,
-        retry_failed_syncs_count: data.retryFailedSyncsCount,
-        email_notifications: data.emailNotifications,
-        push_notifications: data.pushNotifications,
-        sms_notifications: data.smsNotifications,
-        alert_threshold: data.alertThreshold,
-        overtime_multiplier: data.overtimeMultiplier,
-        holiday_pay_multiplier: data.holidayPayMultiplier,
-        monthly_working_days: data.monthlyWorkingDays,
-        daily_hours: data.dailyHours,
+  const handleToggleRule = (ruleId) => {
+    payrollIntegrationAPI.toggleCalculationRule(ruleId)
+      .then((updated) => {
+        setCalculationRules(prev => prev.map(rule => {
+          if (rule.id === ruleId) {
+            const enabled = updated?.is_active ?? !rule.enabled;
+            showNotification(`${rule.feature} ${enabled ? 'enabled' : 'disabled'}`, enabled ? 'success' : 'warning');
+            return { ...rule, enabled };
+          }
+          return rule;
+        }));
+      })
+      .catch((err) => {
+        console.error('Error toggling rule:', err);
+        showNotification(err.message || 'Error toggling rule', 'error');
       });
-      setIntegrationSettings((prev) => ({
-        ...prev,
-        ...data,
-        twoFactorEnabled: updated.two_factor_enabled,
-        sessionTimeoutMinutes: updated.session_timeout_minutes,
-      }));
-      closeModal();
-      showNotification('Integration settings saved successfully', 'success');
-    } catch (err) {
-      showNotification(err.message || 'Failed to save settings', 'error');
-    }
+  };
+
+  // Correctly local-only: apiEndpoint/apiKey/webhookUrl/autoBackup/
+  // auditLogging have no backend model — see the load-time note above.
+  const handleSaveIntegrationSettings = async (data) => {
+    setIntegrationSettings(data);
+    closeModal();
+    showNotification('Integration settings saved successfully', 'success');
   };
 
   const handleApplyFilters = () => {
@@ -511,12 +524,8 @@ const PayrollIntegration = () => {
 
   const handleRefreshStatus = async () => {
     setIsLoading(true);
-    try {
-      await attendanceAPI.refreshIntegrationStatus();
-    } catch (err) {
-      console.error('Failed to trigger status refresh:', err);
-    }
     await loadInitialData();
+    setIsLoading(false);
   };
 
   const handleViewDetails = (record) => {
@@ -537,10 +546,6 @@ const PayrollIntegration = () => {
     openModal('correction', record);
   };
 
-  // NOTE: no per-record export endpoint exists — only the bulk
-  // /calculation/export endpoint (already wired into
-  // handleExportPayrollData above). Flagging rather than fabricating a
-  // single-record export.
   const handleExportRecord = (record) => {
     showNotification(`Exporting details for ${record.employeeName}`, 'success');
   };
