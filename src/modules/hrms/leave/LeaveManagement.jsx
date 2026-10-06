@@ -2,6 +2,7 @@ import React, { useState, useEffect, useReducer } from "react";
 import { Icon } from "@iconify/react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { apiCall } from "../../../shared/utils/api";
 
 import LeaveTypeModal from "../modal/LeaveTypeModal";
 import LeaveApplicationModal from "../modal/LeaveApplicationModal";
@@ -74,13 +75,11 @@ const leaveReducer = (state, action) => {
   }
 };
 
-const initialEmployees = [
-];
-
 const initialLeaveTypes = [];
 
 const LeaveManagement = () => {
   const [activeTab, setActiveTab] = useState("leaveTypes");
+  const [employees, setEmployees] = useState([]);
   const [showLeaveTypeModal, setShowLeaveTypeModal] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
@@ -183,7 +182,7 @@ const LeaveManagement = () => {
   const initialState = {
     leaveTypes: loadFromStorage("leaveTypes", initialLeaveTypes),
     leaveBalances: loadFromStorage("leaveBalances", []),
-    leaveApplications: loadFromStorage("leaveApplications", []),
+    leaveApplications: [],
     compOffs: loadFromStorage("compOffs", []),
     leaveAdjustments: loadFromStorage("leaveAdjustments", []),
   };
@@ -200,7 +199,6 @@ const LeaveManagement = () => {
   useEffect(() => {
     localStorage.setItem("leaveTypes", JSON.stringify(leaveTypes));
     localStorage.setItem("leaveBalances", JSON.stringify(leaveBalances));
-    localStorage.setItem("leaveApplications", JSON.stringify(leaveApplications));
     localStorage.setItem("compOffs", JSON.stringify(compOffs));
     localStorage.setItem("leaveAdjustments", JSON.stringify(leaveAdjustments));
   }, [state]);
@@ -270,14 +268,66 @@ const LeaveManagement = () => {
     }
   };
 
-  const handleSubmitApplication = () => {
+  // ---- Backend: employees + leave applications (/api/leave) ----
+  // Leave types, balances, comp-offs, delegations and campaigns still live in
+  // this browser only: the backend has no endpoints for them yet.
+  const mapApplication = (a) => {
+    const lt = leaveTypes.find((t) => t.code === a.leave_type_code || t.name === a.leave_type_code);
+    return {
+      id: a.id,
+      employeeId: String(a.employee_id),
+      leaveTypeId: lt ? lt.id : a.leave_type_code,
+      leaveTypeName: a.leave_type,
+      startDate: a.start_date,
+      endDate: a.end_date,
+      days: a.days,
+      halfDay: a.is_half_day,
+      halfDayType: "first",
+      reason: a.reason,
+      status: String(a.status || "").toLowerCase(),
+      appliedAt: a.applied_at,
+      appliedBy: a.employee_name,
+      approvedBy: a.approved_by_name || null,
+      rejectionReason: a.rejection_reason || null,
+    };
+  };
+
+  const loadApplications = async () => {
+    try {
+      const data = await apiCall("/api/leave/");
+      dispatch({ type: "SET_LEAVE_APPLICATIONS", payload: (data.applications || []).map(mapApplication) });
+    } catch (err) {
+      toast.error(`Could not load leave applications: ${err.message}`);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await apiCall("/api/employees/");
+        setEmployees((Array.isArray(list) ? list : []).map((e) => ({ ...e, id: String(e.id) })));
+      } catch (err) {
+        toast.error(`Could not load employees: ${err.message}`);
+      }
+    })();
+    loadApplications();
+  }, []);
+
+  const patchApplication = (id, body) =>
+    apiCall(`/api/leave/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  const handleSubmitApplication = async () => {
     if (!applicationForm.employeeId || !applicationForm.leaveTypeId || !applicationForm.startDate) {
       toast.error("Please fill all required fields");
       return;
     }
 
     const leaveType = leaveTypes.find((lt) => lt.id === applicationForm.leaveTypeId);
-    const employee = initialEmployees.find((e) => e.id === applicationForm.employeeId);
+    const endDate = applicationForm.endDate || applicationForm.startDate;
 
     let days = 1;
     if (applicationForm.endDate) {
@@ -288,43 +338,46 @@ const LeaveManagement = () => {
     if (applicationForm.halfDay) days = 0.5;
 
     const balance = leaveBalances.find(
-      (b) => b.employeeId === applicationForm.employeeId && b.leaveTypeId === applicationForm.leaveTypeId
+      (b) => String(b.employeeId) === String(applicationForm.employeeId) && b.leaveTypeId === applicationForm.leaveTypeId
     );
-    const availableBalance = balance?.balance || 0;
-
-    if (availableBalance < days && !leaveType?.allowNegative) {
-      toast.error(`Insufficient leave balance. Available: ${availableBalance} days`);
+    // Balances are still stored in this browser only, so the check applies
+    // only when a balance was actually set up for this employee and type.
+    if (balance && balance.balance < days && !leaveType?.allowNegative) {
+      toast.error(`Insufficient leave balance. Available: ${balance.balance} days`);
       return;
     }
 
-    const application = {
-      id: Date.now(),
-      ...applicationForm,
-      days,
-      status: days <= 1 ? "approved" : "pending",
-      appliedAt: new Date().toISOString(),
-      appliedBy: employee?.name || applicationForm.employeeId,
-      leaveTypeName: leaveType?.name || "Unknown",
-      currentBalance: availableBalance,
-    };
+    try {
+      const created = await apiCall("/api/leave/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employee_id: Number(applicationForm.employeeId),
+          leave_type: leaveType?.code || leaveType?.name,
+          start_date: applicationForm.startDate,
+          end_date: endDate,
+          is_half_day: !!applicationForm.halfDay,
+          reason: applicationForm.reason || null,
+        }),
+      });
 
-    dispatch({ type: "ADD_LEAVE_APPLICATION", payload: application });
-
-    if (days <= 1) {
-      const balance = leaveBalances.find(
-        (b) => b.employeeId === applicationForm.employeeId && b.leaveTypeId === applicationForm.leaveTypeId
-      );
-      if (balance) {
-        const updatedBalance = {
-          ...balance,
-          balance: balance.balance - days,
-          used: balance.used + days,
-        };
-        dispatch({ type: "UPDATE_LEAVE_BALANCE", payload: updatedBalance });
+      if (days <= 1) {
+        // Existing rule kept from the original screen: one-day leave is auto-approved.
+        await patchApplication(created.id, { status: "Approved" });
+        if (balance) {
+          dispatch({
+            type: "UPDATE_LEAVE_BALANCE",
+            payload: { ...balance, balance: balance.balance - days, used: balance.used + days },
+          });
+        }
+        toast.success("Leave application auto-approved!");
+      } else {
+        toast.success("Leave application submitted for approval");
       }
-      toast.success("Leave application auto-approved!");
-    } else {
-      toast.success("Leave application submitted for approval");
+      await loadApplications();
+    } catch (err) {
+      toast.error(`Could not submit leave: ${err.message}`);
+      return;
     }
 
     setShowApplicationModal(false);
@@ -342,36 +395,33 @@ const LeaveManagement = () => {
     });
   };
 
-  const handleApproveApplication = (applicationId, approved) => {
+  const handleApproveApplication = async (applicationId, approved) => {
     const application = leaveApplications.find((a) => a.id === applicationId);
     if (!application) return;
 
-    const updatedApplication = {
-      ...application,
-      status: approved ? "approved" : "rejected",
-      approvedAt: new Date().toISOString(),
-      approvedBy: "Manager",
-      rejectionReason: approved ? null : "Not approved by manager",
-    };
+    try {
+      await patchApplication(applicationId, {
+        status: approved ? "Approved" : "Rejected",
+        rejection_reason: approved ? null : "Not approved by manager",
+      });
+    } catch (err) {
+      toast.error(`Could not update leave: ${err.message}`);
+      return;
+    }
 
-    dispatch({ type: "UPDATE_LEAVE_APPLICATION", payload: updatedApplication });
-
-    if (approved) {
+    if (approved && application.status !== "approved") {
       const balance = leaveBalances.find(
-        (b) => b.employeeId === application.employeeId && b.leaveTypeId === application.leaveTypeId
+        (b) => String(b.employeeId) === String(application.employeeId) && b.leaveTypeId === application.leaveTypeId
       );
       if (balance) {
-        const updatedBalance = {
-          ...balance,
-          balance: balance.balance - application.days,
-          used: balance.used + application.days,
-        };
-        dispatch({ type: "UPDATE_LEAVE_BALANCE", payload: updatedBalance });
+        dispatch({
+          type: "UPDATE_LEAVE_BALANCE",
+          payload: { ...balance, balance: balance.balance - application.days, used: balance.used + application.days },
+        });
       }
-      toast.success("Leave application approved");
-    } else {
-      toast.info("Leave application rejected");
     }
+    toast[approved ? "success" : "info"](approved ? "Leave application approved" : "Leave application rejected");
+    await loadApplications();
   };
 
   const handleAddBalance = () => {
@@ -528,7 +578,7 @@ const LeaveManagement = () => {
 
     leaveTypes.forEach((leaveType) => {
       if (leaveType.accrualType === "monthly") {
-        initialEmployees.forEach((employee) => {
+        employees.forEach((employee) => {
           const balance = leaveBalances.find(
             (b) => b.employeeId === employee.id && b.leaveTypeId === leaveType.id
           );
@@ -664,7 +714,7 @@ const LeaveManagement = () => {
     if (format === 'csv') {
       const headers = ['Employee', 'Leave Type', 'Opening Balance', 'Accrued', 'Used', 'Carry Forward', 'Encashed', 'Current Balance'];
       const rows = balances.map(balance => {
-        const employee = initialEmployees.find(e => e.id === balance.employeeId);
+        const employee = employees.find(e => e.id === balance.employeeId);
         const leaveType = leaveTypes.find(lt => lt.id === balance.leaveTypeId);
         return [
           employee?.name || balance.employeeId,
@@ -693,7 +743,7 @@ const LeaveManagement = () => {
   };
 
   const calculateLeaveCoverage = (department, startDate, endDate) => {
-    const departmentEmployees = initialEmployees.filter(e => e.department === department);
+    const departmentEmployees = employees.filter(e => e.department === department);
     const leavesInPeriod = leaveApplications.filter(app => {
       const appStart = new Date(app.startDate);
       const appEnd = new Date(app.endDate || app.startDate);
@@ -715,7 +765,7 @@ const LeaveManagement = () => {
     };
   };
 
-  const handleWithdrawApplication = (applicationId) => {
+  const handleWithdrawApplication = async (applicationId) => {
     const application = leaveApplications.find((a) => a.id === applicationId);
     if (!application) return;
 
@@ -725,11 +775,13 @@ const LeaveManagement = () => {
     }
 
     if (window.confirm("Are you sure you want to withdraw this leave application?")) {
-      dispatch({
-        type: "UPDATE_LEAVE_APPLICATION",
-        payload: { ...application, status: "withdrawn", withdrawnAt: new Date().toISOString() },
-      });
-      toast.success("Leave application withdrawn successfully");
+      try {
+        await apiCall(`/api/leave/${applicationId}`, { method: "DELETE" });
+        toast.success("Leave application withdrawn successfully");
+        await loadApplications();
+      } catch (err) {
+        toast.error(`Could not withdraw leave: ${err.message}`);
+      }
     }
   };
 
@@ -1022,7 +1074,7 @@ const LeaveManagement = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {leaveBalances.map((balance) => {
-                  const employee = initialEmployees.find((e) => e.id === balance.employeeId);
+                  const employee = employees.find((e) => e.id === balance.employeeId);
                   const leaveType = leaveTypes.find((lt) => lt.id === balance.leaveTypeId);
                   const projected = calculateProjectedBalance(balance.employeeId, balance.leaveTypeId);
 
@@ -1160,7 +1212,7 @@ const LeaveManagement = () => {
                 </tr>
               ) : (
                 filteredApplications.map((app) => {
-                  const employee = initialEmployees.find((e) => e.id === app.employeeId);
+                  const employee = employees.find((e) => e.id === app.employeeId);
                   return (
                     <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-2 sm:p-3 font-medium">{employee?.name || app.employeeId}</td>
@@ -1301,7 +1353,7 @@ const LeaveManagement = () => {
                       {leaves.length > 0 && (
                         <div className="mt-1 space-y-0.5">
                           {leaves.slice(0, 2).map((leave) => {
-                            const emp = initialEmployees.find((e) => e.id === leave.employeeId);
+                            const emp = employees.find((e) => e.id === leave.employeeId);
                             return (
                               <div
                                 key={leave.id}
@@ -1373,7 +1425,7 @@ const LeaveManagement = () => {
                 </tr>
               ) : (
                 compOffs.map((co) => {
-                  const employee = initialEmployees.find((e) => e.id === co.employeeId);
+                  const employee = employees.find((e) => e.id === co.employeeId);
                   const isExpired = co.expiryDate && new Date(co.expiryDate) < new Date();
                   return (
                     <tr key={co.id} className="hover:bg-slate-50/50 transition-colors">
@@ -1431,7 +1483,7 @@ const LeaveManagement = () => {
   );
 
   const renderLeavePlanning = () => {
-    const departments = [...new Set(initialEmployees.map(e => e.department))];
+    const departments = [...new Set(employees.map(e => e.department))];
     const coverage = selectedDept === "All"
       ? departments.map(dept => calculateLeaveCoverage(dept, planningStartDate, planningEndDate))
       : [calculateLeaveCoverage(selectedDept, planningStartDate, planningEndDate)];
@@ -1685,7 +1737,7 @@ const LeaveManagement = () => {
           applicationForm={applicationForm}
           setApplicationForm={setApplicationForm}
           handleSubmitApplication={handleSubmitApplication}
-          employees={initialEmployees}
+          employees={employees}
           leaveTypes={leaveTypes}
         />
       )}
@@ -1697,7 +1749,7 @@ const LeaveManagement = () => {
           balanceForm={balanceForm}
           setBalanceForm={setBalanceForm}
           handleAddBalance={handleAddBalance}
-          employees={initialEmployees}
+          employees={employees}
           leaveTypes={leaveTypes}
         />
       )}
@@ -1709,7 +1761,7 @@ const LeaveManagement = () => {
           compOffForm={compOffForm}
           setCompOffForm={setCompOffForm}
           handleAddCompOff={handleAddCompOff}
-          employees={initialEmployees}
+          employees={employees}
         />
       )}
 
@@ -1720,7 +1772,7 @@ const LeaveManagement = () => {
           campaignForm={campaignForm}
           setCampaignForm={setCampaignForm}
           handleCreateCampaign={handleCreateCampaign}
-          departments={[...new Set(initialEmployees.map(e => e.department))]}
+          departments={[...new Set(employees.map(e => e.department))]}
         />
       )}
 

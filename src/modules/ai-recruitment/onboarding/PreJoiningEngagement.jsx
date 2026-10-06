@@ -343,12 +343,35 @@ export default function OnboardingFormsTable() {
       `Convert ${form.candidate} to an employee? This creates their Employee ID and login account, and emails them their credentials.`
     )) return;
 
-    try {
-      const result = await apiCall(API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.CONVERT_TO_EMPLOYEE(formId), {
+    const convert = (body) =>
+      apiCall(API_ENDPOINTS.ONBOARDING_CANDIDATE_INVITES.CONVERT_TO_EMPLOYEE(formId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       });
+
+    try {
+      let result;
+      try {
+        result = await convert({});
+      } catch (firstErr) {
+        // The self-onboarding form does not always collect gender / mobile.
+        // Ask HR for whatever the server says is missing, then retry once.
+        const msg = String(firstErr.message || "");
+        if (!msg.includes("missing required field")) throw firstErr;
+        const extra = {};
+        if (msg.includes("gender")) {
+          const g = (window.prompt("Gender is missing. Enter male, female or transgender:") || "").trim().toLowerCase();
+          if (!["male", "female", "transgender"].includes(g)) return;
+          extra.gender = g;
+        }
+        if (msg.includes("mobile_number")) {
+          const m = (window.prompt("Mobile number is missing. Enter 10 digits:") || "").trim();
+          if (!/^[0-9]{10}$/.test(m)) { alert("Mobile number must be exactly 10 digits."); return; }
+          extra.mobile_number = m;
+        }
+        result = await convert(extra);
+      }
       await loadCandidates();
       alert(
         result.email_sent

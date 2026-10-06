@@ -10,6 +10,8 @@ const CandidateJobSearch = () => {
   const [loading, setLoading] = useState(true);
 
   const [appliedJobIds, setAppliedJobIds] = useState([]);
+  // Resume sent with every application so it can be screened automatically.
+  const [resumeFile, setResumeFile] = useState(null);
 
   useEffect(() => {
     if (!token) { navigate('/candidate/login'); return; }
@@ -31,13 +33,28 @@ const CandidateJobSearch = () => {
 
   const applyToJob = async (jobId) => {
     try {
+      // Multipart body: the resume is optional on the server, but without one
+      // the application cannot be scored automatically.
+      const body = new FormData();
+      if (resumeFile) body.append('resume', resumeFile);
       const res = await fetch(`${BASE_URL}/api/candidates/apply/${jobId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
+        body,
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
         setAppliedJobIds(prev => [...prev, jobId]);
-        alert('Application submitted!');
+        const screening = data.screening || {};
+        if (screening.status === 'shortlisted') {
+          alert('Application submitted! Your resume matched this job and you have been shortlisted. Check your email.');
+        } else if (screening.status === 'rejected') {
+          alert('Application submitted. Your resume was screened and is not a close match for this role.');
+        } else if (!resumeFile) {
+          alert('Application submitted! Attach a resume next time so it can be screened automatically.');
+        } else {
+          alert('Application submitted! Your resume will be reviewed by the recruiter.');
+        }
       } else if (res.status === 409) {
         alert('You have already applied to this job.');
       } else if (res.status === 401) {
@@ -60,6 +77,18 @@ const CandidateJobSearch = () => {
       <div className='container py-4'>
         <input className='form-control mb-4 py-3' placeholder='Search jobs by title or department...'
           value={search} onChange={e => setSearch(e.target.value)} style={{ borderRadius: '0.5rem', maxWidth: '500px' }} />
+        <div className='mb-4'>
+          <label className='form-label fw-semibold' style={{ fontSize: '0.9rem' }}>
+            Your resume (PDF or DOCX) - sent with every application and screened automatically
+          </label>
+          <input
+            type='file'
+            accept='.pdf,.docx'
+            className='form-control'
+            style={{ maxWidth: '500px' }}
+            onChange={e => setResumeFile(e.target.files?.[0] || null)}
+          />
+        </div>
         {loading && <p className='text-muted'>Loading jobs...</p>}
         <div className='row g-3'>
           {filtered.map(job => (
