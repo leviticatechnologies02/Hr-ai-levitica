@@ -81,7 +81,8 @@ const JobsListPage = () => {
           id: job.id,
           title: job.title,
           department: job.department,
-          recruiter: job.recruiter?.name || 'System',
+          recruiter: job.recruiter_name || job.recruiter?.name || 'System',
+          branch: job.branch_name || '',
           postedOn: new Date(job.created_at).toLocaleDateString('en-GB', {
             day: '2-digit',
             month: 'short',
@@ -147,9 +148,9 @@ const JobsListPage = () => {
 
   const handleExport = () => {
     const csv = [
-      ['Job Title', 'Department', 'Recruiter', 'Posted On', 'Status', 'Applicants'],
+      ['Job Title', 'Department', 'Branch', 'Recruiter', 'Posted On', 'Status', 'Applicants'],
       ...filteredJobs.map(job => [
-        job.title, job.department, job.recruiter, job.postedOn, job.status, job.applicants
+        job.title, job.department, job.branch, job.recruiter, job.postedOn, job.status, job.applicants
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -419,6 +420,9 @@ const JobsListPage = () => {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-midnight_text truncate">{job.title}</div>
                         <div className="text-xs text-gray-500 truncate">{job.department}</div>
+                        {job.branch && (
+                          <div className="text-xs text-indigo-600 truncate">📍 {job.branch}</div>
+                        )}
                       </div>
                     </div>
 

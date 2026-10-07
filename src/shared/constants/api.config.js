@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
     SIGNUP: '/api/auth/signup',
+    SIGNUP_BRANCHES: '/api/auth/signup-branches',
     LOGIN: '/api/auth/login-json',
     LOGIN_FORM: '/api/auth/login',
     CURRENT_USER: '/api/auth/me',

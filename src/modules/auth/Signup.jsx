@@ -14,6 +14,7 @@ const Signup = () => {
     companyName: '',
     companyWebsite: '',
     companyId: '',
+    locationId: '',
     password: '',
     confirmPassword: ''
   });
@@ -21,6 +22,21 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [agreed, setAgreed] = useState(false);
+  // Branches of the company typed above (empty for a new company or one without branches).
+  const [branches, setBranches] = useState([]);
+
+  const loadBranches = async (companyName) => {
+    const name = (companyName || '').trim();
+    if (!name) { setBranches([]); return; }
+    try {
+      const res = await fetch(`${BASE_URL}${API_ENDPOINTS.AUTH.SIGNUP_BRANCHES}?company_name=${encodeURIComponent(name)}`);
+      const list = res.ok ? await res.json() : [];
+      setBranches(Array.isArray(list) ? list : []);
+      setFormData(prev => ({ ...prev, locationId: '' }));
+    } catch {
+      setBranches([]);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -39,6 +55,12 @@ const Signup = () => {
 
     if (!formData.name || !formData.email || !formData.password || !formData.companyName) {
       setError('Please fill in all required fields');
+      setLoading(false);
+      return;
+    }
+
+    if (branches.length > 0 && !formData.locationId) {
+      setError('Please select your branch');
       setLoading(false);
       return;
     }
@@ -75,7 +97,8 @@ const Signup = () => {
           role: 'recruiter',
           company_name: formData.companyName,
           company_website: formData.companyWebsite || null,
-          company_id: formData.companyId || null
+          company_id: formData.companyId || null,
+          location_id: formData.locationId ? Number(formData.locationId) : null
         })
       });
 
@@ -192,6 +215,7 @@ const Signup = () => {
                     name="companyName"
                     value={formData.companyName}
                     onChange={handleInputChange}
+                    onBlur={(e) => loadBranches(e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     placeholder="Enter your company name"
                     required
@@ -199,6 +223,26 @@ const Signup = () => {
                 </div>
               </div>
             </div>
+
+            {branches.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Branch <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  name="locationId"
+                  value={formData.locationId}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white"
+                  required
+                >
+                  <option value="">Select your branch</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}{b.city ? ` - ${b.city}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Row 2: Company Email | Company Website */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

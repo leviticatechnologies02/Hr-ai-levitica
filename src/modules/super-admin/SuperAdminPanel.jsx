@@ -577,7 +577,7 @@ const SuperAdminPanel = () => {
                       </small>
                     </div>
                   )}
-                  {formData.role === 'admin' && formData.tenant_id && (
+                  {['admin', 'recruiter', 'hr_admin'].includes(formData.role) && formData.tenant_id && (
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Branch (optional)</label>
                       <select

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { locationAPI } from '../utils/api';
+import { locationAPI, apiCall } from '../utils/api';
+import { API_ENDPOINTS } from '../constants/api.config';
 import { getUserRole } from '../utils/auth';
 import { getSelectedBranchId, setSelectedBranchId } from '../utils/branch';
 
@@ -20,6 +21,16 @@ const BranchSelector = () => {
 
   const showSelector = role === 'company';
   const showBadge = role === 'admin';
+  const showRecruiterBadge = role === 'recruiter';
+  const [ownBranch, setOwnBranch] = useState('');
+
+  // A recruiter's branch comes from their own profile (they cannot list branches).
+  useEffect(() => {
+    if (!showRecruiterBadge) return;
+    apiCall(API_ENDPOINTS.AUTH.CURRENT_USER)
+      .then((me) => setOwnBranch(me?.branch_name || ''))
+      .catch(() => setOwnBranch(''));
+  }, [showRecruiterBadge]);
 
   useEffect(() => {
     if (!showSelector && !showBadge) {
@@ -41,6 +52,21 @@ const BranchSelector = () => {
       });
     return () => { cancelled = true; };
   }, [showSelector, showBadge]);
+
+  if (showRecruiterBadge) {
+    if (!ownBranch) return null;
+    return (
+      <span
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6,
+          background: '#eef2ff', color: '#3730a3', fontSize: 13, fontWeight: 500
+        }}
+        title="Your branch"
+      >
+        📍 {ownBranch}
+      </span>
+    );
+  }
 
   if (loading || (!showSelector && !showBadge)) return null;
 
