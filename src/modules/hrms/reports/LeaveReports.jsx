@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import RecruiterDashboardLayout from "../../../app/layouts/RecruiterDashboardLayout";
+import { apiCall } from "../../../shared/utils/api";
 import {
   Search, Download, Printer, Eye, Check, X, Trash2,
   Calendar, TrendingUp, TrendingDown, AlertTriangle, Users,
@@ -130,8 +131,75 @@ const LeaveReports = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 10;
 
-  // Leave Balance Data
-  const leaveBalanceData = [];
+  // ---- Backend data: leave records + per-employee balances ----
+  // Only these two come from the API. The accrual, carry-forward, encashment
+  // and liability tabs stay empty: the backend returns fixed placeholder
+  // numbers for them, which should not be shown as real HR data.
+  const loadReportData = async () => {
+    try {
+      const [records, balances] = await Promise.all([
+        apiCall("/api/reports/leave/records"),
+        apiCall("/api/reports/leave/balance"),
+      ]);
+      setLeaves(
+        (records || []).map((r) => ({
+          id: r.id,
+          employeeCode: r.employee_code,
+          employee: r.employee_name,
+          department: r.department,
+          grade: r.grade,
+          designation: r.designation,
+          location: r.location,
+          gender: r.gender,
+          mobile: r.mobile,
+          personalEmail: r.email,
+          dob: r.date_of_birth,
+          leaveType: r.leave_type,
+          fromDate: r.start_date,
+          toDate: r.end_date,
+          status: r.status, // Pending | Approved | Rejected
+        }))
+      );
+      const part = (used, allocated, balance) => ({ used, allocated, balance, carryForward: 0 });
+      setLeaveBalanceData(
+        (balances || []).map((b) => ({
+          employee: b.employee_name,
+          employeeId: b.employee_id,
+          department: b.department,
+          grade: b.grade,
+          designation: b.designation,
+          casualLeave: part(b.casual_leave_used, b.casual_leave_total, b.casual_leave_balance),
+          sickLeave: part(b.sick_leave_used, b.sick_leave_total, b.sick_leave_balance),
+          earnedLeave: part(b.earned_leave_used, b.earned_leave_total, b.earned_leave_balance),
+          totalBalance: b.total_balance,
+        }))
+      );
+      setLoadError("");
+    } catch (err) {
+      setLoadError(err.message || "Could not load leave reports");
+    }
+  };
+
+  useEffect(() => {
+    loadReportData();
+  }, []);
+
+  const setStatusOnServer = async (ids, status) => {
+    await Promise.all(
+      ids.map((id) =>
+        apiCall(`/api/leave/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        })
+      )
+    );
+  };
+
+
+  // Leave Balance Data (loaded from /api/reports/leave/balance)
+  const [leaveBalanceData, setLeaveBalanceData] = useState([]);
+  const [loadError, setLoadError] = useState("");
 
   // Department-wise Leave Liability
   const deptLeaveLiability = [];
@@ -243,26 +311,33 @@ const LeaveReports = () => {
   /* -----------------------------------------
      ACTIONS: APPROVE / REJECT / DELETE
   ----------------------------------------- */
-  const updateStatus = (id, newStatus) => {
-    setLeaves((prev) =>
-      prev.map((lv) =>
-        lv.id === id ? { ...lv, status: newStatus } : lv
-      )
-    );
+  const updateStatus = async (id, newStatus) => {
+    try {
+      await setStatusOnServer([id], newStatus);
+      await loadReportData();
+    } catch (err) {
+      setLoadError(`Could not update leave: ${err.message}`);
+    }
     setModalLeave(null);
   };
 
-  const bulkAction = (action) => {
-    setLeaves((prev) =>
-      prev.map((lv) =>
-        selected.includes(lv.id) ? { ...lv, status: action } : lv
-      )
-    );
+  const bulkAction = async (action) => {
+    try {
+      await setStatusOnServer(selected, action);
+      await loadReportData();
+    } catch (err) {
+      setLoadError(`Could not update leaves: ${err.message}`);
+    }
     setSelected([]);
   };
 
-  const bulkDelete = () => {
-    setLeaves((prev) => prev.filter((l) => !selected.includes(l.id)));
+  const bulkDelete = async () => {
+    try {
+      await Promise.all(selected.map((id) => apiCall(`/api/leave/${id}`, { method: "DELETE" })));
+      await loadReportData();
+    } catch (err) {
+      setLoadError(`Could not delete leaves: ${err.message}`);
+    }
     setSelected([]);
   };
 
@@ -309,6 +384,7 @@ const LeaveReports = () => {
           Leave Reports & Analytics
         </h5>
         <p className="text-muted">Comprehensive leave management reports and analytics dashboard with employee demographics</p>
+        {loadError && <div className="alert alert-danger py-2 mb-0">{loadError}</div>}
       </div>
 
       {/* ----------------- TAB NAVIGATION ----------------- */}
@@ -485,8 +561,8 @@ const LeaveReports = () => {
                       l.employee,
                       l.employeeId,
                       l.department,
-                      leaves.find((e) => e.employeeCode === l.employeeId)?.grade || "",
-                      leaves.find((e) => e.employeeCode === l.employeeId)?.designation || "",
+                      l.grade || leaves.find((e) => e.employeeCode === l.employeeId)?.grade || "",
+                      l.designation || leaves.find((e) => e.employeeCode === l.employeeId)?.designation || "",
                       l.casualLeave.balance,
                       l.sickLeave.balance,
                       l.earnedLeave.balance,
@@ -542,8 +618,8 @@ const LeaveReports = () => {
                           <td><strong>{emp.employee}</strong></td>
                           <td><small className="text-muted">{emp.employeeId}</small></td>
                           <td>{emp.department}</td>
-                          <td><span className="badge bg-info">{employeeDetails?.grade}</span></td>
-                          <td>{employeeDetails?.designation}</td>
+                          <td><span className="badge bg-info">{emp.grade ?? employeeDetails?.grade}</span></td>
+                          <td>{emp.designation ?? employeeDetails?.designation}</td>
                           <td>
                             <small>Used: {emp.casualLeave.used}/{emp.casualLeave.allocated}</small><br />
                             <strong>Balance: {emp.casualLeave.balance}</strong>
@@ -1269,8 +1345,8 @@ const LeaveReports = () => {
                       l.employee,
                       l.employeeId,
                       l.department,
-                      leaves.find((e) => e.employeeCode === l.employeeId)?.grade || "",
-                      leaves.find((e) => e.employeeCode === l.employeeId)?.designation || "",
+                      l.grade || leaves.find((e) => e.employeeCode === l.employeeId)?.grade || "",
+                      l.designation || leaves.find((e) => e.employeeCode === l.employeeId)?.designation || "",
                       l.casualLeave.balance,
                       l.sickLeave.balance,
                       l.earnedLeave.balance,
