@@ -22,6 +22,7 @@ const PipelineView = () => {
     { id: 'applied', name: 'Applied', color: 'bg-primary text-white', bgColor: 'bg-primary-subtle' },
     { id: 'screening', name: 'Screening', color: 'bg-info text-white', bgColor: 'bg-info-subtle' },
     { id: 'interview', name: 'Interview', color: 'bg-warning text-dark', bgColor: 'bg-warning-subtle' },
+    { id: 'selected', name: 'Selected', color: 'bg-success text-white', bgColor: 'bg-success-subtle' },
     { id: 'offer', name: 'Offer', color: 'bg-success text-white', bgColor: 'bg-success-subtle' },
     { id: 'hired', name: 'Hired', color: 'bg-danger text-white', bgColor: 'bg-danger-subtle' }
   ];
@@ -90,6 +91,7 @@ const PipelineView = () => {
           if (stage.id === 'applied') return status === 'applied' || candidateStage === 'applied';
           if (stage.id === 'screening') return candidateStage === 'screening';
           if (stage.id === 'interview') return candidateStage === 'interview' || candidateStage === 'interview stage';
+          if (stage.id === 'selected') return candidateStage === 'selected';
           if (stage.id === 'offer') {
             const isOffer = candidateStage === 'offer' || candidateStage === 'offered';
             if (isOffer) {

@@ -47,6 +47,7 @@ import CommunicationTest from './modules/ai-recruitment/assessments/Communicatio
 import AIPrescreening from './modules/ai-recruitment/interviews/AIPrescreening';
 import ConfigureAIInterview from './modules/ai-recruitment/interviews/ConfigureAIInterview';
 import ReviewAIInterview from './modules/ai-recruitment/interviews/ReviewAIInterview';
+import SelectionResults from './modules/ai-recruitment/interviews/SelectionResults';
 import AIInterviewPortal from './modules/ai-recruitment/interviews/AIInterviewPortal';
 import OfferTemplates from './modules/ai-recruitment/onboarding/OfferTemplates';
 import OfferTracking from './modules/ai-recruitment/onboarding/OfferTracking';
@@ -470,6 +471,17 @@ const App = () => {
           <ProtectedRoute>
             <RecruiterDashboardLayout>
               <ReviewAIInterview />
+            </RecruiterDashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path='/recruiter/selection-results'
+        element={
+          <ProtectedRoute>
+            <RecruiterDashboardLayout>
+              <SelectionResults />
             </RecruiterDashboardLayout>
           </ProtectedRoute>
         }

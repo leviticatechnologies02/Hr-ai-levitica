@@ -205,6 +205,7 @@ const RecruiterDashboardLayout = ({ children, internalNav = false, activeTab, on
         { to: '/recruiter/prescreening', tabKey: 'prescreening', label: 'AI Prescreening', icon: HiOutlineMagnifyingGlass },
         { to: '/recruiter/ai-interview-configure', tabKey: 'ai-interview-configure', label: 'Configure AI Interview', icon: HiOutlineCog6Tooth },
         { to: '/recruiter/ai-interview-review', tabKey: 'ai-interview-review', label: 'Review AI Interview', icon: HiOutlineEye },
+        { to: '/recruiter/selection-results', tabKey: 'selection-results', label: 'Selection Results', icon: HiOutlineCheckBadge },
         { to: '/recruiter/offer-templates', tabKey: 'offer-templates', label: 'Offer Templates', icon: HiOutlineDocumentDuplicate },
         { to: '/recruiter/offer-tracking', tabKey: 'offer-tracking', label: 'Offer Tracking', icon: HiOutlineClipboardDocumentList }
       ]

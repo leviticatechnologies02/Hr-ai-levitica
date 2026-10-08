@@ -381,6 +381,7 @@ const PipelineOverview = () => {
               <option value="Applied">Applied</option>
               <option value="Screening">Screening</option>
               <option value="Interview">Interview</option>
+              <option value="Selected">Selected</option>
               <option value="Offer">Offer</option>
               <option value="Hired">Hired</option>
               <option value="Rejected">Rejected</option>
