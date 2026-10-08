@@ -526,12 +526,23 @@ const CompanySettings = () => {
     'Europe/London',
     'Europe/Berlin',
     'Asia/Kolkata',
+    'Asia/Dubai',
     'Asia/Singapore',
     'Asia/Tokyo',
     'Australia/Sydney',
     'Africa/Cairo',
-    'Pacific/Auckland'
+    'Pacific/Auckland',
+    'UTC'
   ];
+  // Free text like "delhi" is not a timezone. Keep the select to real region names:
+  // the current value is kept only if it already looks like one (e.g. Asia/Calcutta).
+  const IANA_TZ = /^(UTC|GMT|[A-Za-z_]+(\/[A-Za-z0-9_+-]+)+)$/;
+  const timezoneOptions = (current) =>
+    current && !timezones.includes(current) && IANA_TZ.test(current) ? [current, ...timezones] : timezones;
+  const timezoneValue = (current) => (current && IANA_TZ.test(current) ? current : '');
+  // The API reports validation errors as a list of {msg}; show them as text.
+  const apiErrorText = (detail, fallback) =>
+    Array.isArray(detail) ? detail.map((d) => d?.msg || String(d)).join('; ') : detail || fallback;
 
   // ---------------- LANGUAGES LIST ----------------
   const languages = [
@@ -558,6 +569,7 @@ const CompanySettings = () => {
   // ---------------- UI STATES ----------------
   const [showLogoUpload, setShowLogoUpload] = useState(false);
   const [showAddLocation, setShowAddLocation] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false); // blocks double-clicks that created duplicate branches
   const [showEditLocation, setShowEditLocation] = useState(false);
   const [editingLocationId, setEditingLocationId] = useState(null);
   const [showAddExchangeRate, setShowAddExchangeRate] = useState(false);
@@ -829,6 +841,8 @@ const CompanySettings = () => {
 
   const handleAddLocation = async (e) => {
     e.preventDefault();
+    if (savingLocation) return;
+    setSavingLocation(true);
     try {
       const res = await fetch(`${BASE_URL}/company-settings/locations/`, {
         method: 'POST',
@@ -837,10 +851,11 @@ const CompanySettings = () => {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Failed to add location');
+        throw new Error(apiErrorText(err.detail, 'Failed to add location'));
       }
       const created = await res.json();
       setLocations([...locations, fromBackendLocation(created)]);
+      window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
       setShowAddLocation(false);
       setNewLocation({
         name: '',
@@ -851,6 +866,8 @@ const CompanySettings = () => {
       });
     } catch (err) {
       alert(`Failed to add location: ${err.message}`);
+    } finally {
+      setSavingLocation(false);
     }
   };
 
@@ -868,18 +885,23 @@ const CompanySettings = () => {
 
   const handleUpdateLocation = async (e) => {
     e.preventDefault();
+    if (savingLocation) return;
+    setSavingLocation(true);
     try {
+      // Keep the branch's current default flag; sending false here used to un-default it on every edit.
+      const wasDefault = !!locations.find((loc) => loc.id === editingLocationId)?.isDefault;
       const res = await fetch(`${BASE_URL}/company-settings/locations/${editingLocationId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify(toBackendLocation({ ...newLocation, isDefault: false, status: 'active' })),
+        body: JSON.stringify(toBackendLocation({ ...newLocation, isDefault: wasDefault, status: 'active' })),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Failed to update location');
+        throw new Error(apiErrorText(err.detail, 'Failed to update location'));
       }
       const updated = await res.json();
       setLocations(locations.map(loc => (loc.id === editingLocationId ? fromBackendLocation(updated) : loc)));
+      window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
       setShowEditLocation(false);
       setEditingLocationId(null);
       setNewLocation({
@@ -891,6 +913,8 @@ const CompanySettings = () => {
       });
     } catch (err) {
       alert(`Failed to update location: ${err.message}`);
+    } finally {
+      setSavingLocation(false);
     }
   };
 
@@ -1124,6 +1148,7 @@ const CompanySettings = () => {
         throw new Error(err.detail || 'Failed to delete location');
       }
       setLocations(locations.filter(loc => loc.id !== id));
+      window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
     } catch (err) {
       alert(`Failed to delete location: ${err.message}`);
     }
@@ -1175,6 +1200,7 @@ const CompanySettings = () => {
         ...loc,
         isDefault: loc.id === id
       })));
+      window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
     } catch (err) {
       alert(`Failed to set default location: ${err.message}`);
     }
@@ -2514,14 +2540,17 @@ const CompanySettings = () => {
                     </div>
                  <div className="col-12">
   <label className="form-label fw-medium">Timezone *</label>
-  <input
-    type="text"
-    className="form-control"
+  <select
+    className="form-select"
     required
-    placeholder="Enter timezone"
-    value={newLocation.timezone}
+    value={timezoneValue(newLocation.timezone)}
     onChange={(e) => setNewLocation({ ...newLocation, timezone: e.target.value })}
-  />
+  >
+    <option value="">Select timezone</option>
+    {timezoneOptions(newLocation.timezone).map((tz) => (
+      <option key={tz} value={tz}>{tz}</option>
+    ))}
+  </select>
 </div>
 
                     <div className="col-12">
@@ -2617,7 +2646,9 @@ const CompanySettings = () => {
                   <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAddLocation(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">Add Location</button>
+                  <button type="submit" className="btn btn-primary" disabled={savingLocation}>
+                    {savingLocation ? 'Saving...' : 'Add Location'}
+                  </button>
                 </div>
               </form>
             </div>
@@ -2665,14 +2696,17 @@ const CompanySettings = () => {
                     </div>
                     <div className="col-12">
                       <label className="form-label fw-medium">Timezone *</label>
-                      <input
-                        type="text"
-                        className="form-control"
+                      <select
+                        className="form-select"
                         required
-                        placeholder="Enter timezone"
-                        value={newLocation.timezone}
+                        value={timezoneValue(newLocation.timezone)}
                         onChange={(e) => setNewLocation({ ...newLocation, timezone: e.target.value })}
-                      />
+                      >
+                        <option value="">Select timezone</option>
+                        {timezoneOptions(newLocation.timezone).map((tz) => (
+                          <option key={tz} value={tz}>{tz}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="col-12">
@@ -2768,7 +2802,9 @@ const CompanySettings = () => {
                   <button type="button" className="btn btn-outline-secondary" onClick={() => { setShowEditLocation(false); setEditingLocationId(null); }}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">Save Changes</button>
+                  <button type="submit" className="btn btn-primary" disabled={savingLocation}>
+                    {savingLocation ? 'Saving...' : 'Save Changes'}
+                  </button>
                 </div>
               </form>
             </div>

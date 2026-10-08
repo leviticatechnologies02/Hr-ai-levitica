@@ -38,19 +38,26 @@ const BranchSelector = () => {
       return;
     }
     let cancelled = false;
-    locationAPI.list()
-      .then((res) => {
-        if (cancelled) return;
-        const list = res?.locations || res || [];
-        setBranches(Array.isArray(list) ? list : []);
-      })
-      .catch(() => {
-        if (!cancelled) setBranches([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
+    const load = () =>
+      locationAPI.list()
+        .then((res) => {
+          if (cancelled) return;
+          const list = res?.locations || res || [];
+          setBranches(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {
+          if (!cancelled) setBranches([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    load();
+    // Company Settings fires this after a branch is added / edited / deleted / made default.
+    window.addEventListener('branches-changed', load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('branches-changed', load);
+    };
   }, [showSelector, showBadge]);
 
   if (showRecruiterBadge) {
