@@ -47,19 +47,6 @@ const ReviewAIInterview = () => {
   const [savedNotes, setSavedNotes] = useState([]);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState(null);
-  const [showOfferModal, setShowOfferModal] = useState(false);
-  const [offerTemplates, setOfferTemplates] = useState([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [offerData, setOfferData] = useState({
-    position: '',
-    department: '',
-    salary_offered: '',
-    benefits: '',
-    offer_content: '',
-    expiry_days: 30,
-    notes: ''
-  });
-  const [sendingOffer, setSendingOffer] = useState(false);
 
   const fetchQuestions = async () => {
     try {
@@ -70,28 +57,6 @@ const ReviewAIInterview = () => {
       }
     } catch (error) {
       console.error('Error fetching questions:', error);
-    }
-  };
-
-  const fetchOfferTemplates = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch(`${BASE_URL}/api/offers/offer-templates/`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setOfferTemplates(data);
-      }
-    } catch (error) {
-      console.error('Error fetching offer templates:', error);
     }
   };
 
@@ -228,169 +193,64 @@ const ReviewAIInterview = () => {
     }
   };
 
+  // Resolve the candidate_records id (by email) and save the recruiter's decision as the candidate's stage
+  const updateCandidateStage = async (stage) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Authentication required. Please log in again.');
+      return false;
+    }
+
+    let candidateRecordId = candidate.candidate_id;
+    if (candidate.email) {
+      try {
+        const res = await fetch(`${BASE_URL}/api/resume/candidates?show_all=true`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const records = await res.json();
+          const match = records.find(
+            cr => cr.candidate_email && cr.candidate_email.toLowerCase() === candidate.email.toLowerCase()
+          );
+          if (match) candidateRecordId = match.id;
+        }
+      } catch (e) {
+        console.warn('Could not fetch candidate records:', e);
+      }
+    }
+
+    const response = await fetch(`${BASE_URL}/api/resume/candidates/${candidateRecordId}/stage`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ stage })
+    });
+    return response.ok;
+  };
+
   const handleAction = async (action) => {
     if (!candidate) return;
-    
-    if (action === 'Shortlist') {
-      await fetchOfferTemplates();
-      setOfferData({
-        position: candidate.role || 'Software Developer',
-        department: '',
-        salary_offered: '',
-        benefits: '',
-        offer_content: `Dear ${candidate.name},\n\nWe are pleased to offer you the position of ${candidate.role || 'Software Developer'} at our company.\n\nWe were impressed with your performance during the interview process and believe you would be a valuable addition to our team.\n\nPlease let us know if you have any questions.\n\nBest regards,\nRecruitment Team`,
-        expiry_days: 30,
-        notes: ''
-      });
-      setSelectedTemplateId('');
-      setShowOfferModal(true);
-    } else if (action === 'Reject') {
-      if (window.confirm(`Are you sure you want to reject ${candidate.name}?`)) {
-        try {
-          const token = localStorage.getItem('token');
-          
-          if (!token) {
-            alert('Authentication required. Please log in again.');
-            return;
-          }
 
-          let candidateRecordId = candidate.candidate_id;
-          
-          if (candidate.email) {
-            try {
-              const candidateRecordResponse = await fetch(`${BASE_URL}/api/resume/candidates?show_all=true`, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                }
-              });
-              
-              if (candidateRecordResponse.ok) {
-                const candidateRecords = await candidateRecordResponse.json();
-                const matchingRecord = candidateRecords.find(
-                  cr => cr.candidate_email && cr.candidate_email.toLowerCase() === candidate.email.toLowerCase()
-                );
-                if (matchingRecord) {
-                  candidateRecordId = matchingRecord.id;
-                }
-              }
-            } catch (e) {
-              console.warn('Could not fetch candidate records:', e);
-            }
-          }
-
-          const response = await fetch(`${BASE_URL}/api/resume/candidates/${candidateRecordId}/stage`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ stage: 'Rejected' })
-          });
-          
-          if (response.ok) {
-            alert(`✅ ${candidate.name} has been rejected.`);
-            fetchCandidates();
-          } else {
-            alert(`❌ Failed to reject candidate`);
-          }
-        } catch (error) {
-          console.error('Error rejecting candidate:', error);
-          alert('Error rejecting candidate. Please try again.');
+    if (action === 'Select' || action === 'Reject') {
+      const stage = action === 'Select' ? 'Selected' : 'Rejected';
+      const verb = action === 'Select' ? 'select' : 'reject';
+      if (!window.confirm(`Are you sure you want to ${verb} ${candidate.name}?`)) return;
+      try {
+        const ok = await updateCandidateStage(stage);
+        if (ok) {
+          alert(action === 'Select'
+            ? `✅ ${candidate.name} has been selected. You can send the offer from Selection Results.`
+            : `✅ ${candidate.name} has been rejected.`);
+          fetchCandidates();
+        } else {
+          alert(`❌ Failed to ${verb} candidate`);
         }
+      } catch (error) {
+        console.error(`Error trying to ${verb} candidate:`, error);
+        alert(`Error trying to ${verb} candidate. Please try again.`);
       }
     } else {
       alert(`${action} action performed for ${candidate.name}`);
-    }
-  };
-
-  const handleTemplateSelect = (templateId) => {
-    setSelectedTemplateId(templateId);
-    if (templateId) {
-      const template = offerTemplates.find(t => t.id === parseInt(templateId));
-      if (template) {
-        let offerContent = template.template_content || '';
-        offerContent = offerContent.replace(/\[Candidate Name\]/g, candidate.name);
-        offerContent = offerContent.replace(/\[Position\]/g, template.position || candidate.role || 'Software Developer');
-        offerContent = offerContent.replace(/\[Department\]/g, template.department || '');
-        
-        setOfferData(prev => ({
-          ...prev,
-          position: template.position || prev.position,
-          department: template.department || prev.department,
-          salary_offered: template.salary_range_min ? String(template.salary_range_min) : prev.salary_offered,
-          benefits: template.benefits ? template.benefits.join(', ') : prev.benefits,
-          offer_content: offerContent,
-          expiry_days: template.validity_days || prev.expiry_days
-        }));
-      }
-    }
-  };
-
-  const handleSendOffer = async () => {
-    if (!candidate) return;
-    
-    if (!selectedTemplateId) {
-      alert('Please select an offer template first.');
-      return;
-    }
-    
-    if (!offerData.position || !offerData.offer_content) {
-      alert('Please fill in Position and Offer Content fields.');
-      return;
-    }
-    
-    setSendingOffer(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        alert('Authentication required. Please log in again.');
-        setSendingOffer(false);
-        return;
-      }
-
-      const benefitsList = offerData.benefits 
-        ? offerData.benefits.split(',').map(b => b.trim()).filter(b => b)
-        : [];
-      
-      const requestBody = {
-        candidate_id: candidate.candidate_id,
-        candidate_name: candidate.name,
-        candidate_email: candidate.email,
-        template_id: selectedTemplateId ? parseInt(selectedTemplateId) : null,
-        position: offerData.position,
-        department: offerData.department || null,
-        salary_offered: offerData.salary_offered ? parseFloat(offerData.salary_offered) : null,
-        benefits: benefitsList,
-        offer_content: offerData.offer_content,
-        expiry_days: parseInt(offerData.expiry_days) || 30,
-        notes: offerData.notes || null
-      };
-
-      const response = await fetch(`${BASE_URL}/api/offers/offer-tracking/send-offer`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (response.ok) {
-        alert(`✅ Offer sent successfully to ${candidate.name}!`);
-        setShowOfferModal(false);
-        fetchCandidates();
-      } else {
-        alert(`❌ Failed to send offer`);
-      }
-    } catch (error) {
-      console.error('Error sending offer:', error);
-      alert('Error sending offer. Please try again.');
-    } finally {
-      setSendingOffer(false);
     }
   };
 
@@ -711,9 +571,9 @@ const ReviewAIInterview = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={() => handleAction('Shortlist')} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-all">
+                  <button onClick={() => handleAction('Select')} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-all">
                     <FiCheckCircle className="h-4 w-4" />
-                    Shortlist
+                    Select
                   </button>
                   <button onClick={() => handleAction('Reject')} className="flex items-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-sm font-medium transition-all">
                     <FiXCircle className="h-4 w-4" />
@@ -822,143 +682,6 @@ const ReviewAIInterview = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={showOfferModal}
-        onClose={() => setShowOfferModal(false)}
-        title={`Send Job Offer to ${candidate?.name || ''}`}
-        size="lg"
-      >
-        {candidate && (
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Offer Template <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={selectedTemplateId}
-                onChange={(e) => handleTemplateSelect(e.target.value)}
-                disabled={sendingOffer}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary bg-white"
-              >
-                <option value="">-- Select a Template --</option>
-                {offerTemplates.map(template => (
-                  <option key={template.id} value={template.id}>
-                    {template.name} {template.position ? `- ${template.position}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Position <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={offerData.position}
-                onChange={(e) => setOfferData({ ...offerData, position: e.target.value })}
-                disabled={sendingOffer}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-              <input
-                type="text"
-                value={offerData.department}
-                onChange={(e) => setOfferData({ ...offerData, department: e.target.value })}
-                disabled={sendingOffer}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Salary Offered</label>
-              <input
-                type="number"
-                value={offerData.salary_offered}
-                onChange={(e) => setOfferData({ ...offerData, salary_offered: e.target.value })}
-                disabled={sendingOffer}
-                placeholder="e.g., 50000"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Benefits (comma-separated)</label>
-              <input
-                type="text"
-                value={offerData.benefits}
-                onChange={(e) => setOfferData({ ...offerData, benefits: e.target.value })}
-                disabled={sendingOffer}
-                placeholder="e.g., Health Insurance, 401k, Paid Time Off"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Offer Content <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                rows="6"
-                value={offerData.offer_content}
-                onChange={(e) => setOfferData({ ...offerData, offer_content: e.target.value })}
-                disabled={sendingOffer}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Offer Validity (Days)</label>
-              <input
-                type="number"
-                value={offerData.expiry_days}
-                onChange={(e) => setOfferData({ ...offerData, expiry_days: e.target.value })}
-                disabled={sendingOffer}
-                min="1"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Internal Notes (Optional)</label>
-              <textarea
-                rows="2"
-                value={offerData.notes}
-                onChange={(e) => setOfferData({ ...offerData, notes: e.target.value })}
-                disabled={sendingOffer}
-                placeholder="Internal notes (not sent to candidate)"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-              <button
-                onClick={() => setShowOfferModal(false)}
-                disabled={sendingOffer}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSendOffer}
-                disabled={sendingOffer || !selectedTemplateId || !offerData.position || !offerData.offer_content}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-all disabled:opacity-50"
-              >
-                {sendingOffer ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                ) : (
-                  <FiCheckCircle className="h-4 w-4" />
-                )}
-                Send Offer
-              </button>
             </div>
           </div>
         )}
