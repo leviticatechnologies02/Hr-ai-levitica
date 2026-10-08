@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import StatCard from '../../../shared/components/StatCard';
-import { employeeAPI, jobAPI, candidateAPI, hrAPI } from '../../../shared/utils/api';
+import { apiCall, employeeAPI, jobAPI, hrAPI } from '../../../shared/utils/api';
 
 // Admin sees company-wide modules (Recruitment + CRM + HR + Productivity +
 // Company Settings) but scoped to their own branch — the branch filter is
@@ -27,7 +27,7 @@ const AdminDashboardOverview = () => {
       const [employeesRes, jobsRes, candidatesRes, leavesRes] = await Promise.allSettled([
         employeeAPI.list(),
         jobAPI.list(),
-        candidateAPI.list(),
+        apiCall('/api/recruiter_dashboard/candidates'),
         hrAPI.leave.list(),
       ]);
 

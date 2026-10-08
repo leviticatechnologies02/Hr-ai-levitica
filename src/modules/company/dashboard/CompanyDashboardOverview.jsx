@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import StatCard from '../../../shared/components/StatCard';
-import { employeeAPI, jobAPI, candidateAPI, locationAPI } from '../../../shared/utils/api';
+import { apiCall, employeeAPI, jobAPI, locationAPI } from '../../../shared/utils/api';
 
 // Company sees everything, combined across ALL branches (no X-Location-Id
 // filter is forced server-side for this role — see api.js / get_current_location_id).
@@ -27,11 +27,17 @@ const CompanyDashboardOverview = () => {
         employeeAPI.list(),
         locationAPI.list(),
         jobAPI.list(),
-        candidateAPI.list(),
+        apiCall('/api/recruiter_dashboard/candidates'),
       ]);
 
       const employees = employeesRes.status === 'fulfilled' && Array.isArray(employeesRes.value) ? employeesRes.value : [];
-      const branches = branchesRes.status === 'fulfilled' && Array.isArray(branchesRes.value) ? branchesRes.value : [];
+      // /company-settings/locations/ returns { locations: [...], total: N } (not a bare array).
+      const branchesPayload = branchesRes.status === 'fulfilled' ? branchesRes.value : null;
+      const branches = Array.isArray(branchesPayload)
+        ? branchesPayload
+        : Array.isArray(branchesPayload?.locations)
+          ? branchesPayload.locations
+          : [];
       const jobs = jobsRes.status === 'fulfilled' && Array.isArray(jobsRes.value) ? jobsRes.value : [];
       const candidates = candidatesRes.status === 'fulfilled' && Array.isArray(candidatesRes.value) ? candidatesRes.value : [];
 
@@ -54,6 +60,11 @@ const CompanyDashboardOverview = () => {
 
   useEffect(() => {
     fetchData();
+    // Re-fetch when returning to this tab/page, so a branch added or deleted in
+    // Company Settings is reflected without a manual refresh.
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   if (data.loading) {

@@ -348,6 +348,20 @@ const CompanySettings = () => {
   ]);
 
   // ---------------- LOCATION SETTINGS ----------------
+  // The ⋮ menu on each location card is React-controlled. It used to rely on
+  // Bootstrap's data-bs-toggle="dropdown", but Bootstrap's JS bundle is not
+  // loaded in this app (it's commented out in main.jsx), so the menu never
+  // opened and Edit / Set as Default / Delete were unreachable.
+  const [openLocationMenuId, setOpenLocationMenuId] = useState(null);
+  useEffect(() => {
+    if (openLocationMenuId === null) return undefined;
+    const closeOnOutsideClick = (e) => {
+      if (!e.target.closest('[data-location-menu]')) setOpenLocationMenuId(null);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
+  }, [openLocationMenuId]);
+
  const [locations, setLocations] = useState([
     { 
       id: 1, 
@@ -1709,24 +1723,41 @@ const CompanySettings = () => {
                               </h6>
                               <small className="text-muted">{location.address}</small>
                             </div>
-                            <div className="dropdown">
-                              <button className="btn btn-sm btn-outline-secondary border-0" type="button" data-bs-toggle="dropdown">
+                            <div className="dropdown" data-location-menu>
+                              <button
+                                className="btn btn-sm btn-outline-secondary border-0"
+                                type="button"
+                                aria-haspopup="true"
+                                aria-expanded={openLocationMenuId === location.id}
+                                onClick={() =>
+                                  setOpenLocationMenuId(openLocationMenuId === location.id ? null : location.id)
+                                }
+                              >
                                 <Icon icon="heroicons:ellipsis-vertical" />
                               </button>
-                              <ul className="dropdown-menu">
+                              <ul
+                                className={`dropdown-menu dropdown-menu-end ${openLocationMenuId === location.id ? 'show' : ''}`}
+                              >
                                 <li>
                                   <button 
                                     className="dropdown-item"
-                                    onClick={() => setDefaultLocation(location.id)}
+                                    disabled={location.isDefault}
+                                    onClick={() => {
+                                      setOpenLocationMenuId(null);
+                                      setDefaultLocation(location.id);
+                                    }}
                                   >
                                     <Icon icon="heroicons:star" className="me-2" />
-                                    Set as Default
+                                    {location.isDefault ? 'Default Location' : 'Set as Default'}
                                   </button>
                                 </li>
                                 <li>
                                   <button
                                     className="dropdown-item"
-                                    onClick={() => handleOpenEditLocation(location)}
+                                    onClick={() => {
+                                      setOpenLocationMenuId(null);
+                                      handleOpenEditLocation(location);
+                                    }}
                                   >
                                     <Icon icon="heroicons:pencil-square" className="me-2" />
                                     Edit
@@ -1735,7 +1766,12 @@ const CompanySettings = () => {
                                 <li>
                                   <button 
                                     className="dropdown-item text-danger"
-                                    onClick={() => removeLocation(location.id)}
+                                    onClick={() => {
+                                      setOpenLocationMenuId(null);
+                                      if (window.confirm(`Delete branch "${location.name}"? This cannot be undone.`)) {
+                                        removeLocation(location.id);
+                                      }
+                                    }}
                                   >
                                     <Icon icon="heroicons:trash" className="me-2" />
                                     Delete
