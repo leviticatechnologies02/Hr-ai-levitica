@@ -64,7 +64,11 @@ const CompanyDashboardOverview = () => {
     // Company Settings is reflected without a manual refresh.
     const onFocus = () => fetchData();
     window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    window.addEventListener('branches-changed', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('branches-changed', onFocus);
+    };
   }, []);
 
   if (data.loading) {

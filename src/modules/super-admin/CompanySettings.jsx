@@ -362,38 +362,9 @@ const CompanySettings = () => {
     return () => document.removeEventListener('mousedown', closeOnOutsideClick);
   }, [openLocationMenuId]);
 
- const [locations, setLocations] = useState([
-    { 
-      id: 1, 
-      name: 'Headquarters', 
-      address: '123 Tech Street, Silicon Valley, CA 94000',
-      timezone: 'America/Los_Angeles',
-      weekendDays: ['Saturday', 'Sunday'],
-      workingHours: { start: '09:00', end: '18:00' },
-      isDefault: true,
-      status: 'active'
-    },
-    { 
-      id: 2, 
-      name: 'India Development Center', 
-      address: '456 IT Park, Bangalore, Karnataka 560001',
-      timezone: 'Asia/Kolkata',
-      weekendDays: ['Sunday'],
-      workingHours: { start: '09:30', end: '18:30' },
-      isDefault: false,
-      status: 'active'
-    },
-    { 
-      id: 3, 
-      name: 'EMEA Office', 
-      address: '789 Business Ave, London, UK EC1A',
-      timezone: 'Europe/London',
-      weekendDays: ['Saturday', 'Sunday'],
-      workingHours: { start: '08:30', end: '17:30' },
-      isDefault: false,
-      status: 'active'
-    }
-  ]);
+ const [locations, setLocations] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+  const [locationsError, setLocationsError] = useState('');
 
   // ---------------- FINANCIAL YEAR SETTINGS ----------------
   const [financialYear, setFinancialYear] = useState({
@@ -784,21 +755,28 @@ const CompanySettings = () => {
     loadNotifications();
   }, []);
 
-  // Load real locations list on mount.
-  useEffect(() => {
-    const loadLocations = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/company-settings/locations/`, {
-          headers: authHeader(),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setLocations(data.locations.map(fromBackendLocation));
-        }
-      } catch (err) {
-        console.error(err);
+  // Single source of truth: always read the branch list from the server.
+  const loadLocations = async () => {
+    try {
+      setLocationsError('');
+      const res = await fetch(`${BASE_URL}/company-settings/locations/`, {
+        headers: authHeader(),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(apiErrorText(err.detail, `Could not load branches (HTTP ${res.status})`));
       }
-    };
+      const data = await res.json();
+      setLocations((data.locations || []).map(fromBackendLocation));
+    } catch (err) {
+      console.error(err);
+      setLocationsError(err.message || 'Could not load branches');
+    } finally {
+      setLocationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadLocations();
   }, []);
 
@@ -854,7 +832,7 @@ const CompanySettings = () => {
         throw new Error(apiErrorText(err.detail, 'Failed to add location'));
       }
       const created = await res.json();
-      setLocations([...locations, fromBackendLocation(created)]);
+      await loadLocations();
       window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
       setShowAddLocation(false);
       setNewLocation({
@@ -900,7 +878,7 @@ const CompanySettings = () => {
         throw new Error(apiErrorText(err.detail, 'Failed to update location'));
       }
       const updated = await res.json();
-      setLocations(locations.map(loc => (loc.id === editingLocationId ? fromBackendLocation(updated) : loc)));
+      await loadLocations();
       window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
       setShowEditLocation(false);
       setEditingLocationId(null);
@@ -1147,7 +1125,7 @@ const CompanySettings = () => {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Failed to delete location');
       }
-      setLocations(locations.filter(loc => loc.id !== id));
+      await loadLocations();
       window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
     } catch (err) {
       alert(`Failed to delete location: ${err.message}`);
@@ -1196,10 +1174,7 @@ const CompanySettings = () => {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Failed to set default location');
       }
-      setLocations(locations.map(loc => ({
-        ...loc,
-        isDefault: loc.id === id
-      })));
+      await loadLocations();
       window.dispatchEvent(new Event('branches-changed')); // top-bar branch list + dashboards reload
     } catch (err) {
       alert(`Failed to set default location: ${err.message}`);
@@ -1734,6 +1709,18 @@ const CompanySettings = () => {
                   </button>
                 </div>
 
+                {locationsLoading && (
+                  <div className="text-muted small mb-3">Loading branches...</div>
+                )}
+                {locationsError && (
+                  <div className="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+                    <span>Could not load branches: {locationsError}</span>
+                    <button type="button" className="btn btn-sm btn-outline-danger" onClick={loadLocations}>Retry</button>
+                  </div>
+                )}
+                {!locationsLoading && !locationsError && locations.length === 0 && (
+                  <div className="text-muted mb-3">No branches yet. Click "Add Location" to create your first branch.</div>
+                )}
                 <div className="row g-3">
                   {locations.map(location => (
                     <div key={location.id} className="col-12 col-md-6 col-lg-4">

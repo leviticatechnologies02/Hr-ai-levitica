@@ -43,7 +43,15 @@ const BranchSelector = () => {
         .then((res) => {
           if (cancelled) return;
           const list = res?.locations || res || [];
-          setBranches(Array.isArray(list) ? list : []);
+          const arr = Array.isArray(list) ? list : [];
+          setBranches(arr);
+          // A stale selection (branch deleted) would send an invalid X-Location-Id
+          // and make every list look empty, so fall back to "All Branches".
+          const current = getSelectedBranchId();
+          if (current && !arr.some((b) => String(b.id) === String(current))) {
+            setSelectedBranchId(null);
+            setSelected(null);
+          }
         })
         .catch(() => {
           if (!cancelled) setBranches([]);
