@@ -60,8 +60,8 @@ const CompanyDashboardOverview = () => {
 
   useEffect(() => {
     fetchData();
-    // Re-fetch when returning to this tab/page, so a branch added or deleted in
-    // Company Settings is reflected without a manual refresh.
+    // Re-fetch when returning to this tab/page, or when a branch is added /
+    // edited / deleted in Company Settings.
     const onFocus = () => fetchData();
     window.addEventListener('focus', onFocus);
     window.addEventListener('branches-changed', onFocus);

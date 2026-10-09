@@ -8,11 +8,8 @@ import { getSelectedBranchId, setSelectedBranchId } from '../utils/branch';
 // - 'company': dropdown to switch between "All Branches" and any single
 //   branch. Selecting a branch narrows every list/report to that branch via
 //   the X-Location-Id header (see api.js); "All Branches" clears it.
-// - 'admin': a plain read-only badge with their one branch name. They are
-//   branch-locked server-side regardless of any header, so there is
-//   nothing for them to switch — this just makes their scope visible.
-// - anyone else (hr_admin/recruiter/candidate/superadmin outside the
-//   company dashboard): renders nothing.
+// - 'admin': a plain read-only badge with their one branch name.
+// - anyone else: renders nothing.
 const BranchSelector = () => {
   const role = getUserRole();
   const [branches, setBranches] = useState([]);
@@ -112,9 +109,7 @@ const BranchSelector = () => {
     const next = value === 'all' ? null : value;
     setSelected(next);
     setSelectedBranchId(next);
-    // Simplest correct way to make every already-mounted list/report page
-    // (which fetched its data before the branch changed) reflect the new
-    // scope without threading a live subscription through every page.
+    // Reload so every already-mounted list/report page re-fetches with the new scope.
     window.location.reload();
   };
 
