@@ -15,6 +15,7 @@ const BranchSelector = () => {
   const [branches, setBranches] = useState([]);
   const [selected, setSelected] = useState(getSelectedBranchId());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const showSelector = role === 'company';
   const showBadge = role === 'admin';
@@ -45,13 +46,17 @@ const BranchSelector = () => {
           // A stale selection (branch deleted) would send an invalid X-Location-Id
           // and make every list look empty, so fall back to "All Branches".
           const current = getSelectedBranchId();
+          setLoadError('');
           if (current && !arr.some((b) => String(b.id) === String(current))) {
             setSelectedBranchId(null);
             setSelected(null);
+            window.location.reload(); // once: lists already fetched with the stale branch id must refetch
           }
         })
-        .catch(() => {
-          if (!cancelled) setBranches([]);
+        .catch((err) => {
+          if (cancelled) return;
+          setBranches([]);
+          setLoadError((err && err.message) || 'Could not load branches');
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -101,6 +106,15 @@ const BranchSelector = () => {
       >
         📍 {branchName}
       </span>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <select disabled title={loadError} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #f59e0b',
+        fontSize: 13, background: '#fffbeb', color: '#92400e' }}>
+        <option>Branches unavailable</option>
+      </select>
     );
   }
 

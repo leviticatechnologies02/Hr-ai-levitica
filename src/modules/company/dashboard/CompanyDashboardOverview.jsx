@@ -30,6 +30,13 @@ const CompanyDashboardOverview = () => {
         apiCall('/api/recruiter_dashboard/candidates'),
       ]);
 
+      // A failed request used to be counted as 0. Name what failed so "0" always means "really none".
+      const failed = [
+        ['Employees', employeesRes], ['Branches', branchesRes], ['Jobs', jobsRes], ['Candidates', candidatesRes],
+      ]
+        .filter(([, r]) => r.status === 'rejected')
+        .map(([name, r]) => `${name}: ${r.reason?.message || 'request failed'}`);
+
       const employees = employeesRes.status === 'fulfilled' && Array.isArray(employeesRes.value) ? employeesRes.value : [];
       // /company-settings/locations/ returns { locations: [...], total: N } (not a bare array).
       const branchesPayload = branchesRes.status === 'fulfilled' ? branchesRes.value : null;
@@ -48,7 +55,7 @@ const CompanyDashboardOverview = () => {
         activeJobs: jobs.filter((j) => (j.status || '').toLowerCase() === 'active').length,
         totalCandidates: candidates.length,
         loading: false,
-        error: null,
+        error: failed.length ? `Some numbers could not be loaded (${failed.join(' | ')}). If this says 401, please log in again.` : null,
       });
     } catch (err) {
       console.error('Company dashboard fetch error:', err);

@@ -6,6 +6,9 @@ import './styles/index.css';
 import App from './App';
 import ChatBot from "./shared/components/ChatBot";
 import ScrollToTop from './shared/components/ScrollToTop';
+import { installBranchHeaderOnFetch } from './shared/utils/branch';
+
+installBranchHeaderOnFetch();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
