@@ -13,31 +13,31 @@ const authHeaders = () => {
 };
 
 const helpdeskAPI = {
-  stats: () => fetch(`${BASE_URL}/helpdesk/stats`).then((r) => r.json()),
-  agents: () => fetch(`${BASE_URL}/helpdesk/agents`).then((r) => r.json()),
-  list: () => fetch(`${BASE_URL}/helpdesk/?limit=500`).then((r) => r.json()),
-  create: (payload) => fetch(`${BASE_URL}/helpdesk/`, {
+  stats: () => fetch(`${BASE_URL}/api/hr-ops/helpdesk/stats`, { headers: { ...authHeaders() } }).then((r) => r.json()),
+  agents: () => fetch(`${BASE_URL}/api/hr-ops/helpdesk/agents`, { headers: { ...authHeaders() } }).then((r) => r.json()),
+  list: () => fetch(`${BASE_URL}/api/hr-ops/helpdesk/?limit=500`, { headers: { ...authHeaders() } }).then((r) => r.json()),
+  create: (payload) => fetch(`${BASE_URL}/api/hr-ops/helpdesk/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   }),
-  update: (id, payload) => fetch(`${BASE_URL}/helpdesk/${id}`, {
+  update: (id, payload) => fetch(`${BASE_URL}/api/hr-ops/helpdesk/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   }),
-  start: (id, payload) => fetch(`${BASE_URL}/helpdesk/${id}/start`, {
+  start: (id, payload) => fetch(`${BASE_URL}/api/hr-ops/helpdesk/${id}/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   }),
-  resolve: (id, resolution) => fetch(`${BASE_URL}/helpdesk/${id}/resolve`, {
+  resolve: (id, resolution) => fetch(`${BASE_URL}/api/hr-ops/helpdesk/${id}/resolve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ resolution }),
   }),
-  close: (id) => fetch(`${BASE_URL}/helpdesk/${id}/close`, { method: 'POST', headers: { ...authHeaders() } }),
-  reopen: (id) => fetch(`${BASE_URL}/helpdesk/${id}/reopen`, { method: 'POST', headers: { ...authHeaders() } }),
+  close: (id) => fetch(`${BASE_URL}/api/hr-ops/helpdesk/${id}/close`, { method: 'POST', headers: { ...authHeaders() } }),
+  reopen: (id) => fetch(`${BASE_URL}/api/hr-ops/helpdesk/${id}/reopen`, { method: 'POST', headers: { ...authHeaders() } }),
 };
 
 // Real backend enum values — TicketCategory (9 fixed values), TicketPriority

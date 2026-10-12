@@ -31,7 +31,7 @@ const PipelineView = () => {
     setLoading(true);
     try {
       const [applicationsRes, jobsRes] = await Promise.all([
-        fetch(`${BASE_URL}/api/candidates/applications`, {
+        fetch(`${BASE_URL}/api/candidates/applications/`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -265,11 +265,22 @@ const PipelineView = () => {
     });
 
     try {
+      const targetStage = defaultStages.find(st => st.id === targetStageId);
       const updateData = {
+        // backend stores the stage name (Applied, Screening, Interview, Selected, Offer, Hired)
+        stage: targetStage ? targetStage.name : undefined,
         status: targetStageId === 'hired' ? 'hired' : (targetStageId === 'applied' ? 'applied' : 'pipeline')
       };
 
-      await fetch(`${BASE_URL}/api/candidates/applications/${candidate.applicationId}`, {
+      // Rows that only exist as a Candidate (no application yet) are updated by candidate id.
+      const hasApplication = Number.isInteger(candidate.applicationId);
+      if (!hasApplication && !candidate.candidateId) {
+        throw new Error('This record has no application or candidate id to update.');
+      }
+      const stageUrl = hasApplication
+        ? `${BASE_URL}/api/candidates/applications/${candidate.applicationId}`
+        : `${BASE_URL}/api/candidates/applications/by-candidate/${candidate.candidateId}`;
+      const stageRes = await fetch(stageUrl, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -277,6 +288,7 @@ const PipelineView = () => {
         },
         body: JSON.stringify(updateData)
       });
+      if (!stageRes.ok) throw new Error(`Stage update failed (${stageRes.status})`);
 
       fetchData();
     } catch (error) {

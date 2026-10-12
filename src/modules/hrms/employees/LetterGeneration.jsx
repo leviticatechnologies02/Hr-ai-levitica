@@ -13,24 +13,24 @@ const authHeaders = () => {
 };
 
 const letterAPI = {
-  dashboard: () => fetch(`${BASE_URL}/letter-generation/dashboard`).then(r => r.json()),
-  templates: () => fetch(`${BASE_URL}/letter-generation/templates`).then(r => r.json()),
-  list: () => fetch(`${BASE_URL}/letter-generation/generate`).then(r => r.json()),
-  generate: (payload) => fetch(`${BASE_URL}/letter-generation/generate`, {
+  dashboard: () => fetch(`${BASE_URL}/api/hr-ops/letter-generation/dashboard`, { headers: { ...authHeaders() } }).then(r => r.json()),
+  templates: () => fetch(`${BASE_URL}/api/hr-ops/letter-generation/templates`, { headers: { ...authHeaders() } }).then(r => r.json()),
+  list: () => fetch(`${BASE_URL}/api/hr-ops/letter-generation/generate`, { headers: { ...authHeaders() } }).then(r => r.json()),
+  generate: (payload) => fetch(`${BASE_URL}/api/hr-ops/letter-generation/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   }),
-  update: (id, payload) => fetch(`${BASE_URL}/letter-generation/archive/${id}`, {
+  update: (id, payload) => fetch(`${BASE_URL}/api/hr-ops/letter-generation/archive/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   }),
-  remove: (id) => fetch(`${BASE_URL}/letter-generation/archive/${id}`, {
+  remove: (id) => fetch(`${BASE_URL}/api/hr-ops/letter-generation/archive/${id}`, {
     method: 'DELETE',
     headers: { ...authHeaders() },
   }),
-  recordDownload: (id) => fetch(`${BASE_URL}/letter-generation/archive/${id}/download`, {
+  recordDownload: (id) => fetch(`${BASE_URL}/api/hr-ops/letter-generation/archive/${id}/download`, {
     method: 'POST',
     headers: { ...authHeaders() },
   }),

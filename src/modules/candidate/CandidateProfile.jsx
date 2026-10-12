@@ -12,7 +12,7 @@ const CandidateProfile = () => {
 
   useEffect(() => {
     if (!token) { navigate('/candidate/login'); return; }
-    fetch(`${BASE_URL}/api/candidates/profile`, {
+    fetch(`${BASE_URL}/api/candidates/profile/`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -22,7 +22,7 @@ const CandidateProfile = () => {
   }, [token, navigate]);
 
   const handleSave = async () => {
-    const res = await fetch(`${BASE_URL}/api/candidates/profile`, {
+    const res = await fetch(`${BASE_URL}/api/candidates/profile/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(profile),

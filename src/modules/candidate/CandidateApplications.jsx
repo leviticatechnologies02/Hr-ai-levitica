@@ -15,7 +15,7 @@ const CandidateApplications = () => {
 
   useEffect(() => {
     if (!token) { navigate('/candidate/login'); return; }
-    fetch(`${BASE_URL}/api/candidates/applications`, {
+    fetch(`${BASE_URL}/api/candidates/applications/`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())

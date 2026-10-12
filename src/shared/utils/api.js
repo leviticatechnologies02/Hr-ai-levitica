@@ -310,7 +310,7 @@ export const assetsAPI = {
     }),
   updateAsset: (id, data) =>
     apiCall(`/assets/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }),
@@ -385,11 +385,11 @@ export const candidateAPI = {
 
   // Get candidate profile
   getProfile: () => 
-    apiCall('/api/candidates/profile'),
+    apiCall('/api/candidates/profile/'),
 
   // Update candidate profile
   updateProfile: (profileData) => 
-    apiCall('/api/candidates/profile', {
+    apiCall('/api/candidates/profile/', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profileData)
@@ -397,16 +397,18 @@ export const candidateAPI = {
 
   // Get job applications
   getApplications: () => 
-    apiCall('/api/candidates/applications'),
+    apiCall('/api/candidates/applications/'),
 
   // Get saved jobs
   getSavedJobs: () => 
-    apiCall('/api/candidates/saved-jobs'),
+    apiCall('/api/candidates/saved-jobs/'),
 
   // Save job
   saveJob: (jobId) => 
-    apiCall(`/api/candidates/save-job/${jobId}`, {
-      method: 'POST'
+    apiCall('/api/candidates/saved-jobs/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId })
     })
 };
 
@@ -446,7 +448,7 @@ export const pipelineAPI = {
 
   // Move candidate to stage
   moveCandidate: (candidateId, stageId) => 
-    apiCall(`/api/pipeline/candidates/${candidateId}/move`, {
+    apiCall(`/api/pipeline/candidates/${candidateId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stage_id: stageId })
@@ -467,7 +469,7 @@ export const analyticsAPI = {
 
   // Get recruiter dashboard stats
   getRecruiterStats: () => 
-    apiCall('/api/recruiter_dashboard/analytics'),
+    apiCall('/api/recruiter_dashboard/analytics/applications-over-time'),
 
   // Get applications over time
   getApplicationsOverTime: (days = 30) => 
@@ -605,7 +607,7 @@ export const assessmentAPI = {
 
   // Get assessment results
   getResults: (candidateId) => 
-    apiCall(`/api/assessment_results/candidates/${candidateId}`),
+    apiCall(`/api/assessment_results/api/candidates/${candidateId}`),
 
   // Aptitude Test APIs
   aptitude: {
@@ -802,14 +804,18 @@ export const hrAPI = {
     list: () => 
       apiCall('/api/leave'),
     
-    approve: (leaveId) => 
-      apiCall(`/api/leave/${leaveId}/approve`, {
-        method: 'PATCH'
+    approve: (leaveId, approvedBy) => 
+      apiCall(`/api/leave/${leaveId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Approved', ...(approvedBy != null && { approved_by: approvedBy }) })
       }),
     
-    reject: (leaveId) => 
-      apiCall(`/api/leave/${leaveId}/reject`, {
-        method: 'PATCH'
+    reject: (leaveId, reason) => 
+      apiCall(`/api/leave/${leaveId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Rejected', ...(reason && { rejection_reason: reason }) })
       })
   },
 
@@ -839,7 +845,7 @@ export const hrAPI = {
       apiCall('/api/candidates'),
     
     uploadDocument: (candidateId, documentData) => 
-      apiCall(`/api/uploads/${candidateId}`, {
+      apiCall(`/api/uploads/upload/${candidateId}`, {
         method: 'POST',
         body: documentData // FormData
       })
@@ -993,7 +999,7 @@ export const resumeAPI = {
     const formData = new FormData();
     formData.append('file', resumeFile);
     
-    return apiCall('/api/resume/parse', {
+    return apiCall('/api/resume/process', {
       method: 'POST',
       body: formData
     });
@@ -1428,7 +1434,7 @@ export const adminAPI = {
 
   // Create user
   createUser: (userData) => 
-    apiCall('/api/admin/users', {
+    apiCall('/api/admin/superadmin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData)
@@ -1436,7 +1442,7 @@ export const adminAPI = {
 
   // Update user
   updateUser: (userId, userData) => 
-    apiCall(`/api/admin/users/${userId}`, {
+    apiCall(`/api/admin/superadmin/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData)
@@ -1444,7 +1450,7 @@ export const adminAPI = {
 
   // Delete user
   deleteUser: (userId) => 
-    apiCall(`/api/admin/users/${userId}`, {
+    apiCall(`/api/admin/superadmin/users/${userId}`, {
       method: 'DELETE'
     })
 };
@@ -1554,26 +1560,23 @@ export const attendanceAPI = {
   updateAttendanceSettings: (data) => apiCall('/api/attendance/capture/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   resetAttendanceSettings: () => apiCall('/api/attendance/capture/settings/reset', { method: 'POST' }),
 
-  // Bulk CSV upload (routers/.../daily_attendance.py). NOTE: this router is
-  // mounted at /api/attendance with an internal prefix of /attendance/daily
-  // too, so the real final path really does double up "attendance" — not
-  // a typo here, matches the backend as written.
-  bulkUploadAttendance: (rows) => apiCall('/api/attendance/attendance/daily/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }) }),
+  // Bulk CSV upload (routers/.../daily_attendance.py): mounted at /api/attendance
+  // with internal prefix /daily -> /api/attendance/daily/upload.
+  bulkUploadAttendance: (rows) => apiCall('/api/attendance/daily/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }) }),
 
-  // Monthly Attendance (routers/.../monthly_attendance.py — also double-
-  // prefixed the same way daily_attendance.py is: mounted at /api/attendance
-  // with an internal prefix of /attendance/monthly).
-  getMonthlyFilterOptions: () => apiCall('/api/attendance/attendance/monthly/filter-options'),
-  getMonthlyCalendar: (employeeId, month, year) => apiCall(`/api/attendance/attendance/monthly/calendar?employee_id=${employeeId}&month=${month}&year=${year}`),
+  // Monthly Attendance (routers/.../monthly_attendance.py): mounted at
+  // /api/attendance with internal prefix /monthly.
+  getMonthlyFilterOptions: () => apiCall('/api/attendance/monthly/filter-options'),
+  getMonthlyCalendar: (employeeId, month, year) => apiCall(`/api/attendance/monthly/calendar?employee_id=${employeeId}&month=${month}&year=${year}`),
   listMonthlyCalendars: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return apiCall(`/api/attendance/attendance/monthly/calendars?${qs}`);
+    return apiCall(`/api/attendance/monthly/calendars?${qs}`);
   },
-  replaceMonthlyDay: (employeeId, attDate, data) => apiCall(`/api/attendance/attendance/monthly/${employeeId}/replace?att_date=${attDate}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  recalculateMonthly: (employeeId, month, year) => apiCall(`/api/attendance/attendance/monthly/${employeeId}/recalculate?month=${month}&year=${year}`, { method: 'POST' }),
+  replaceMonthlyDay: (employeeId, attDate, data) => apiCall(`/api/attendance/monthly/${employeeId}/replace?att_date=${attDate}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  recalculateMonthly: (employeeId, month, year) => apiCall(`/api/attendance/monthly/${employeeId}/recalculate?month=${month}&year=${year}`, { method: 'POST' }),
   downloadMonthlyCsvUrl: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return `${BASE_URL}/api/attendance/attendance/monthly/download?${qs}`;
+    return `${BASE_URL}/api/attendance/monthly/download?${qs}`;
   },
 
 
@@ -1780,15 +1783,15 @@ export const employeeAPI = {
   getMaster: (id) => apiCall(`/api/employees/master/${id}`),
   updateMaster: (id, data) => apiCall(`/api/employees/master/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   deleteMaster: (id) => apiCall(`/api/employees/master/${id}`, { method: 'DELETE' }),
-  getDocuments: (employeeId) => apiCall(`/api/employees/documents/${employeeId}`),
+  getDocuments: (employeeId) => apiCall(`/api/employees/documents/employee/${employeeId}`),
   uploadDocument: (data) => apiCall('/api/employees/documents/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   verifyDocument: (docId) => apiCall(`/api/employees/documents/${docId}/verify`, { method: 'PATCH' }),
   deleteDocument: (docId) => apiCall(`/api/employees/documents/${docId}`, { method: 'DELETE' }),
-  listDepartments: () => apiCall('/api/employees/departments/'),
-  getDepartmentTree: () => apiCall('/api/employees/departments/tree'),
-  createDepartment: (data) => apiCall('/api/employees/departments/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updateDepartment: (id, data) => apiCall(`/api/employees/departments/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  deleteDepartment: (id) => apiCall(`/api/employees/departments/${id}`, { method: 'DELETE' }),
+  listDepartments: () => apiCall('/api/employees/org-hierarchy/departments'),
+  getDepartmentTree: () => apiCall('/api/employees/org-hierarchy/tree'),
+  createDepartment: (data) => apiCall('/api/employees/org-hierarchy/departments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateDepartment: (id, data) => apiCall(`/api/employees/org-hierarchy/departments/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  deleteDepartment: (id) => apiCall(`/api/employees/org-hierarchy/departments/${id}`, { method: 'DELETE' }),
 };
 
 // ==========================================
@@ -1923,7 +1926,7 @@ export const payrollAPI = {
 
   // ---------------- Payroll Processing: config + lock ----------------
   getPayrollConfig: () => apiCall('/api/payroll/processing/config'),
-  updatePayrollConfig: (data) => apiCall('/api/payroll/processing/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updatePayrollConfig: (data) => apiCall('/api/payroll/processing/config', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   lockPayroll: (reason, actionedBy) => apiCall('/api/payroll/processing/config/lock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, actioned_by: actionedBy }) }),
   unlockPayroll: (reason, actionedBy) => apiCall('/api/payroll/processing/config/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, actioned_by: actionedBy }) }),
   getLoanDashboardStats: () => apiCall('/api/payroll/loans/dashboard/stats'),
@@ -2051,8 +2054,8 @@ exportLoans: () =>
   updatePaymentFileEntry: (entryId, data) => apiCall(`/api/payroll/bank-transfer/payment-files/entries/${entryId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   bulkUpdatePaymentFileEntries: (data) => apiCall('/api/payroll/bank-transfer/payment-files/entries/bulk-update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   retryPaymentFileEntry: (entryId) => apiCall(`/api/payroll/bank-transfer/payment-files/entries/${entryId}/retry`, { method: 'PATCH' }),
-  listReimbursements: () => apiCall('/api/payroll/reimbursements/'),
-  createReimbursement: (data) => apiCall('/api/payroll/reimbursements/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listReimbursements: () => apiCall('/api/payroll/reimbursements/claims'),
+  createReimbursement: (data) => apiCall('/api/payroll/reimbursements/claims', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   listSettlements: () => apiCall('/api/payroll/final-settlements/'),
   createSettlement: (data) => apiCall('/api/payroll/final-settlements/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   getEmployeeSettlement: (employeeId) => apiCall(`/api/payroll/final-settlements/employee/${employeeId}`),
@@ -2342,19 +2345,19 @@ export const payrollIntegrationAPI = {
 export const hrOpsAPI = {
   listExits: () => apiCall('/api/hr-ops/exit-management/'),
   createExit: (data) => apiCall('/api/hr-ops/exit-management/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updateExit: (id, data) => apiCall(`/api/hr-ops/exit-management/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateExit: (id, data) => apiCall(`/api/hr-ops/exit-management/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   listNotice: () => apiCall('/api/hr-ops/notice-period/'),
   createNotice: (data) => apiCall('/api/hr-ops/notice-period/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  listLetters: () => apiCall('/api/hr-ops/letter-generation/'),
-  createLetter: (data) => apiCall('/api/hr-ops/letter-generation/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listLetters: () => apiCall('/api/hr-ops/letter-generation/requests'),
+  createLetter: (data) => apiCall('/api/hr-ops/letter-generation/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   listTickets: () => apiCall('/api/hr-ops/helpdesk/'),
   createTicket: (data) => apiCall('/api/hr-ops/helpdesk/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   listConfirmations: () => apiCall('/api/hr-ops/confirmations/'),
   createConfirmation: (data) => apiCall('/api/hr-ops/confirmations/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   listTransfers: () => apiCall('/api/hr-ops/transfers/'),
   createTransfer: (data) => apiCall('/api/hr-ops/transfers/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  listPromotions: () => apiCall('/api/hr-ops/promotions/'),
-  createPromotion: (data) => apiCall('/api/hr-ops/promotions/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listPromotions: () => apiCall('/api/hr-ops/promotions/probation'),
+  createPromotion: (data) => apiCall('/api/hr-ops/promotions/probation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
 };
 
 // ==========================================
@@ -2386,9 +2389,9 @@ export const formsAPI = {
   createRequest: (data) => apiCall('/api/forms/requests/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   listSurveys: () => apiCall('/api/forms/surveys/'),
   createSurvey: (data) => apiCall('/api/forms/surveys/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  listApprovals: () => apiCall('/api/forms/approvals/'),
-  createApproval: (data) => apiCall('/api/forms/approvals/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updateApproval: (id, data) => apiCall(`/api/forms/approvals/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  listApprovals: () => apiCall('/api/forms/approvals-dashboard/'),
+  createApproval: (data) => apiCall('/api/forms/approvals-dashboard/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateApproval: (id, data) => apiCall(`/api/forms/approvals-dashboard/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
 };
 
 // ==========================================
@@ -2397,11 +2400,11 @@ export const formsAPI = {
 export const superAdminAPI = {
   listRoles: () => apiCall('/api/super-admin/roles/'),
   createRole: (data) => apiCall('/api/super-admin/roles/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updateRole: (id, data) => apiCall(`/api/super-admin/roles/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateRole: (id, data) => apiCall(`/api/super-admin/roles/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   deleteRole: (id) => apiCall(`/api/super-admin/roles/${id}`, { method: 'DELETE' }),
   listTenants: () => apiCall('/api/super-admin/tenants/'),
   createTenant: (data) => apiCall('/api/super-admin/tenants/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  updateTenant: (id, data) => apiCall(`/api/super-admin/tenants/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  updateTenant: (id, data) => apiCall(`/api/super-admin/tenants/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   getCompanySettings: () => apiCall('/api/super-admin/company-settings/'),
   updateCompanySettings: (data) => apiCall('/api/super-admin/company-settings/', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
 };
@@ -2549,7 +2552,7 @@ export const buddyMentorAPI = {
 
   // { pairing_id, communication_type, date, duration_minutes?, next_checkin_date?, topics_discussed?, follow_up_actions?, additional_notes? }
   recordCommunication: (payload) =>
-    apiCall(`/buddy-mentor/pairings/${payload.pairing_id}/communications`, {
+    apiCall('/buddy-mentor/communications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
