@@ -20,6 +20,7 @@ import {
   FiAward
 } from 'react-icons/fi';
 import { BASE_URL, API_ENDPOINTS } from "../../../shared/constants/api.config";
+import { apiCall } from "../../../shared/utils/api";
 
 const CreateJob = () => {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ const CreateJob = () => {
     customDepartment: '',
     employmentType: '',
     location: '',
+    locationId: '',   // branch (CompanyLocation.id) this job is for
     isRemote: false,
     description: '',
     responsibilities: '',
@@ -56,6 +58,7 @@ const CreateJob = () => {
         customDepartment: '',
         employmentType: existingJobData.employment_type || '',
         location: existingJobData.location || '',
+        locationId: existingJobData.location_id ? String(existingJobData.location_id) : '',
         isRemote: existingJobData.is_remote || false,
         description: existingJobData.description || '',
         responsibilities: existingJobData.responsibilities || '',
@@ -73,6 +76,23 @@ const CreateJob = () => {
   }, [isEditMode, existingJobData]);
 
   const [errors, setErrors] = useState({});
+
+  // The company's branches for the Location dropdown. A job must belong to a real branch, otherwise it does not
+  // show when a company user selects that branch. With no branches yet, the old free-text box is used.
+  const [branches, setBranches] = useState([]);
+  useEffect(() => {
+    apiCall('/api/jobs/branches')
+      .then((list) => setBranches(Array.isArray(list) ? list : []))
+      .catch(() => setBranches([]));
+  }, []);
+  useEffect(() => {
+    if (isEditMode || branches.length === 0) return;
+    setFormData((prev) => {
+      if (prev.locationId) return prev;
+      const pick = branches.find((b) => b.is_own_branch) || (branches.length === 1 ? branches[0] : null);
+      return pick ? { ...prev, locationId: String(pick.id), location: pick.name } : prev;
+    });
+  }, [branches, isEditMode]);
   const [showPreview, setShowPreview] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
@@ -114,7 +134,9 @@ const CreateJob = () => {
     if (!formData.title.trim()) newErrors.title = 'Job title is required';
     if (!formData.department) newErrors.department = 'Department is required';
     if (!formData.employmentType) newErrors.employmentType = 'Employment type is required';
-    if (!formData.location.trim() && !formData.isRemote) newErrors.location = 'Location is required';
+    if (branches.length > 0) {
+      if (!formData.locationId && !formData.isRemote) newErrors.location = 'Please select a branch';
+    } else if (!formData.location.trim() && !formData.isRemote) newErrors.location = 'Location is required';
     if (!formData.description.trim()) newErrors.description = 'Job description is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -144,6 +166,7 @@ const CreateJob = () => {
         params.append('status', asDraft ? 'Draft' : 'Active');
 
         if (formData.location && formData.location.trim()) params.append('location', formData.location);
+        if (formData.locationId) params.append('branch_id', formData.locationId);
         if (formData.responsibilities && formData.responsibilities.trim()) params.append('responsibilities', formData.responsibilities);
         if (formData.requirements && formData.requirements.trim()) params.append('requirements', formData.requirements);
         if (formData.salaryMin && formData.salaryMin !== '') params.append('salary_min', formData.salaryMin);
@@ -180,6 +203,7 @@ const CreateJob = () => {
         payload.append('employmentType', formData.employmentType);
         payload.append('description', formData.description);
         if (formData.location && formData.location.trim()) payload.append('location', formData.location);
+        if (formData.locationId) payload.append('locationId', formData.locationId);
         if (formData.responsibilities && formData.responsibilities.trim()) payload.append('responsibilities', formData.responsibilities);
         if (formData.requirements && formData.requirements.trim()) payload.append('requirements', formData.requirements);
         if (formData.referenceId && formData.referenceId.trim()) payload.append('referenceId', formData.referenceId);
@@ -379,14 +403,30 @@ const CreateJob = () => {
                     <input type="checkbox" className="hidden" checked={formData.isRemote} onChange={(e) => handleInputChange('isRemote', e.target.checked)} />
                   </label>
                 </div>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${errors.location ? 'border-rose-500' : 'border-gray-200'} ${formData.isRemote ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
-                  placeholder="e.g. Hyderabad, India"
-                  disabled={formData.isRemote}
-                />
+                {branches.length > 0 ? (
+                  <select
+                    value={formData.locationId}
+                    onChange={(e) => {
+                      const chosen = branches.find((b) => String(b.id) === e.target.value);
+                      setFormData((prev) => ({ ...prev, locationId: e.target.value, location: chosen ? chosen.name : '' }));
+                    }}
+                    className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${errors.location ? 'border-rose-500' : 'border-gray-200'}`}
+                  >
+                    <option value="">Select branch</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}{b.city ? ` - ${b.city}` : ''}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${errors.location ? 'border-rose-500' : 'border-gray-200'} ${formData.isRemote ? 'bg-gray-100 opacity-60 cursor-not-allowed' : ''}`}
+                    placeholder="e.g. Hyderabad, India"
+                    disabled={formData.isRemote}
+                  />
+                )}
                 {errors.location && <p className="text-xs text-rose-500 mt-1 flex items-center gap-1"><FiAlertCircle className="h-3 w-3" /> {errors.location}</p>}
               </div>
             </div>
